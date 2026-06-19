@@ -1,0 +1,228 @@
+import userEvent from '@testing-library/user-event';
+import type MockAdapter from 'axios-mock-adapter';
+
+import { mockContentLibrary } from '@src/library-authoring/data/api.mocks';
+import { PublishedFilterContextProvider } from '@src/library-authoring/common/context/PublishedFilterContext';
+import {
+  initializeMocks,
+  render as baseRender,
+  screen,
+  waitFor,
+  within,
+  fireEvent,
+} from '../../testUtils';
+import { LibraryProvider } from '../common/context/LibraryContext';
+import { type CollectionHit } from '../../search-manager';
+import CollectionCard from './CollectionCard';
+import messages from './messages';
+import { getLibraryCollectionApiUrl, getLibraryCollectionRestoreApiUrl } from '../data/api';
+
+const mockNavigate = jest.fn();
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'), // use actual for all non-hook parts
+  useNavigate: () => mockNavigate,
+}));
+
+const collectionHitSample: CollectionHit = {
+  id: 'lib-collectionorg1democourse-collection-display-name',
+  type: 'collection',
+  contextKey: 'lb:org1:Demo_Course',
+  usageKey: 'lib-collection:org1:Demo_Course:collection-display-name',
+  org: 'org1',
+  blockId: 'collection-display-name',
+  breadcrumbs: [{ displayName: 'Demo Lib' }],
+  displayName: 'Collection Display Name',
+  description: 'Collection description',
+  formatted: {
+    displayName: 'Collection Display Formated Name',
+    description: 'Collection description',
+  },
+  created: 1722434322294,
+  modified: 1722434322294,
+  numChildren: 2,
+  published: {
+    numChildren: 1,
+  },
+  tags: {},
+};
+
+let axiosMock: MockAdapter;
+let mockShowToast;
+
+const { libraryId } = mockContentLibrary;
+
+const render = (
+  ui: React.ReactElement,
+  showOnlyPublished: boolean = false,
+  libId: string = libraryId,
+) =>
+  baseRender(ui, {
+    path: '/library/:libraryId',
+    params: { libraryId: libId },
+    extraWrapper: ({ children }) => (
+      <PublishedFilterContextProvider showOnlyPublished={showOnlyPublished}>
+        <LibraryProvider libraryId={libId}>
+          {children}
+        </LibraryProvider>
+      </PublishedFilterContextProvider>
+    ),
+  });
+
+describe('<CollectionCard />', () => {
+  beforeEach(() => {
+    const mocks = initializeMocks();
+    axiosMock = mocks.axiosMock;
+    mockShowToast = mocks.mockShowToast;
+    mockContentLibrary.applyMock();
+  });
+
+  it('should render the card with title and description', () => {
+    render(<CollectionCard hit={collectionHitSample} />);
+
+    expect(screen.queryByText('Collection Display Formated Name')).toBeInTheDocument();
+    expect(screen.queryByText('Collection description')).toBeInTheDocument();
+    expect(screen.queryByText('2')).toBeInTheDocument(); // Component count
+  });
+
+  it('should render published content', () => {
+    render(<CollectionCard hit={collectionHitSample} />, true);
+
+    expect(screen.queryByText('Collection Display Formated Name')).toBeInTheDocument();
+    expect(screen.queryByText('Collection description')).toBeInTheDocument();
+    expect(screen.queryByText('1')).toBeInTheDocument(); // Published Component Count
+  });
+
+  it('should navigate to the collection if the open menu clicked', async () => {
+    const user = userEvent.setup();
+    render(<CollectionCard hit={collectionHitSample} />);
+
+    // Open menu
+    expect(screen.getByTestId('collection-card-menu-toggle')).toBeInTheDocument();
+    await user.click(screen.getByTestId('collection-card-menu-toggle'));
+
+    // Open menu item
+    const openMenuItem = screen.getByRole('button', { name: 'Open' });
+    expect(openMenuItem).toBeInTheDocument();
+
+    fireEvent.click(openMenuItem);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith({
+        pathname: `/library/${libraryId}/collection/${collectionHitSample.blockId}`,
+        search: '',
+      });
+    });
+  });
+
+  it('should navigate to the collection if double clicked', async () => {
+    const user = userEvent.setup();
+    render(<CollectionCard hit={collectionHitSample} />);
+
+    // Card title
+    const cardTitle = screen.getByText('Collection Display Formated Name');
+    expect(cardTitle).toBeInTheDocument();
+    await user.dblClick(cardTitle);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith({
+        pathname: `/library/${libraryId}/collection/${collectionHitSample.blockId}`,
+        search: '',
+      });
+    });
+  });
+
+  it('should show confirmation box, delete collection and show toast to undo deletion', async () => {
+    const user = userEvent.setup();
+    const url = getLibraryCollectionApiUrl(collectionHitSample.contextKey, collectionHitSample.blockId);
+    axiosMock.onDelete(url).reply(204);
+    render(<CollectionCard hit={collectionHitSample} />);
+
+    expect(screen.queryByText('Collection Display Formated Name')).toBeInTheDocument();
+    // Open menu
+    let menuBtn = await screen.findByRole('button', { name: messages.collectionCardMenuAlt.defaultMessage });
+    await user.click(menuBtn);
+    // find and click delete menu option.
+    expect(screen.queryByText('Delete')).toBeInTheDocument();
+    let deleteBtn = await screen.findByRole('button', { name: 'Delete' });
+    await user.click(deleteBtn);
+    // verify confirmation dialog and click on cancel button
+    let dialog = await screen.findByRole('dialog', { name: 'Delete this collection?' });
+    expect(dialog).toBeInTheDocument();
+    const cancelBtn = await screen.findByRole('button', { name: 'Cancel' });
+    await user.click(cancelBtn);
+    expect(axiosMock.history.delete.length).toEqual(0);
+    expect(cancelBtn).not.toBeInTheDocument();
+
+    // Open menu
+    menuBtn = await screen.findByRole('button', { name: messages.collectionCardMenuAlt.defaultMessage });
+    await user.click(menuBtn);
+    // click on confirm button to delete
+    deleteBtn = await screen.findByRole('button', { name: 'Delete' });
+    await user.click(deleteBtn);
+    dialog = await screen.findByRole('dialog', { name: 'Delete this collection?' });
+    const confirmBtn = await within(dialog).findByRole('button', { name: 'Delete' });
+    await user.click(confirmBtn);
+    expect(screen.queryByRole('dialog', { name: 'Delete this collection?' })).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(axiosMock.history.delete.length).toEqual(1);
+      expect(mockShowToast).toHaveBeenCalled();
+    });
+    // Get restore / undo func from the toast
+    const restoreFn = mockShowToast.mock.calls[0][1].onClick;
+
+    const restoreUrl = getLibraryCollectionRestoreApiUrl(collectionHitSample.contextKey, collectionHitSample.blockId);
+    axiosMock.onPost(restoreUrl).reply(200);
+    // restore collection
+    restoreFn();
+    await waitFor(() => {
+      expect(axiosMock.history.post.length).toEqual(1);
+      expect(mockShowToast).toHaveBeenCalledWith('Undo successful');
+    });
+  });
+
+  it('should show failed toast on delete collection failure', async () => {
+    const url = getLibraryCollectionApiUrl(collectionHitSample.contextKey, collectionHitSample.blockId);
+    axiosMock.onDelete(url).reply(404);
+    const user = userEvent.setup();
+    render(<CollectionCard hit={collectionHitSample} />);
+
+    expect(screen.queryByText('Collection Display Formated Name')).toBeInTheDocument();
+    // Open menu
+    const menuBtn = await screen.findByRole('button', { name: messages.collectionCardMenuAlt.defaultMessage });
+    await user.click(menuBtn);
+    // find and click delete menu option.
+    const deleteBtn = await screen.findByRole('button', { name: 'Delete' });
+    await user.click(deleteBtn);
+    const dialog = await screen.findByRole('dialog', { name: 'Delete this collection?' });
+    const confirmBtn = await within(dialog).findByRole('button', { name: 'Delete' });
+    await user.click(confirmBtn);
+    expect(screen.queryByRole('dialog', { name: 'Delete this collection?' })).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(axiosMock.history.delete.length).toEqual(1);
+      expect(mockShowToast).toHaveBeenCalledWith('Failed to delete collection');
+    });
+  });
+
+  it('should not show delete button when library is read-only', async () => {
+    const user = userEvent.setup();
+
+    // Render with read-only library
+    render(<CollectionCard hit={collectionHitSample} />, false, mockContentLibrary.libraryIdReadOnly);
+
+    // Open menu
+    const menu = await screen.findByTestId('collection-card-menu-toggle');
+    expect(menu).toBeInTheDocument();
+    await user.click(menu);
+
+    // Delete button should not be visible in readonly mode
+    const deleteOption = screen.queryByRole('button', { name: 'Delete' });
+    expect(deleteOption).not.toBeInTheDocument();
+
+    // Open button should still be visible
+    const openOption = screen.queryByRole('button', { name: 'Open' });
+    expect(openOption).toBeInTheDocument();
+  });
+});

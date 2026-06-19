@@ -1,0 +1,55 @@
+import { render, screen } from '@testing-library/react';
+import { IntlProvider } from '@edx/frontend-platform/i18n';
+
+import { useCourseData } from 'hooks';
+
+import CourseCardBanners from '.';
+
+jest.mock('./CourseBanner', () => jest.fn(() => <div>CourseBanner</div>));
+jest.mock('./CertificateBanner', () => jest.fn(() => <div>CertificateBanner</div>));
+jest.mock('./CreditBanner', () => jest.fn(() => <div>CreditBanner</div>));
+jest.mock('./EntitlementBanner', () => jest.fn(() => <div>EntitlementBanner</div>));
+jest.mock('./RelatedProgramsBanner', () => jest.fn(() => <div>RelatedProgramsBanner</div>));
+
+const mockedComponents = [
+  'CourseBanner',
+  'CertificateBanner',
+  'CreditBanner',
+  'EntitlementBanner',
+  'RelatedProgramsBanner',
+];
+
+jest.mock('hooks', () => ({
+  useCourseData: jest.fn(() => ({
+    enrollment: {
+      isEnrolled: true,
+    },
+  })),
+}));
+
+describe('CourseCardBanners', () => {
+  const props = {
+    cardId: 'test-card-id',
+  };
+  it('renders default CourseCardBanners', () => {
+    render(<IntlProvider locale="en"><CourseCardBanners {...props} /></IntlProvider>);
+    mockedComponents.map((componentName) => {
+      const mockedComponent = screen.getByText(componentName);
+      return expect(mockedComponent).toBeInTheDocument();
+    });
+  });
+  it('render null with no courseData', () => {
+    useCourseData.mockReturnValue(null);
+    const { container } = render(<IntlProvider locale="en"><CourseCardBanners {...props} /></IntlProvider>);
+    expect(container.firstChild).toBeNull();
+  });
+  it('render with isEnrolled false', () => {
+    useCourseData.mockReturnValue({ enrollment: { isEnrolled: false } });
+    render(<IntlProvider locale="en"><CourseCardBanners {...props} /></IntlProvider>);
+    const mockedComponentsIfNotEnrolled = mockedComponents.slice(-2);
+    mockedComponentsIfNotEnrolled.map((componentName) => {
+      const mockedComponent = screen.getByText(componentName);
+      return expect(mockedComponent).toBeInTheDocument();
+    });
+  });
+});

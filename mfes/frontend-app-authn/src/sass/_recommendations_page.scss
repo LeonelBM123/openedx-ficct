@@ -1,0 +1,31 @@
+$card-gap: 24px;
+
+.recommendations-container__card-list {
+  gap: $card-gap $card-gap;
+
+  @media (-pgn-size-breakpoint-max-width-sm) {
+    margin-bottom: 0 !important;
+  }
+
+  .recommendation-card {
+    flex: 0 1 100%;
+    cursor: pointer;
+
+    @media (--pgn-size-breakpoint-min-width-sm) {
+      flex: 0 1 calc(50% - #{$card-gap - 12});
+    }
+
+    @media (--pgn-size-breakpoint-min-width-md) {
+      flex: 0 1 calc(33.333% - #{$card-gap - 8});
+    }
+
+    @media (--pgn-size-breakpoint-min-width-lg) {
+      flex: 0 1 calc(25% - #{$card-gap - 6});
+    }
+  }
+}
+
+.recommendations-container__heading {
+  overflow-wrap: break-word;
+}
+

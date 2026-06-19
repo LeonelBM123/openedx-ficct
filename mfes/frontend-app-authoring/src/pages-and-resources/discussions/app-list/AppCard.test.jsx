@@ -1,0 +1,197 @@
+import {
+  render,
+  queryByLabelText,
+  queryByTestId,
+  initializeMocks,
+  fireEvent,
+} from '@src/testUtils';
+import { executeThunk } from '@src/utils';
+
+import { CourseAuthoringProvider } from '@src/CourseAuthoringContext';
+import PagesAndResourcesProvider from '../../PagesAndResourcesProvider';
+import AppCard from './AppCard';
+import messages from './messages';
+import appMessages from '../app-config-form/messages';
+import { getDiscussionsProvidersUrl } from '../data/api';
+import { fetchProviders } from '../data/thunks';
+import { legacyApiResponse } from '../factories/mockApiResponses';
+
+const courseId = 'course-v1:edX+TestX+Test_Course';
+const selected = true;
+const app = {
+  id: 'legacy',
+  hasFullSupport: true,
+  featureIds: ['discussion-page', 'embedded-course-sections', 'wcag-2.1'],
+};
+
+describe('AppCard', () => {
+  let axiosMock;
+  let store;
+  let container;
+
+  beforeEach(async () => {
+    const mocks = initializeMocks();
+    store = mocks.reduxStore;
+    axiosMock = mocks.axiosMock;
+  });
+
+  const mockStore = async (mockResponse) => {
+    axiosMock.onGet(getDiscussionsProvidersUrl(courseId)).reply(200, mockResponse);
+    await executeThunk(fetchProviders(courseId), store.dispatch);
+  };
+
+  const createComponent = (data, { isEditable = false } = {}) => {
+    const wrapper = render(
+      <CourseAuthoringProvider courseId={courseId}>
+        <PagesAndResourcesProvider courseId={courseId} isEditable={isEditable}>
+          <AppCard
+            app={data}
+            onClick={() => jest.fn()}
+            selected={selected}
+            features={[]}
+          />
+        </PagesAndResourcesProvider>
+      </CourseAuthoringProvider>,
+    );
+    container = wrapper.container;
+    return container;
+  };
+
+  test('checkbox input is checked when AppCard is selected', async () => {
+    const labelText = `Select ${appMessages[`appName-${app.id}`].defaultMessage}`;
+
+    await mockStore(legacyApiResponse);
+    createComponent(app);
+
+    expect(container.querySelector('[role="radio"]')).toBeChecked();
+    expect(queryByLabelText(container, labelText, { selector: 'input[type="checkbox"]' })).toBeChecked();
+  });
+
+  test.each([
+    [true],
+    [false],
+  ])('providerName and text from the app are displayed with full support %s', async (hasFullSupport) => {
+    const appWithCustomSupport = { ...app, hasFullSupport };
+    const title = appMessages[`appName-${appWithCustomSupport.id}`].defaultMessage;
+    const text = messages[`appDescription-${appWithCustomSupport.id}`].defaultMessage;
+
+    await mockStore(legacyApiResponse);
+    createComponent(appWithCustomSupport);
+
+    expect(queryByTestId(container, 'card-title')).toHaveTextContent(title);
+    expect(queryByTestId(container, 'card-text')).toHaveTextContent(text);
+  });
+
+  test('full support subtitle shown when hasFullSupport is true', async () => {
+    const subtitle = messages.appFullSupport.defaultMessage;
+
+    await mockStore(legacyApiResponse);
+    createComponent(app);
+
+    expect(queryByTestId(container, 'card-subtitle')).toHaveTextContent(subtitle);
+  });
+
+  test('partial support subtitle shown when hasFullSupport is false', async () => {
+    const appWithBasicSupport = { ...app, hasFullSupport: false };
+    const subtitle = messages.appBasicSupport.defaultMessage;
+
+    await mockStore(legacyApiResponse);
+    createComponent(appWithBasicSupport);
+
+    expect(queryByTestId(container, 'card-subtitle')).toHaveTextContent(subtitle);
+  });
+
+  describe('isEditable integration', () => {
+    test('card responds to click when isEditable=true', async () => {
+      const handleClick = jest.fn();
+      await mockStore(legacyApiResponse);
+
+      const wrapper = render(
+        <CourseAuthoringProvider courseId={courseId}>
+          <PagesAndResourcesProvider courseId={courseId} isEditable>
+            <AppCard
+              app={app}
+              onClick={handleClick}
+              selected={false}
+              features={[]}
+            />
+          </PagesAndResourcesProvider>
+        </CourseAuthoringProvider>,
+      );
+      const card = wrapper.container.querySelector('[role="radio"]');
+
+      fireEvent.click(card);
+
+      expect(handleClick).toHaveBeenCalledWith(app.id);
+    });
+
+    test('card does NOT respond to click when isEditable=false', async () => {
+      const handleClick = jest.fn();
+      await mockStore(legacyApiResponse);
+
+      const wrapper = render(
+        <CourseAuthoringProvider courseId={courseId}>
+          <PagesAndResourcesProvider courseId={courseId} isEditable={false}>
+            <AppCard
+              app={app}
+              onClick={handleClick}
+              selected={false}
+              features={[]}
+            />
+          </PagesAndResourcesProvider>
+        </CourseAuthoringProvider>,
+      );
+      const card = wrapper.container.querySelector('[role="radio"]');
+
+      fireEvent.click(card);
+
+      expect(handleClick).not.toHaveBeenCalled();
+    });
+
+    test('card responds to keyDown Enter when isEditable=true', async () => {
+      const handleClick = jest.fn();
+      await mockStore(legacyApiResponse);
+
+      const wrapper = render(
+        <CourseAuthoringProvider courseId={courseId}>
+          <PagesAndResourcesProvider courseId={courseId} isEditable>
+            <AppCard
+              app={app}
+              onClick={handleClick}
+              selected={false}
+              features={[]}
+            />
+          </PagesAndResourcesProvider>
+        </CourseAuthoringProvider>,
+      );
+      const card = wrapper.container.querySelector('[role="radio"]');
+
+      fireEvent.keyDown(card, { key: 'Enter' });
+
+      expect(handleClick).toHaveBeenCalledWith(app.id);
+    });
+
+    test('card does NOT respond to keyDown when isEditable=false', async () => {
+      const handleClick = jest.fn();
+      await mockStore(legacyApiResponse);
+
+      const wrapper = render(
+        <CourseAuthoringProvider courseId={courseId}>
+          <PagesAndResourcesProvider courseId={courseId} isEditable={false}>
+            <AppCard
+              app={app}
+              onClick={handleClick}
+              selected={false}
+              features={[]}
+            />
+          </PagesAndResourcesProvider>
+        </CourseAuthoringProvider>,
+      );
+      const card = wrapper.container.querySelector('[role="radio"]');
+
+      fireEvent.keyDown(card, { key: 'Enter' });
+
+      expect(handleClick).not.toHaveBeenCalled();
+    });
+  });
+});

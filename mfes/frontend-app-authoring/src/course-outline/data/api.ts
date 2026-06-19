@@ -1,0 +1,536 @@
+import { camelCaseObject, getConfig } from '@edx/frontend-platform';
+import { getAuthenticatedHttpClient } from '@edx/frontend-platform/auth';
+import { PUBLISH_TYPES } from '@src/course-unit/constants';
+import { XBlock } from '@src/data/types';
+import {
+  CourseOutline,
+  CourseDetails,
+  CourseItemUpdateResult,
+  ConfigureSectionData,
+  ConfigureSubsectionData,
+  ConfigureUnitData,
+  StaticFileNotices,
+} from './types';
+
+const getApiBaseUrl = () => getConfig().STUDIO_BASE_URL;
+
+const pickDefined = <T extends Record<string, any>>(obj: T) =>
+  Object.fromEntries(
+    Object.entries(obj).filter(([, value]) => value !== undefined),
+  );
+
+export const getCourseOutlineIndexApiUrl = (
+  courseId: string,
+) => `${getApiBaseUrl()}/api/contentstore/v1/course_index/${courseId}`;
+
+export const getCourseDetailsApiUrl = (courseId) => `${getApiBaseUrl()}/api/contentstore/v1/course_details/${courseId}`;
+
+export const getCourseBestPracticesApiUrl = ({
+  courseId,
+  excludeGraded,
+  all,
+}: {
+  courseId: string;
+  excludeGraded: boolean;
+  all: boolean;
+}) => `${getApiBaseUrl()}/api/courses/v1/quality/${courseId}/?exclude_graded=${excludeGraded}&all=${all}`;
+
+export const getCourseLaunchApiUrl = ({
+  courseId,
+  gradedOnly,
+  validateOras,
+  all,
+}: {
+  courseId: string;
+  gradedOnly: boolean;
+  validateOras: boolean;
+  all: boolean;
+}) =>
+  `${getApiBaseUrl()}/api/courses/v1/validation/${courseId}/?graded_only=${gradedOnly}&validate_oras=${validateOras}&all=${all}`;
+
+export const getCourseBlockApiUrl = (courseId: string) => {
+  const formattedCourseId = courseId.split('course-v1:')[1];
+  return `${getApiBaseUrl()}/xblock/block-v1:${formattedCourseId}+type@course+block@course`;
+};
+
+export const getCourseReindexApiUrl = (reindexLink: string) => `${getApiBaseUrl()}${reindexLink}`;
+export const getXBlockBaseApiUrl = () => `${getApiBaseUrl()}/xblock/`;
+export const getCourseItemApiUrl = (itemId: string) => `${getXBlockBaseApiUrl()}${itemId}`;
+export const getXBlockApiUrl = (blockId: string) => `${getXBlockBaseApiUrl()}outline/${blockId}`;
+export const exportTags = (courseId: string) =>
+  `${getApiBaseUrl()}/api/content_tagging/v1/object_tags/${courseId}/export/`;
+export const createDiscussionsTopicsUrl = (courseId: string) =>
+  `${getApiBaseUrl()}/api/discussions/v0/course/${courseId}/sync_discussion_topics`;
+export const courseLegacyLibraryContentBlocks = (courseId: string) =>
+  `${getApiBaseUrl()}/api/courses/v1/migrate_legacy_content_blocks/${courseId}/`;
+export const courseLegacyLibraryContentTaskStatus = (courseId: string, taskId: string) =>
+  `${courseLegacyLibraryContentBlocks(courseId)}${taskId}/`;
+
+/**
+ * Get course outline index.
+ * @param {string} courseId
+ * @returns {Promise<CourseOutline>}
+ */
+export async function getCourseOutlineIndex(courseId: string): Promise<CourseOutline> {
+  const { data } = await getAuthenticatedHttpClient()
+    .get(getCourseOutlineIndexApiUrl(courseId));
+
+  return camelCaseObject(data);
+}
+
+/**
+ * Get course details.
+ * @param {string} courseId
+ * @returns {Promise<CourseDetails>}
+ */
+export async function getCourseDetails(courseId: string): Promise<CourseDetails> {
+  const { data } = await getAuthenticatedHttpClient()
+    .get(getCourseDetailsApiUrl(courseId));
+
+  return camelCaseObject(data);
+}
+
+/**
+ * @param courseId
+ * @returns {Promise<Array|Object>}
+ */
+export async function createDiscussionsTopics(courseId: string): Promise<Array<any> | object> {
+  const { data } = await getAuthenticatedHttpClient()
+    .post(createDiscussionsTopicsUrl(courseId));
+  return camelCaseObject(data);
+}
+
+/**
+ * Get course best practices.
+ * @param {{courseId: string, excludeGraded: boolean, all: boolean}} options
+ * @returns {Promise<{isSelfPaced: boolean, sections: any, subsection: any, units: any, videos: any }>}
+ */
+export async function getCourseBestPractices({
+  courseId,
+  excludeGraded,
+  all,
+}: {
+  courseId: string;
+  excludeGraded: boolean;
+  all: boolean;
+}): Promise<{
+  isSelfPaced: boolean;
+  sections: any;
+  subsection: any;
+  units: any;
+  videos: any;
+}> {
+  const { data } = await getAuthenticatedHttpClient()
+    .get(getCourseBestPracticesApiUrl({ courseId, excludeGraded, all }));
+
+  return camelCaseObject(data);
+}
+
+interface CourseLaunchData {
+  isSelfPaced: boolean;
+  dates: object;
+  assignments: object;
+  grades: {
+    sum_of_weights: number;
+  };
+  certificates: object;
+  updates: object;
+  proctoring: object;
+}
+
+/**
+ * Get course launch.
+ * @param {{courseId: string, gradedOnly: boolean, validateOras: boolean, all: boolean}} options
+ * @returns {Promise<CourseLaunchData>}
+ */
+export async function getCourseLaunch({
+  courseId,
+  gradedOnly,
+  validateOras,
+  all,
+}: { courseId: string; gradedOnly: boolean; validateOras: boolean; all: boolean; }): Promise<CourseLaunchData> {
+  const { data } = await getAuthenticatedHttpClient()
+    .get(getCourseLaunchApiUrl({
+      courseId,
+      gradedOnly,
+      validateOras,
+      all,
+    }));
+
+  return camelCaseObject(data);
+}
+
+/**
+ * Enable course highlights emails
+ * @param {string} courseId
+ * @returns {Promise<Object>}
+ */
+export async function enableCourseHighlightsEmails(courseId: string): Promise<object> {
+  const { data } = await getAuthenticatedHttpClient()
+    .post(getCourseBlockApiUrl(courseId), {
+      publish: 'republish',
+      metadata: {
+        highlights_enabled_for_messaging: true,
+      },
+    });
+
+  return data;
+}
+
+/**
+ * Restart reindex course
+ * @param {string} reindexLink
+ * @returns {Promise<Object>}
+ */
+export async function restartIndexingOnCourse(reindexLink: string): Promise<object> {
+  const { data } = await getAuthenticatedHttpClient()
+    .get(getCourseReindexApiUrl(reindexLink));
+
+  return camelCaseObject(data);
+}
+
+/**
+ * Get course Xblock
+ */
+export async function getCourseItem<T = XBlock>(itemId: string): Promise<T> {
+  const { data } = await getAuthenticatedHttpClient()
+    .get(getXBlockApiUrl(itemId));
+  return camelCaseObject(data);
+}
+
+/**
+ * Update course section highlights
+ * @param {string} sectionId
+ * @param {Array<string>} highlights
+ * @returns {Promise<Object>}
+ */
+export async function updateCourseSectionHighlights(
+  sectionId: string,
+  highlights: Array<string>,
+): Promise<object> {
+  const { data } = await getAuthenticatedHttpClient()
+    .post(getCourseItemApiUrl(sectionId), {
+      publish: 'republish',
+      metadata: {
+        highlights,
+      },
+    });
+
+  return data;
+}
+
+/**
+ * Publish course item
+ */
+export async function publishCourseItem(itemId: string): Promise<CourseItemUpdateResult> {
+  const { data } = await getAuthenticatedHttpClient()
+    .post(getCourseItemApiUrl(itemId), {
+      publish: 'make_public',
+    });
+
+  return data;
+}
+
+/**
+ * Configure course section
+ */
+export async function configureCourseSection(variables: ConfigureSectionData): Promise<object> {
+  const { data } = await getAuthenticatedHttpClient()
+    .post(getCourseItemApiUrl(variables.sectionId), {
+      publish: 'republish',
+      metadata: {
+        // The backend expects metadata.visible_to_staff_only to either true or null
+        visible_to_staff_only: variables.isVisibleToStaffOnly ? true : null,
+        start: variables.startDatetime,
+      },
+    });
+
+  return data;
+}
+
+/**
+ * Configure course subsection
+ */
+export async function configureCourseSubsection(
+  variables: Partial<ConfigureSubsectionData> & Pick<ConfigureSubsectionData, 'itemId'>,
+): Promise<object> {
+  const {
+    itemId,
+    isVisibleToStaffOnly,
+    dueDate,
+    hideAfterDue,
+    showCorrectness,
+    isPracticeExam,
+    isTimeLimited,
+    isProctoredExam,
+    isOnboardingExam,
+    examReviewRules,
+    defaultTimeLimitMinutes,
+    releaseDate,
+    graderType,
+    isPrereq,
+    prereqUsageKey,
+    prereqMinScore,
+    prereqMinCompletion,
+  } = variables;
+
+  const metadata = pickDefined({
+    visible_to_staff_only: (() => {
+      if (isVisibleToStaffOnly === undefined) {
+        return undefined;
+      }
+      return isVisibleToStaffOnly ? true : null;
+    })(),
+    due: dueDate,
+    hide_after_due: hideAfterDue,
+    show_correctness: showCorrectness,
+    is_practice_exam: isPracticeExam,
+    is_time_limited: isTimeLimited,
+    is_proctored_enabled: (
+        isProctoredExam !== undefined || isPracticeExam !== undefined || isOnboardingExam !== undefined
+      )
+      ? (isProctoredExam || isPracticeExam || isOnboardingExam)
+      : undefined,
+    exam_review_rules: examReviewRules,
+    default_time_limit_minutes: defaultTimeLimitMinutes,
+    is_onboarding_exam: isOnboardingExam,
+    start: releaseDate,
+  });
+
+  const body = pickDefined({
+    publish: 'republish',
+    graderType,
+    isPrereq,
+    prereqUsageKey,
+    prereqMinScore,
+    prereqMinCompletion,
+    metadata,
+  });
+
+  const { data } = await getAuthenticatedHttpClient()
+    .post(getCourseItemApiUrl(itemId), body);
+
+  return data;
+}
+
+/**
+ * Configure course unit
+ */
+export async function configureCourseUnit(variables: ConfigureUnitData): Promise<object> {
+  const body = {
+    publish: variables.type,
+    ...(variables.type === PUBLISH_TYPES.republish ?
+      {
+        metadata: {
+          visible_to_staff_only: variables.isVisibleToStaffOnly ? true : null,
+          ...(variables.discussionEnabled !== undefined && {
+            discussion_enabled: variables.discussionEnabled,
+          }),
+          ...(variables.groupAccess != null && { group_access: variables.groupAccess }),
+        },
+      } :
+      {}),
+  };
+  const url = getCourseItemApiUrl(variables.unitId);
+  const { data } = await getAuthenticatedHttpClient()
+    .post(url, body);
+
+  return camelCaseObject(data);
+}
+
+/**
+ * Edit course section
+ */
+export async function editItemDisplayName({ itemId, displayName }: {
+  itemId: string;
+  displayName: string;
+}): Promise<CourseItemUpdateResult> {
+  const { data } = await getAuthenticatedHttpClient()
+    .post(getCourseItemApiUrl(itemId), {
+      metadata: {
+        display_name: displayName,
+      },
+    });
+
+  return data;
+}
+
+/**
+ * Delete course section
+ * @param {string} itemId
+ * @returns {Promise<Object>}
+ */
+export async function deleteCourseItem(itemId: string): Promise<object> {
+  const { data } = await getAuthenticatedHttpClient()
+    .delete(getCourseItemApiUrl(itemId));
+
+  return data;
+}
+
+/**
+ * Duplicate course section
+ */
+export async function duplicateCourseItem(itemId: string, parentId: string): Promise<{
+  courseKey: string;
+  locator: string;
+}> {
+  const { data } = await getAuthenticatedHttpClient()
+    .post(getXBlockBaseApiUrl(), {
+      duplicate_source_locator: itemId,
+      parent_locator: parentId,
+    });
+
+  return data;
+}
+
+export type CreateCourseXBlockType = {
+  type: string;
+  /** The category of the XBlock. Defaults to the type if not provided. */
+  category?: string;
+  parentLocator: string;
+  displayName?: string;
+  boilerplate?: string;
+  stagedContent?: string;
+  /** component key from library if being imported. */
+  libraryContentKey?: string;
+};
+
+/**
+ * Creates a new course XBlock. Can be used to create any type of block
+ * and also import a content from library.
+ */
+export async function createCourseXblock({
+  type,
+  category,
+  parentLocator,
+  displayName,
+  boilerplate,
+  stagedContent,
+  libraryContentKey,
+}: CreateCourseXBlockType) {
+  const body = {
+    type,
+    boilerplate,
+    category: category || type,
+    parent_locator: parentLocator,
+    display_name: displayName,
+    staged_content: stagedContent,
+    library_content_key: libraryContentKey,
+  };
+
+  const { data } = await getAuthenticatedHttpClient()
+    .post(getXBlockBaseApiUrl(), body);
+
+  return data;
+}
+
+/**
+ * Set order for the list of the sections
+ * @param {string} courseId
+ * @param {Array<string>} children list of sections id's
+ * @returns {Promise<Object>}
+ */
+export async function setSectionOrderList(courseId: string, children: Array<string>): Promise<object> {
+  const { data } = await getAuthenticatedHttpClient()
+    .put(getCourseBlockApiUrl(courseId), {
+      children,
+    });
+
+  return data;
+}
+
+/**
+ * Set order for the list of the subsections
+ * @param {string} itemId Subsection or unit ID
+ * @param {Array<string>} children list of sections id's
+ * @returns {Promise<Object>}
+ */
+export async function setCourseItemOrderList(itemId: string, children: Array<string>): Promise<object> {
+  const { data } = await getAuthenticatedHttpClient()
+    .put(getCourseItemApiUrl(itemId), {
+      children,
+    });
+
+  return data;
+}
+
+/**
+ * Set video sharing setting
+ * @param {string} courseId
+ * @param {string} videoSharingOption
+ * @returns {Promise<Object>}
+ */
+export async function setVideoSharingOption(
+  courseId: string,
+  videoSharingOption: string,
+): Promise<object> {
+  const { data } = await getAuthenticatedHttpClient()
+    .post(getCourseBlockApiUrl(courseId), {
+      metadata: {
+        video_sharing_options: videoSharingOption,
+      },
+    });
+
+  return data;
+}
+
+/**
+ * Paste block to clipboard
+ * @param {string} parentLocator
+ * @returns {Promise<Object>}
+ */
+export async function pasteBlock(parentLocator: string): Promise<{
+  locator: string;
+  courseKey: string;
+  staticFileNotices: StaticFileNotices;
+  upstreamRef: string;
+}> {
+  const { data } = await getAuthenticatedHttpClient()
+    .post(getXBlockBaseApiUrl(), {
+      parent_locator: parentLocator,
+      staged_content: 'clipboard',
+    });
+
+  return camelCaseObject(data);
+}
+
+/**
+ * Dismiss notification
+ * @param {string} url
+ * @returns void
+ */
+export async function dismissNotification(url: string) {
+  await getAuthenticatedHttpClient()
+    .delete(url);
+}
+
+/**
+ * Downloads the file of the exported tags
+ * @param {string} courseId The ID of the content
+ * @param {string} courseName
+ * @returns void
+ */
+export async function getTagsExportFile(courseId: string, courseName: string) {
+  // Gets exported tags and builds the blob to download CSV file.
+  // This can be done with this code:
+  // `window.location.href = exportTags(contentId);`
+  // but it is done in this way so we know when the operation ends to close the toast.
+  const response = await getAuthenticatedHttpClient().get(exportTags(courseId), {
+    responseType: 'blob',
+  });
+
+  /* istanbul ignore next */
+  if (response.status !== 200) {
+    throw response.statusText;
+  }
+
+  const blob = new Blob([response.data], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${courseName}.csv`;
+  a.click();
+
+  window.URL.revokeObjectURL(url);
+}

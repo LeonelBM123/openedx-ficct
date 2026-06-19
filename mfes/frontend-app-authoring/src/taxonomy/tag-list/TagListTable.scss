@@ -1,0 +1,5 @@
+.tag-list-table {
+  tr:nth-child(even) {
+    background-color: var(--pgn-color-light-200);
+  }
+}

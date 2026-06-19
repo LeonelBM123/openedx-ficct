@@ -1,0 +1,277 @@
+import { camelCaseObject } from '@edx/frontend-platform';
+
+import { showToastOutsideReact, closeToastOutsideReact } from '@src/generic/toast-context';
+import { handleResponseErrors } from '@src/generic/saving-error-alert';
+import { RequestStatus } from '@src/data/constants';
+import { NOTIFICATION_MESSAGES } from '@src/constants';
+import { updateModel, updateModels } from '@src/generic/model-store';
+import { createCourseXblock } from '@src/course-outline/data/api';
+import { messageTypes } from '../constants';
+import {
+  editUnitDisplayName,
+  getVerticalData,
+  getCourseContainerChildren,
+  deleteUnitItem,
+  duplicateUnitItem,
+  getCourseOutlineInfo,
+  patchUnitItem,
+} from './api';
+import {
+  updateSavingStatus,
+  fetchSequenceRequest,
+  fetchSequenceFailure,
+  fetchSequenceSuccess,
+  fetchCourseSectionVerticalDataSuccess,
+  updateLoadingCourseSectionVerticalDataStatus,
+  updateCourseVerticalChildren,
+  updateCourseVerticalChildrenLoadingStatus,
+  fetchStaticFileNoticesSuccess,
+  updateCourseOutlineInfo,
+  updateCourseOutlineInfoLoadingStatus,
+  updateMovedXBlockParams,
+} from './slice';
+
+export function fetchCourseSectionVerticalData(courseId, sequenceId) {
+  return async (dispatch) => {
+    dispatch(updateLoadingCourseSectionVerticalDataStatus({ status: RequestStatus.IN_PROGRESS }));
+    dispatch(fetchSequenceRequest({ sequenceId }));
+
+    try {
+      const courseSectionVerticalData = await getVerticalData(courseId);
+      dispatch(fetchCourseSectionVerticalDataSuccess(courseSectionVerticalData));
+      dispatch(updateLoadingCourseSectionVerticalDataStatus({ status: RequestStatus.SUCCESSFUL }));
+      dispatch(updateModel({
+        modelType: 'sequences',
+        model: courseSectionVerticalData.sequence || [],
+      }));
+      dispatch(updateModels({
+        modelType: 'units',
+        models: courseSectionVerticalData.units || [],
+      }));
+      dispatch(fetchStaticFileNoticesSuccess(JSON.parse(localStorage.getItem('staticFileNotices'))));
+      localStorage.removeItem('staticFileNotices');
+      dispatch(fetchSequenceSuccess({ sequenceId }));
+      return true;
+    } catch {
+      dispatch(updateLoadingCourseSectionVerticalDataStatus({ status: RequestStatus.FAILED }));
+      dispatch(fetchSequenceFailure({ sequenceId }));
+      return false;
+    }
+  };
+}
+
+export function editCourseItemQuery(itemId, displayName, sequenceId) {
+  return async (dispatch) => {
+    dispatch(updateSavingStatus({ status: RequestStatus.PENDING }));
+    showToastOutsideReact(NOTIFICATION_MESSAGES.saving);
+
+    try {
+      await editUnitDisplayName(itemId, displayName).then(async (result) => {
+        if (result) {
+          const courseSectionVerticalData = await getVerticalData(itemId);
+          dispatch(fetchCourseSectionVerticalDataSuccess(courseSectionVerticalData));
+          dispatch(updateLoadingCourseSectionVerticalDataStatus({ status: RequestStatus.SUCCESSFUL }));
+          dispatch(updateModel({
+            modelType: 'sequences',
+            model: courseSectionVerticalData.sequence || [],
+          }));
+          dispatch(updateModels({
+            modelType: 'units',
+            models: courseSectionVerticalData.units || [],
+          }));
+          dispatch(fetchSequenceSuccess({ sequenceId }));
+          dispatch(updateSavingStatus({ status: RequestStatus.SUCCESSFUL }));
+        }
+      });
+    } catch (error) {
+      handleResponseErrors(error, dispatch, updateSavingStatus);
+    } finally {
+      closeToastOutsideReact();
+    }
+  };
+}
+
+export function createNewCourseXBlock(body, callback, blockId, sendMessageToIframe) {
+  return async (dispatch) => {
+    if (body.stagedContent) {
+      showToastOutsideReact(NOTIFICATION_MESSAGES.pasting);
+    } else {
+      showToastOutsideReact(NOTIFICATION_MESSAGES.adding);
+    }
+
+    try {
+      await createCourseXblock(body).then(async (result) => {
+        if (result) {
+          const formattedResult = camelCaseObject(result);
+          if (body.category === 'vertical') {
+            const courseSectionVerticalData = await getVerticalData(formattedResult.locator);
+            dispatch(fetchCourseSectionVerticalDataSuccess(courseSectionVerticalData));
+          }
+          if (body.stagedContent) {
+            localStorage.setItem('staticFileNotices', JSON.stringify(formattedResult.staticFileNotices));
+            dispatch(fetchStaticFileNoticesSuccess(formattedResult.staticFileNotices));
+
+            if (body.parentLocator.includes('vertical')) {
+              localStorage.removeItem('staticFileNotices');
+            }
+          }
+          const courseVerticalChildrenData = await getCourseContainerChildren(blockId);
+          dispatch(updateCourseVerticalChildren(courseVerticalChildrenData));
+          closeToastOutsideReact();
+          if (callback) {
+            callback(result);
+          } else {
+            sendMessageToIframe(messageTypes.addXBlock, { data: result });
+          }
+          const currentBlockId = body.category === 'vertical' ? formattedResult.locator : blockId;
+          const courseSectionVerticalData = await getVerticalData(currentBlockId);
+          dispatch(fetchCourseSectionVerticalDataSuccess(courseSectionVerticalData));
+        }
+      });
+    } catch (error) {
+      closeToastOutsideReact();
+      handleResponseErrors(error, dispatch, updateSavingStatus);
+    }
+  };
+}
+
+export function fetchCourseVerticalChildrenData(itemId, isSplitTestType, skipPageLoading) {
+  return async (dispatch) => {
+    if (!skipPageLoading) {
+      dispatch(updateCourseVerticalChildrenLoadingStatus({ status: RequestStatus.IN_PROGRESS }));
+    }
+
+    try {
+      const courseVerticalChildrenData = await getCourseContainerChildren(itemId);
+      if (isSplitTestType) {
+        const blockIds = courseVerticalChildrenData.children.map(child => child.blockId);
+        const childrenDataArray = await Promise.all(
+          blockIds.map(blockId => getCourseContainerChildren(blockId)),
+        );
+        const allChildren = childrenDataArray.reduce(
+          (acc, data) => acc.concat(data.children || []),
+          [],
+        );
+        courseVerticalChildrenData.children = [...courseVerticalChildrenData.children, ...allChildren];
+      }
+      dispatch(updateCourseVerticalChildren(courseVerticalChildrenData));
+      dispatch(updateCourseVerticalChildrenLoadingStatus({ status: RequestStatus.SUCCESSFUL }));
+    } catch {
+      dispatch(updateCourseVerticalChildrenLoadingStatus({ status: RequestStatus.FAILED }));
+    }
+  };
+}
+
+export function deleteUnitItemQuery(itemId, xblockId, sendMessageToIframe) {
+  return async (dispatch) => {
+    dispatch(updateSavingStatus({ status: RequestStatus.PENDING }));
+    showToastOutsideReact(NOTIFICATION_MESSAGES.deleting);
+
+    try {
+      await deleteUnitItem(xblockId);
+      sendMessageToIframe(messageTypes.completeXBlockDeleting, { locator: xblockId });
+      const courseSectionVerticalData = await getVerticalData(itemId);
+      dispatch(fetchCourseSectionVerticalDataSuccess(courseSectionVerticalData));
+      dispatch(updateSavingStatus({ status: RequestStatus.SUCCESSFUL }));
+    } catch (error) {
+      handleResponseErrors(error, dispatch, updateSavingStatus);
+    } finally {
+      closeToastOutsideReact();
+    }
+  };
+}
+
+export function duplicateUnitItemQuery(itemId, xblockId, callback) {
+  return async (dispatch) => {
+    dispatch(updateSavingStatus({ status: RequestStatus.PENDING }));
+    showToastOutsideReact(NOTIFICATION_MESSAGES.duplicating);
+
+    try {
+      const { courseKey, locator } = await duplicateUnitItem(itemId, xblockId);
+      callback(courseKey, locator);
+      const courseSectionVerticalData = await getVerticalData(itemId);
+      dispatch(fetchCourseSectionVerticalDataSuccess(courseSectionVerticalData));
+      const courseVerticalChildrenData = await getCourseContainerChildren(itemId);
+      dispatch(updateCourseVerticalChildren(courseVerticalChildrenData));
+      dispatch(updateSavingStatus({ status: RequestStatus.SUCCESSFUL }));
+    } catch (error) {
+      handleResponseErrors(error, dispatch, updateSavingStatus);
+    } finally {
+      closeToastOutsideReact();
+    }
+  };
+}
+
+export function getCourseOutlineInfoQuery(courseId) {
+  return async (dispatch) => {
+    dispatch(updateCourseOutlineInfoLoadingStatus({ status: RequestStatus.IN_PROGRESS }));
+
+    try {
+      const result = await getCourseOutlineInfo(courseId);
+      if (result) {
+        dispatch(updateCourseOutlineInfo(result));
+        dispatch(updateCourseOutlineInfoLoadingStatus({ status: RequestStatus.SUCCESSFUL }));
+      }
+    } catch (error) {
+      handleResponseErrors(error, dispatch, updateSavingStatus);
+      dispatch(updateCourseOutlineInfoLoadingStatus({ status: RequestStatus.FAILED }));
+    }
+  };
+}
+
+export function patchUnitItemQuery({
+  sourceLocator = '',
+  targetParentLocator = '',
+  title,
+  currentParentLocator = '',
+  isMoving,
+  callbackFn,
+}) {
+  return async (dispatch) => {
+    dispatch(updateSavingStatus({ status: RequestStatus.PENDING }));
+    showToastOutsideReact(NOTIFICATION_MESSAGES[isMoving ? 'moving' : 'undoMoving']);
+
+    try {
+      await patchUnitItem(sourceLocator, isMoving ? targetParentLocator : currentParentLocator);
+      const xBlockParams = {
+        title,
+        isSuccess: true,
+        isUndo: !isMoving,
+        sourceLocator,
+        targetParentLocator,
+        currentParentLocator,
+      };
+      dispatch(updateMovedXBlockParams(xBlockParams));
+      dispatch(updateCourseOutlineInfo({}));
+      dispatch(updateCourseOutlineInfoLoadingStatus({ status: RequestStatus.IN_PROGRESS }));
+      callbackFn(sourceLocator);
+      try {
+        const courseSectionVerticalData = await getVerticalData(currentParentLocator);
+        dispatch(fetchCourseSectionVerticalDataSuccess(courseSectionVerticalData));
+      } catch (error) {
+        handleResponseErrors(error, dispatch, updateSavingStatus);
+      }
+    } catch (error) {
+      handleResponseErrors(error, dispatch, updateSavingStatus);
+    } finally {
+      closeToastOutsideReact();
+    }
+  };
+}
+
+export function updateCourseUnitSidebar(itemId) {
+  return async (dispatch) => {
+    dispatch(updateSavingStatus({ status: RequestStatus.PENDING }));
+    showToastOutsideReact(NOTIFICATION_MESSAGES.saving);
+
+    try {
+      const courseSectionVerticalData = await getVerticalData(itemId);
+      dispatch(fetchCourseSectionVerticalDataSuccess(courseSectionVerticalData));
+      dispatch(updateSavingStatus({ status: RequestStatus.SUCCESSFUL }));
+    } catch (error) {
+      handleResponseErrors(error, dispatch, updateSavingStatus);
+    } finally {
+      closeToastOutsideReact();
+    }
+  };
+}

@@ -1,0 +1,131 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from 'react';
+import { SidebarPage } from '@src/generic/sidebar';
+import { useToggle } from '@openedx/paragon';
+import { useStateWithUrlSearchParam } from '@src/hooks';
+import { useIframe } from '@src/generic/hooks/context/hooks';
+import { messageTypes } from '../constants';
+import { useSelector } from 'react-redux';
+import { getCourseUnitData } from '../data/selectors';
+
+export type UnitSidebarPageKeys = 'info' | 'add' | 'align';
+export type UnitSidebarPages = Record<UnitSidebarPageKeys, SidebarPage>;
+
+interface UnitSidebarContextData {
+  currentPageKey: UnitSidebarPageKeys;
+  setCurrentPageKey: (pageKey?: UnitSidebarPageKeys, componentId?: string | null) => void;
+  currentTabKey?: string;
+  setCurrentTabKey: (tabKey: string | undefined) => void;
+  selectedComponentId?: string;
+  setSelectedComponentId: (componentId?: string) => void;
+  isOpen: boolean;
+  open: () => void;
+  toggle: () => void;
+  readOnly: boolean;
+  /*
+   * There are other blocks that use the same unit screen and sidebars.
+   * For example: Conditional block, Content Experiments block.
+   */
+  isVertical: boolean;
+  currentItemCategory?: string;
+}
+
+const UnitSidebarContext = createContext<UnitSidebarContextData | undefined>(undefined);
+
+export const UnitSidebarProvider = ({
+  children,
+  readOnly,
+}: {
+  children?: React.ReactNode;
+  readOnly: boolean;
+}) => {
+  const { sendMessageToIframe } = useIframe();
+  const [currentPageKey, setCurrentPageKeyState] = useStateWithUrlSearchParam<UnitSidebarPageKeys>(
+    'info',
+    'sidebar',
+    (value: string) => value as UnitSidebarPageKeys,
+    (value: UnitSidebarPageKeys) => value,
+  );
+  const [currentTabKey, setCurrentTabKey] = useState<string>();
+  const [selectedComponentId, setSelectedComponentId] = useState<string>();
+  const [isOpen, open, , toggle] = useToggle(true);
+
+  const currentItemData = useSelector(getCourseUnitData);
+  const currentItemCategory = currentItemData?.category;
+  const isVertical = currentItemCategory === 'vertical';
+
+  const setCurrentPageKey = useCallback(/* istanbul ignore next */ (
+    pageKey?: UnitSidebarPageKeys,
+    componentId?: string | null,
+  ) => {
+    // Reset tab
+    setCurrentTabKey(undefined);
+    if (pageKey) {
+      setCurrentPageKeyState(pageKey);
+    } else if (componentId && currentPageKey === 'add') {
+      // Components do not have add sidebar, in this case, open the info by default
+      setCurrentPageKeyState('info');
+    }
+    if (componentId !== undefined) {
+      setSelectedComponentId(componentId === null ? undefined : componentId);
+    }
+    if (componentId === null) {
+      // Deselect the component
+      sendMessageToIframe(messageTypes.clearSelection, null);
+    }
+    open();
+  }, [open, currentPageKey]);
+
+  const context = useMemo<UnitSidebarContextData>(
+    () => ({
+      currentPageKey,
+      setCurrentPageKey,
+      currentTabKey,
+      setCurrentTabKey,
+      selectedComponentId,
+      setSelectedComponentId,
+      isOpen,
+      open,
+      toggle,
+      readOnly,
+      isVertical,
+      currentItemCategory,
+    }),
+    [
+      currentPageKey,
+      setCurrentPageKey,
+      currentTabKey,
+      setCurrentTabKey,
+      selectedComponentId,
+      setSelectedComponentId,
+      isOpen,
+      open,
+      toggle,
+      readOnly,
+      isVertical,
+      currentItemCategory,
+    ],
+  );
+
+  return (
+    <UnitSidebarContext.Provider value={context}>
+      {children}
+    </UnitSidebarContext.Provider>
+  );
+};
+
+export function useUnitSidebarContext(raiseError?: true): UnitSidebarContextData;
+export function useUnitSidebarContext(raiseError?: boolean): UnitSidebarContextData | undefined;
+export function useUnitSidebarContext(raiseError: boolean = true): UnitSidebarContextData | undefined {
+  const ctx = useContext(UnitSidebarContext);
+  if (ctx === undefined && raiseError) {
+    /* istanbul ignore next */
+    throw new Error('useUnitSidebarContext() was used in a component without a <UnitSidebarProvider> ancestor.');
+  }
+  return ctx;
+}

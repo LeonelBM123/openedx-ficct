@@ -1,0 +1,181 @@
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+} from 'react';
+import type { PaginationState, Row } from '@tanstack/react-table';
+import { useTagListData, useCreateTag, useUpdateTag, useDeleteTag } from '@src/taxonomy/data/apiHooks';
+import { TableView, TreeTableContext } from '@src/taxonomy/tree-table';
+import type {
+  RowId,
+  TreeRowData,
+} from '../tree-table/types';
+import { TagTree } from './tagTree';
+import { getColumns } from './tagColumns';
+import DeleteModal from './DeleteModal';
+import {
+  TABLE_MODES,
+} from './constants';
+import { useTableModes, useEditActions } from './hooks';
+
+interface TagListTableProps {
+  taxonomyId: number;
+  maxDepth: number;
+}
+
+// TODO: Fix and enable pagination on backend and frontend.For now, disable pagination by showing all tags on one page.
+const DISABLE_PAGINATION = true;
+
+const TagListTable = ({ taxonomyId, maxDepth }: TagListTableProps) => {
+  // The table has a VIEW, DRAFT, and a PREVIEW mode. It starts in VIEW mode.
+  // It switches to DRAFT mode when a user edits or creates a tag.
+  // It switches to PREVIEW mode after saving changes, and only switches to VIEW when
+  // the user refreshes the page, orders a column, or navigates to a different page.
+  // During DRAFT and PREVIEW mode the table makes POST requests and receives
+  // success or failure responses.
+  // However, the table does not refresh to show the updated data from the backend.
+  // This allows us to show the newly created or updated tag in the same place without reordering.
+  //
+  // TODO: Simpler approaches have been suggested. Two options are to just use simple React state:
+  // `isCurrentlyEditingTag` and `lastCreatedTag`, or to use optimistic updates.
+  // For reference, see https://github.com/openedx/frontend-app-authoring/pull/2872#discussion_r2880965005.
+
+  const [creatingParentId, setCreatingParentId] = useState<RowId | null>(null);
+  const [editingRowId, setEditingRowId] = useState<RowId | null>(null);
+
+  // TODO: change to use the global ToastContext (waiting for UX refinement on that).
+  const [toast, setToast] = useState({ show: false, message: '', variant: 'success' });
+  const [tagTree, setTagTree] = useState<TagTree | null>(null);
+  const [isCreatingTopTag, setIsCreatingTopTag] = useState(false);
+  const [, setActiveActionMenuRowId] = useState<RowId | null>(null);
+  const [deleteRow, setDeleteRow] = useState<Row<TreeRowData> | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [draftError, setDraftError] = useState('');
+  const treeData = (tagTree?.getAllAsDeepCopy() || []) as unknown as TreeRowData[];
+  const hasOpenDraft = isCreatingTopTag || creatingParentId !== null || editingRowId !== null;
+
+  // TABLE MODES
+  const {
+    tableMode,
+    enterDraftMode,
+    exitDraftWithoutSave,
+    enterPreviewMode,
+    enterViewMode,
+  } = useTableModes();
+
+  // PAGINATION
+  // TODO: Fix and enable pagination. For now, disable pagination.
+  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 50,
+  });
+  const pagination = useMemo(() => ({ pageIndex, pageSize }), [pageIndex, pageSize]);
+  const handlePaginationChange = (updater: React.SetStateAction<PaginationState>) => {
+    if (tableMode === TABLE_MODES.PREVIEW) {
+      enterViewMode();
+    }
+    setPagination(updater);
+  };
+
+  // API HOOKS
+  const { isLoading, data: tagList } = useTagListData(taxonomyId, {
+    ...pagination,
+    disablePagination: DISABLE_PAGINATION,
+    enabled: tableMode === TABLE_MODES.VIEW,
+  });
+  const createTagMutation = useCreateTag(taxonomyId);
+  const updateTagMutation = useUpdateTag(taxonomyId);
+  const deleteTagMutation = useDeleteTag(taxonomyId);
+  const disableTagActions = hasOpenDraft || deleteTagMutation.isPending;
+  const pageCount = tagList?.numPages ?? -1;
+  const canAddTag = tagList?.canAddTag !== false;
+
+  // Custom Edit Actions Hook - handles table mode transitions, API calls,
+  // and updating the table without a full data reload when creating or editing tags.
+  const editActions = useEditActions(
+    {
+      enterDraftMode,
+      enterPreviewMode,
+      enterViewMode,
+      setTagTree,
+      setDraftError,
+      createTagMutation,
+      updateTagMutation,
+      setToast,
+      setIsCreatingTopTag,
+      setCreatingParentId,
+      exitDraftWithoutSave,
+      setEditingRowId,
+      setActiveActionMenuRowId,
+      deleteTagMutation,
+    },
+  );
+
+  const startDeleteRow = (row: Row<TreeRowData>) => {
+    setDeleteRow(row);
+    setIsDeleteModalOpen(true);
+    setActiveActionMenuRowId(null);
+  };
+
+  // RELOAD DATA IN VIEW MODE
+  useEffect(() => {
+    // Get row data in VIEW mode. Otherwise keep current data to avoid disrupting
+    // users while they edit or create a tag.
+    if (tableMode === TABLE_MODES.VIEW && tagList?.results) {
+      const tree = new TagTree(tagList?.results);
+      if (tree) {
+        setTagTree(tree);
+      }
+    }
+  }, [tagList?.results, tableMode]);
+
+  // TreeTable context
+  const contextValueArgs = {
+    ...editActions,
+    startDeleteRow,
+    treeData,
+    pageCount,
+    pagination,
+    handlePaginationChange,
+    isLoading,
+    isCreatingTopRow: isCreatingTopTag,
+    draftError,
+    createRowMutation: createTagMutation,
+    updateRowMutation: updateTagMutation,
+    toast,
+    setToast,
+    setIsCreatingTopRow: setIsCreatingTopTag,
+    exitDraftWithoutSave,
+    creatingParentId,
+    setCreatingParentId,
+    setDraftError,
+    editingRowId,
+    setEditingRowId,
+    onStartDraft: enterDraftMode,
+    setActiveActionMenuRowId,
+    hasOpenDraft,
+    disableTagActions,
+    canAddTag,
+    maxDepth,
+  };
+  const contextValue = {
+    ...contextValueArgs,
+    columns: getColumns(contextValueArgs),
+    table: null,
+  };
+
+  return (
+    <TreeTableContext.Provider value={contextValue}>
+      <TableView hasDeleteError={deleteTagMutation.isError} />
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        row={deleteRow}
+        setIsOpen={setIsDeleteModalOpen}
+        setRow={setDeleteRow}
+        handleDeleteRow={editActions.handleDeleteRow}
+      />
+    </TreeTableContext.Provider>
+  );
+};
+
+export default TagListTable;

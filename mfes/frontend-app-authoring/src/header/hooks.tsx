@@ -1,0 +1,237 @@
+import { getConfig } from '@edx/frontend-platform';
+import { useIntl } from '@edx/frontend-platform/i18n';
+import { useSelector } from 'react-redux';
+import { Badge } from '@openedx/paragon';
+
+import { getPagePath } from '@src/utils';
+import { useWaffleFlags } from '@src/data/apiHooks';
+import { getStudioHomeData } from '@src/studio-home/data/selectors';
+import courseOptimizerMessages from '@src/optimizer-page/messages';
+import { SidebarActions } from '@src/library-authoring/common/context/SidebarContext';
+import { LibQueryParamKeys } from '@src/library-authoring/routes';
+
+import { useCourseUserPermissions } from '@src/authz/hooks';
+import {
+  getAdvancedSettingsPermissions,
+  getGradingPermissions,
+  getPagesAndResourcesPermissions,
+  getScheduleAndDetailsPermissions,
+} from '@src/authz/permissionHelpers';
+import messages from './messages';
+import { getCourseUpdatesPermissions } from '@src/authz/permissionHelpers';
+
+export const useContentMenuItems = (courseId: string) => {
+  const intl = useIntl();
+  const studioBaseUrl = getConfig().STUDIO_BASE_URL;
+  const waffleFlags = useWaffleFlags(courseId);
+  const { librariesV2Enabled } = useSelector(getStudioHomeData);
+
+  const { canViewCourseUpdates, canViewPagesAndResources } = useCourseUserPermissions(
+    courseId,
+    {
+      ...getPagesAndResourcesPermissions(courseId),
+      ...getCourseUpdatesPermissions(courseId),
+    },
+  );
+
+  const items = [
+    {
+      href: waffleFlags.useNewCourseOutlinePage ? `/course/${courseId}` : `${studioBaseUrl}/course/${courseId}`,
+      title: intl.formatMessage(messages['header.links.outline']),
+    },
+    ...(canViewCourseUpdates ?
+      [{
+        href: waffleFlags.useNewUpdatesPage
+          ? `/course/${courseId}/course_info`
+          : `${studioBaseUrl}/course_info/${courseId}`,
+        title: intl.formatMessage(messages['header.links.updates']),
+      }] :
+      []),
+    ...(canViewPagesAndResources
+      ? [{
+        href: getPagePath(courseId, 'true', 'tabs'),
+        title: intl.formatMessage(messages['header.links.pages']),
+      }]
+      : []),
+    {
+      href: waffleFlags.useNewFilesUploadsPage ? `/course/${courseId}/assets` : `${studioBaseUrl}/assets/${courseId}`,
+      title: intl.formatMessage(messages['header.links.filesAndUploads']),
+    },
+  ];
+  if (getConfig().ENABLE_VIDEO_UPLOAD_PAGE_LINK_IN_CONTENT_DROPDOWN === 'true' || waffleFlags.useNewVideoUploadsPage) {
+    items.push({
+      href: `/course/${courseId}/videos`,
+      title: intl.formatMessage(messages['header.links.videoUploads']),
+    });
+  }
+
+  if (librariesV2Enabled) {
+    items.splice(1, 0, {
+      href: `/course/${courseId}/libraries`,
+      title: intl.formatMessage(messages['header.links.libraries']),
+    });
+  }
+
+  return items;
+};
+
+export const useSettingMenuItems = (courseId: string) => {
+  const intl = useIntl();
+  const { canAccessAdvancedSettings: legacyCanAccessAdvancedSettings } = useSelector(getStudioHomeData);
+
+  /*
+    AuthZ for Course Authoring
+    If authz.enable_course_authoring flag is enabled, validate permissions using AuthZ API.
+    Otherwise, fallback to existing logic.
+  */
+  const {
+    isAuthzEnabled,
+    canManageAdvancedSettings,
+    canViewGradingSettings,
+    canViewScheduleAndDetails,
+  } = useCourseUserPermissions(courseId, {
+    ...getAdvancedSettingsPermissions(courseId),
+    ...getGradingPermissions(courseId),
+    ...getScheduleAndDetailsPermissions(courseId),
+  });
+
+  const canAccessAdvancedSettings = isAuthzEnabled
+    ? canManageAdvancedSettings
+    : legacyCanAccessAdvancedSettings;
+
+  const items = [
+    ...(canViewScheduleAndDetails
+      ? [{
+        href: `/course/${courseId}/settings/details`,
+        title: intl.formatMessage(messages['header.links.scheduleAndDetails']),
+      }]
+      : []),
+    ...(canViewGradingSettings
+      ? [{
+        href: `/course/${courseId}/settings/grading`,
+        title: intl.formatMessage(messages['header.links.grading']),
+      }]
+      : []),
+    ...(isAuthzEnabled
+      ? [{
+        href: `${getConfig().ADMIN_CONSOLE_URL}/authz?scope=${encodeURIComponent(courseId)}`,
+        title: intl.formatMessage(messages['header.links.roles.permissions']),
+      }]
+      : [{
+        href: `/course/${courseId}/course_team`,
+        title: intl.formatMessage(messages['header.links.courseTeam']),
+      }]),
+    {
+      href: `/course/${courseId}/group_configurations`,
+      title: intl.formatMessage(messages['header.links.groupConfigurations']),
+    },
+    ...(canAccessAdvancedSettings
+      ? [{
+        href: `/course/${courseId}/settings/advanced`,
+        title: intl.formatMessage(messages['header.links.advancedSettings']),
+      }] :
+      []),
+  ];
+  if (getConfig().ENABLE_CERTIFICATE_PAGE === 'true') {
+    items.push({
+      href: `/course/${courseId}/certificates`,
+      title: intl.formatMessage(messages['header.links.certificates']),
+    });
+  }
+  return items;
+};
+
+export const useToolsMenuItems = (courseId: string) => {
+  const intl = useIntl();
+  const studioBaseUrl = getConfig().STUDIO_BASE_URL;
+  const waffleFlags = useWaffleFlags();
+
+  const items = [
+    {
+      href: waffleFlags.useNewImportPage ? `/course/${courseId}/import` : `${studioBaseUrl}/import/${courseId}`,
+      title: intl.formatMessage(messages['header.links.import']),
+    },
+    {
+      href: waffleFlags.useNewExportPage ? `/course/${courseId}/export` : `${studioBaseUrl}/export/${courseId}`,
+      title: intl.formatMessage(messages['header.links.exportCourse']),
+    },
+    ...(getConfig().ENABLE_TAGGING_TAXONOMY_PAGES === 'true'
+      ? [{
+        href: `${studioBaseUrl}/course/${courseId}#export-tags`,
+        title: intl.formatMessage(messages['header.links.exportTags']),
+      }] :
+      []),
+    {
+      href: `/course/${courseId}/checklists`,
+      title: intl.formatMessage(messages['header.links.checklists']),
+    },
+    ...(waffleFlags.enableCourseOptimizer ?
+      [{
+        href: `/course/${courseId}/optimizer`,
+        title: (
+          <>
+            {intl.formatMessage(messages['header.links.optimizer'])}
+            <Badge variant="primary" className="ml-2">{intl.formatMessage(courseOptimizerMessages.new)}</Badge>
+          </>
+        ),
+      }] :
+      []),
+  ];
+
+  return items;
+};
+
+export const useLibraryToolsMenuItems = (itemId: string) => {
+  const intl = useIntl();
+
+  const items = [
+    {
+      href: `/library/${itemId}/backup`,
+      title: intl.formatMessage(messages['header.links.exportLibrary']),
+    },
+    {
+      href: `/library/${itemId}/import`,
+      title: intl.formatMessage(messages['header.links.lib.import']),
+    },
+  ];
+
+  return items;
+};
+
+export const useLibrarySettingsMenuItems = (itemId: string, readOnly: boolean) => {
+  const intl = useIntl();
+
+  const openTeamAccessModalUrl = () => {
+    const adminConsoleUrl = getConfig().ADMIN_CONSOLE_URL;
+    // always show link to admin console MFE if it is being used
+    const shouldShowAdminConsoleLink = !!adminConsoleUrl;
+
+    // if the admin console MFE isn't being used, show team modal button for non–read-only users
+    const shouldShowTeamModalButton = !adminConsoleUrl && !readOnly;
+    if (shouldShowTeamModalButton) {
+      if (!window.location.href) {
+        return null;
+      }
+      const url = new URL(window.location.href);
+      // Set ?sa=manage-team in url which in turn opens team access modal
+      url.searchParams.set(LibQueryParamKeys.SidebarActions, SidebarActions.ManageTeam);
+      return url.toString();
+    }
+    if (shouldShowAdminConsoleLink) {
+      return `${adminConsoleUrl}/authz/libraries/${itemId}`;
+    }
+    return null;
+  };
+
+  const items: { title: string; href: string; }[] = [];
+
+  const teamAccessUrl = openTeamAccessModalUrl();
+  if (teamAccessUrl) {
+    items.push({
+      title: intl.formatMessage(messages['header.menu.teamAccess']),
+      href: teamAccessUrl,
+    });
+  }
+
+  return items;
+};

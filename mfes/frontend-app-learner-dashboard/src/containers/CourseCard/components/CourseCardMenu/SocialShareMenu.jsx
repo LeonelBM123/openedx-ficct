@@ -1,0 +1,84 @@
+import React from 'react';
+import PropTypes from 'prop-types';
+import * as ReactShare from 'react-share';
+import { EXECUTIVE_EDUCATION_COURSE_MODES } from 'data/constants/course';
+import { useIntl } from '@edx/frontend-platform/i18n';
+import { Dropdown } from '@openedx/paragon';
+
+import track from 'tracking';
+import { useCourseTrackingEvent, useCourseData, useIsMasquerading } from 'hooks';
+import { useCardSocialSettingsData } from './hooks';
+import messages from './messages';
+
+export const testIds = {
+  emailSettingsModalToggle: 'emailSettingsModalToggle',
+};
+
+export const SocialShareMenu = ({ cardId, emailSettings }) => {
+  const { formatMessage } = useIntl();
+  const courseData = useCourseData(cardId);
+  const courseName = courseData?.course?.courseName;
+  const isExecEd2UCourse = EXECUTIVE_EDUCATION_COURSE_MODES.includes(courseData.enrollment.mode);
+  const isEmailEnabled = courseData?.enrollment?.isEmailEnabled ?? false;
+  const { twitter, facebook } = useCardSocialSettingsData(cardId);
+  const isMasquerading = useIsMasquerading();
+
+  const handleTwitterShare = useCourseTrackingEvent(track.socialShare, cardId, 'twitter');
+  const handleFacebookShare = useCourseTrackingEvent(track.socialShare, cardId, 'facebook');
+
+  if (isExecEd2UCourse) {
+    return null;
+  }
+
+  return (
+    <>
+      {isEmailEnabled && (
+        <Dropdown.Item
+          disabled={isMasquerading}
+          onClick={emailSettings.show}
+          data-testid={testIds.emailSettingsModalToggle}
+        >
+          {formatMessage(messages.emailSettings)}
+        </Dropdown.Item>
+      )}
+      {facebook.isEnabled && (
+        <ReactShare.FacebookShareButton
+          url={facebook.shareUrl}
+          onClick={handleFacebookShare}
+          title={formatMessage(messages.shareQuote, {
+            courseName,
+            socialBrand: facebook.socialBrand,
+          })}
+          resetButtonStyle={false}
+          className="pgn__dropdown-item dropdown-item"
+          aria-label="facebook"
+        >
+          {formatMessage(messages.shareToFacebook)}
+        </ReactShare.FacebookShareButton>
+      )}
+      {twitter.isEnabled && (
+        <ReactShare.TwitterShareButton
+          url={twitter.shareUrl}
+          onClick={handleTwitterShare}
+          title={formatMessage(messages.shareQuote, {
+            courseName,
+            socialBrand: twitter.socialBrand,
+          })}
+          resetButtonStyle={false}
+          className="pgn__dropdown-item dropdown-item"
+          aria-label="twitter"
+        >
+          {formatMessage(messages.shareToTwitter)}
+        </ReactShare.TwitterShareButton>
+      )}
+    </>
+  );
+};
+SocialShareMenu.propTypes = {
+  cardId: PropTypes.string.isRequired,
+  emailSettings: PropTypes.shape({
+    show: PropTypes.func,
+  }).isRequired,
+};
+
+export default SocialShareMenu;

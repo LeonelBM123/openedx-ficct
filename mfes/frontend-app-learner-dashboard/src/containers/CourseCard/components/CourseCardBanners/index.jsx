@@ -1,0 +1,32 @@
+import React from 'react';
+import PropTypes from 'prop-types';
+
+import { useCourseData } from 'hooks';
+
+import CourseBannerSlot from 'plugin-slots/CourseBannerSlot';
+import CertificateBanner from './CertificateBanner';
+import CreditBanner from './CreditBanner';
+import EntitlementBanner from './EntitlementBanner';
+import RelatedProgramsBanner from './RelatedProgramsBanner';
+
+export const CourseCardBanners = ({ cardId }) => {
+  const courseData = useCourseData(cardId);
+  if (!courseData) {
+    return null;
+  }
+  const { isEnrolled = false } = courseData.enrollment;
+  return (
+    <div className="course-card-banners" data-testid="CourseCardBanners">
+      <RelatedProgramsBanner cardId={cardId} />
+      <CourseBannerSlot cardId={cardId} />
+      <EntitlementBanner cardId={cardId} />
+      {isEnrolled && <CertificateBanner cardId={cardId} />}
+      {isEnrolled && <CreditBanner cardId={cardId} />}
+    </div>
+  );
+};
+CourseCardBanners.propTypes = {
+  cardId: PropTypes.string.isRequired,
+};
+
+export default CourseCardBanners;

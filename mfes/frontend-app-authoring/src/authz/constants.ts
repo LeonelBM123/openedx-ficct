@@ -1,0 +1,32 @@
+export const CONTENT_LIBRARY_PERMISSIONS = {
+  DELETE_LIBRARY: 'content_libraries.delete_library',
+  MANAGE_LIBRARY_TAGS: 'content_libraries.manage_library_tags',
+  VIEW_LIBRARY: 'content_libraries.view_library',
+
+  EDIT_LIBRARY_CONTENT: 'content_libraries.edit_library_content',
+  PUBLISH_LIBRARY_CONTENT: 'content_libraries.publish_library_content',
+  REUSE_LIBRARY_CONTENT: 'content_libraries.reuse_library_content',
+
+  CREATE_LIBRARY_COLLECTION: 'content_libraries.create_library_collection',
+  EDIT_LIBRARY_COLLECTION: 'content_libraries.edit_library_collection',
+  DELETE_LIBRARY_COLLECTION: 'content_libraries.delete_library_collection',
+
+  MANAGE_LIBRARY_TEAM: 'content_libraries.manage_library_team',
+  VIEW_LIBRARY_TEAM: 'content_libraries.view_library_team',
+};
+
+export const COURSE_PERMISSIONS = {
+  MANAGE_ADVANCED_SETTINGS: 'courses.manage_advanced_settings',
+
+  VIEW_GRADING_SETTINGS: 'courses.view_grading_settings',
+  EDIT_GRADING_SETTINGS: 'courses.edit_grading_settings',
+
+  VIEW_SCHEDULE_AND_DETAILS: 'courses.view_schedule_and_details',
+  EDIT_SCHEDULE: 'courses.edit_schedule',
+  EDIT_DETAILS: 'courses.edit_details',
+  VIEW_COURSE_UPDATES: 'courses.view_course_updates',
+  MANAGE_COURSE_UPDATES: 'courses.manage_course_updates',
+
+  VIEW_PAGES_AND_RESOURCES: 'courses.view_pages_and_resources',
+  MANAGE_PAGES_AND_RESOURCES: 'courses.manage_pages_and_resources',
+};

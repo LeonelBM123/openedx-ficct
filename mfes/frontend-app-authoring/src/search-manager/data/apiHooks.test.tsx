@@ -1,0 +1,70 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderHook, waitFor } from '@testing-library/react';
+import fetchMock from 'fetch-mock-jest';
+
+import mockResult from './__mocks__/block-types.json';
+import { mockContentSearchConfig, mockGetContentHits } from './api.mock';
+import {
+  useGetBlockTypes,
+  useGetContentHits,
+} from './apiHooks';
+
+mockContentSearchConfig.applyMock();
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
+
+const wrapper = ({ children }) => (
+  <QueryClientProvider client={queryClient}>
+    {children}
+  </QueryClientProvider>
+);
+
+const fetchMockResponse = () => {
+  fetchMock.post(
+    mockContentSearchConfig.multisearchEndpointUrl,
+    () => mockResult,
+    { overwriteRoutes: true },
+  );
+};
+
+describe('search manager api hooks', () => {
+  afterEach(() => {
+    fetchMock.reset();
+  });
+
+  it('it should return block types facet', async () => {
+    fetchMockResponse();
+    const { result } = renderHook(() => useGetBlockTypes('filter'), { wrapper });
+    await waitFor(() => {
+      expect(result.current.isPending).toBeFalsy();
+    });
+    const expectedData = {
+      chapter: 1,
+      html: 2,
+      problem: 16,
+      vertical: 2,
+      video: 1,
+    };
+    expect(result.current.data).toEqual(expectedData);
+    expect(fetchMock.calls().length).toEqual(1);
+  });
+
+  it('useGetContentHits should return hits', async () => {
+    mockGetContentHits('someHits');
+    const { result } = renderHook(() => useGetContentHits('filter'), { wrapper });
+    await waitFor(() => {
+      expect(result.current.isPending).toBeFalsy();
+    });
+    const expectedData = {
+      hits: [{ usage_key: 'some-key' }, { usage_key: 'other-key' }],
+      estimatedTotalHits: 2,
+    };
+    expect(result.current.data).toEqual(expectedData);
+  });
+});
