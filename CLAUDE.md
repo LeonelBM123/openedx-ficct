@@ -16,14 +16,15 @@ Plataforma de aprendizaje virtual de la **FICCT-UAGRM** (Facultad de Ingeniería
 | Gestor | Tutor 21 (Ulmo) |
 | LMS Host | 167.172.142.82.nip.io |
 | MFE Host | apps.167.172.142.82.nip.io |
-| Monorepo | /root/openedx-ficct/ |
+| Monorepo servidor | /root/openedx-ficct/ |
+| Monorepo PC | C:\Users\PC\openedx-ficct\ |
 
 ---
 
 ## Estructura del Monorepo
 
 ```
-/root/openedx-ficct/
+openedx-ficct/
 ├── mfes/                            ← MFEs forkeados de openedx
 │   ├── frontend-app-authn/
 │   ├── frontend-app-learner-dashboard/
@@ -31,31 +32,34 @@ Plataforma de aprendizaje virtual de la **FICCT-UAGRM** (Facultad de Ingeniería
 │   ├── frontend-app-authoring/
 │   └── frontend-app-catalog/
 ├── brand-ficct/                     ← Paquete npm @edx/brand para MFEs
-│   ├── logo.svg                     ← Logo FICCT SVG (REEMPLAZAR)
-│   ├── logo-white.svg               ← Logo blanco SVG (REEMPLAZAR)
-│   ├── logo-trademark.svg           ← Logo trademark SVG (REEMPLAZAR)
-│   ├── favicon.ico                  ← Favicon FICCT
+│   ├── logo.svg                     ← Logo FICCT SVG (pendiente reemplazar)
+│   ├── logo-white.svg               ← Logo blanco SVG (pendiente reemplazar)
+│   ├── logo-trademark.svg           ← Logo trademark SVG (pendiente reemplazar)
+│   ├── favicon.ico                  ← Favicon FICCT ✅
 │   ├── package.json                 ← name: "@edx/brand"
 │   └── paragon/
-│       ├── _overrides.scss          ← Colores FICCT
+│       ├── _overrides.scss          ← Colores FICCT + banner catalog
 │       ├── _variables.scss
 │       ├── _fonts.scss
 │       └── images/
 │           └── card-imagecap-fallback.png
 ├── themes/                          ← Comprehensive Theme para páginas Django legacy
 │   └── ficct/
-│       └── lms/
+│       └── lms/                     ← OBLIGATORIO — sin esta carpeta Open edX no reconoce el tema
 │           └── static/
 │               └── images/
-│                   ├── logo.png
-│                   ├── logo-white.png
-│                   └── favicon.ico
+│                   ├── logo.png     ✅
+│                   ├── logo-white.png ✅
+│                   ├── favicon.ico  ✅
+│                   └── banner.jpg   ✅
 ├── tutor-plugins/                   ← Plugins de Tutor (fuente de verdad)
-│   ├── brand_ficct.py
-│   ├── catalog_mfe.py
-│   ├── ficct_theme.py
-│   └── ficct_config.py
+│   ├── brand_ficct.py               ← Instala brand npm en MFEs
+│   ├── catalog_mfe.py               ← Registra MFE catalog
+│   ├── ficct_theme.py               ← Comprehensive Theme Django legacy
+│   └── ficct_config.py              ← MFE_CONFIG + Judge0 + logos
 ├── apps-custom/                     ← Django apps custom (futuro)
+├── docs/                            ← Guías y documentación
+├── CLAUDE.md
 ├── .gitignore
 └── README.md
 ```
@@ -78,13 +82,14 @@ Plataforma de aprendizaje virtual de la **FICCT-UAGRM** (Facultad de Ingeniería
 
 Los plugins de Tutor son archivos Python que inyectan código en archivos que Tutor genera dinámicamente al correr `tutor config save`. **Nunca edites directamente los archivos generados** — siempre usa plugins.
 
-### Archivos generados importantes
+### Separación de responsabilidades
 
-```
-~/.local/share/tutor/env/build/mfe/Dockerfile           ← Dockerfile del MFE
-~/.local/share/tutor/env/apps/openedx/settings/lms/production.py
-~/.local/share/tutor/env/apps/mfe/production.env.config.jsx
-```
+| Plugin | Responsabilidad |
+|--------|----------------|
+| `brand_ficct.py` | Solo instala el paquete npm @edx/brand en el Dockerfile del MFE |
+| `catalog_mfe.py` | Solo registra el MFE catalog y configura sus URLs por entorno |
+| `ficct_theme.py` | Solo configura el Comprehensive Theme para páginas Django legacy |
+| `ficct_config.py` | MFE_CONFIG (logos, email, URLs) + Judge0 XBlock |
 
 ### Patches más usados
 
@@ -96,8 +101,8 @@ Los plugins de Tutor son archivos Python que inyectan código en archivos que Tu
 | `openedx-lms-production-settings` | Django settings LMS, solo prod |
 | `openedx-lms-development-settings` | Django settings LMS, solo dev |
 | `openedx-common-settings` | Django settings LMS + CMS, prod + dev |
-| `mfe-lms-production-settings` | env.config.jsx MFEs, solo prod |
-| `mfe-lms-common-settings` | env.config.jsx MFEs, prod + dev |
+| `mfe-lms-production-settings` | MFE_CONFIG via LMS API, solo prod |
+| `mfe-lms-common-settings` | MFE_CONFIG via LMS API, prod + dev |
 | `openedx-dockerfile-post-python-requirements` | Dockerfile openedx, tras pip install |
 
 ### Workflow de plugins
@@ -118,21 +123,22 @@ tutor local restart lms
 
 ---
 
-## Plugins Actuales
+## Código Completo de los Plugins
 
 ### `brand_ficct.py`
-Instala el paquete `@edx/brand` desde `LeonelBM123/brand-ficct` en cada MFE durante el build.
 
 ```python
 from tutor import hooks
 
 hooks.Filters.ENV_PATCHES.add_items([
+    # Instala el paquete @edx/brand desde el repo de FICCT
     (
         "mfe-dockerfile-post-npm-install",
         r"""
 RUN npm install '@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git' --force
 """
     ),
+    # Inyecta el @import del brand en el SCSS principal de cada MFE
     (
         "mfe-dockerfile-pre-npm-build",
         r"""
@@ -147,12 +153,12 @@ RUN scss_file=$(find /openedx/app/src -maxdepth 2 \( -name 'index.scss' -o -name
 ```
 
 ### `catalog_mfe.py`
-Registra el MFE de catalog y configura las URLs por entorno.
 
 ```python
 from tutormfe.hooks import MFE_APPS
 from tutor import hooks
 
+# Registra el MFE de catalog en Tutor
 @MFE_APPS.add()
 def _add_catalog_mfe(apps: dict) -> dict:
     apps["catalog"] = {
@@ -163,49 +169,89 @@ def _add_catalog_mfe(apps: dict) -> dict:
     return apps
 
 hooks.Filters.ENV_PATCHES.add_items([
-    ("openedx-lms-common-settings", """
+    # Habilitar catalog MFE en ambos entornos
+    (
+        "openedx-lms-common-settings",
+        """
 ENABLE_CATALOG_MICROFRONTEND = True
-"""),
-    ("openedx-lms-production-settings", """
+"""
+    ),
+    # URL para producción (tutor local) - sin puerto
+    (
+        "openedx-lms-production-settings",
+        """
 CATALOG_MICROFRONTEND_URL = "http://{{ MFE_HOST }}/catalog"
-"""),
-    ("openedx-lms-development-settings", """
+"""
+    ),
+    # URL para desarrollo (tutor dev) - con puerto
+    (
+        "openedx-lms-development-settings",
+        """
 CATALOG_MICROFRONTEND_URL = "http://{{ LMS_HOST }}:{{ get_mfe('catalog').port }}/catalog"
-"""),
+"""
+    ),
 ])
 ```
 
-### `ficct_theme.py` (pendiente de crear)
-Configura el Comprehensive Theme para páginas Django legacy.
+### `ficct_theme.py`
 
 ```python
 from tutor import hooks
 
 hooks.Filters.ENV_PATCHES.add_items([
-    ("openedx-lms-common-settings", """
+    (
+        "openedx-lms-common-settings",
+        """
 ENABLE_COMPREHENSIVE_THEMING = True
 COMPREHENSIVE_THEME_DIRS = ["/openedx/themes"]
 DEFAULT_SITE_THEME = "ficct"
 LOGO_URL = "/static/ficct/images/logo.png"
 LOGO_WHITE_URL = "/static/ficct/images/logo-white.png"
 FAVICON_PATH = "ficct/images/favicon.ico"
-"""),
+"""
+    ),
 ])
 ```
 
-### `ficct_config.py` (pendiente de crear)
-Configuración general del LMS y MFEs.
+### `ficct_config.py`
 
 ```python
 from tutor import hooks
 
+hooks.Filters.CONFIG_DEFAULTS.add_items([
+    ("FICCT_JUDGE0_API_KEY", ""),
+    ("FICCT_OPENROUTER_API_KEY", ""),
+])
+
 hooks.Filters.ENV_PATCHES.add_items([
-    ("mfe-lms-production-settings", """
-MFE_CONFIG["SUPPORT_EMAIL"] = "soporte@ficct.uagrm.edu.bo"
+    # Configuración de logos y MFE para producción
+    (
+        "mfe-lms-production-settings",
+        """
 MFE_CONFIG["LOGO_URL"] = "http://{{ LMS_HOST }}/static/ficct/images/logo.png"
 MFE_CONFIG["LOGO_WHITE_URL"] = "http://{{ LMS_HOST }}/static/ficct/images/logo-white.png"
 MFE_CONFIG["FAVICON_URL"] = "http://{{ LMS_HOST }}/static/ficct/images/favicon.ico"
-"""),
+MFE_CONFIG["SUPPORT_EMAIL"] = "soporte@ficct.uagrm.edu.bo"
+MFE_CONFIG["TERMS_OF_SERVICE_URL"] = "http://{{ LMS_HOST }}/tos"
+MFE_CONFIG["PRIVACY_POLICY_URL"] = "http://{{ LMS_HOST }}/privacy"
+MFE_CONFIG["ENABLE_ACCESSIBILITY_PAGE"] = False
+MFE_CONFIG["DISCOVERY_API_BASE_URL"] = "http://discovery.{{ LMS_HOST }}"
+"""
+    ),
+    # Configuración del XBlock de AI Evaluation (Judge0)
+    (
+        "openedx-lms-common-settings",
+        """
+XBLOCK_SETTINGS = {
+    "ai_eval": {
+        "JUDGE0_API_URL": "https://judge0-ce.p.rapidapi.com",
+        "JUDGE0_API_KEY": "{{ FICCT_JUDGE0_API_KEY }}",
+        "JUDGE0_API_HOST": "judge0-ce.p.rapidapi.com",
+        "GPT4O_API_KEY": "{{ FICCT_OPENROUTER_API_KEY }}",
+    }
+}
+"""
+    ),
 ])
 ```
 
@@ -215,74 +261,133 @@ MFE_CONFIG["FAVICON_URL"] = "http://{{ LMS_HOST }}/static/ficct/images/favicon.i
 
 ### Dos mundos separados
 
-| Contexto | Archivo | Dónde va | Cuándo aplica |
-|----------|---------|----------|---------------|
-| MFEs React | `logo.svg` | `brand-ficct/logo.svg` | Headers de MFEs |
-| MFEs React | `logo-white.svg` | `brand-ficct/logo-white.svg` | Login, fondos oscuros |
-| MFEs React | `logo-trademark.svg` | `brand-ficct/logo-trademark.svg` | Footer |
-| MFEs React | `favicon.ico` | `brand-ficct/favicon.ico` | Tab del browser |
-| Páginas legacy | `logo.png` | `themes/ficct/lms/static/images/` | LMS Django |
-| Páginas legacy | `favicon.ico` | `themes/ficct/lms/static/images/` | Tab en páginas legacy |
+| Contexto | Archivo | Dónde va | Plugin responsable |
+|----------|---------|----------|--------------------|
+| MFEs React | `logo.png` | `themes/ficct/lms/static/images/` | `ficct_config.py` via MFE_CONFIG |
+| MFEs React | `logo-white.png` | `themes/ficct/lms/static/images/` | `ficct_config.py` via MFE_CONFIG |
+| MFEs React | `favicon.ico` | `themes/ficct/lms/static/images/` | `ficct_config.py` via MFE_CONFIG |
+| Páginas legacy | `logo.png` | `themes/ficct/lms/static/images/` | `ficct_theme.py` via LOGO_URL |
+| Páginas legacy | `favicon.ico` | `themes/ficct/lms/static/images/` | `ficct_theme.py` via FAVICON_PATH |
 
-### Problema actual
-- `logo.svg` en `brand-ficct` es el original de openedx (6 años) — NO el de FICCT
-- `logo.png` sí está actualizado con el logo FICCT
-- Los MFEs usan SVG, no PNG → por eso el logo no cambia en los MFEs
+### Flujo completo de imágenes
 
-### Solución pendiente
-Reemplazar los archivos SVG en `brand-ficct/` con los logos de FICCT en formato SVG.
+```
+themes/ficct/lms/static/images/ (monorepo)
+        ↓ Copy-Item (Windows) / cp -r (Linux)
+env/build/openedx/themes/ficct/
+        ↓ tutor images build openedx (~20 min)
+/openedx/staticfiles/ficct/images/ (dentro de la imagen Docker)
+        ↓ tutor local start
+http://LMS_HOST/static/ficct/images/logo.png
+        ↓ ficct_theme.py + ficct_config.py
+Logo visible en MFEs y páginas legacy
+```
+
+### Comando de sincronización al build de Tutor
+
+**Windows (PC):**
+```powershell
+Copy-Item -Recurse "C:\Users\PC\openedx-ficct\themes\ficct\*" `
+  "C:\Users\PC\AppData\Local\tutor\tutor\env\build\openedx\themes\ficct\"
+```
+
+**Linux (servidor):**
+```bash
+cp -r /root/openedx-ficct/themes/ficct/. \
+  /root/.local/share/tutor/env/build/openedx/themes/ficct/
+```
+
+### ⚠️ Errores críticos a evitar
+
+- La carpeta `lms/` dentro del tema es **OBLIGATORIA** — sin ella Open edX no reconoce el tema
+- El `Copy-Item` debe usar `\*` (Windows) o `/.` (Linux) para copiar el CONTENIDO, no la carpeta — evita duplicación `ficct/ficct/`
+- **NUNCA** usar `tutor local run lms ./manage.py lms collectstatic` para actualizar estáticos — el collectstatic debe correr durante el build de la imagen
+- El tema debe estar registrado en `/admin/theming/sitetheme/` para que Open edX lo reconozca
+
+---
+
+## Variables de Entorno Sensibles
+
+Las API keys se setean en el servidor directamente, nunca en el código:
+
+```bash
+tutor config save \
+  --set FICCT_JUDGE0_API_KEY=tu_key_aqui \
+  --set FICCT_OPENROUTER_API_KEY=tu_key_aqui
+```
+
+Quedan guardadas en `~/.local/share/tutor/config.yml` — fuera del repo Git.
+
+---
+
+## XBlock de AI Evaluation (Judge0)
+
+Instalado en Open edX para ejercicios de código con feedback de IA.
+
+```bash
+# Instalación (ya realizada)
+tutor config save --append OPENEDX_EXTRA_PIP_REQUIREMENTS="git+https://github.com/open-craft/xblock-ai-evaluation"
+tutor images build openedx
+```
+
+**Habilitar en Studio:**
+```
+Settings → Advanced Settings → Advanced Module List
+→ agregar: ["coding_ai_eval", "shortanswer_ai_eval"]
+```
+
+**API utilizada:** RapidAPI Judge0 CE (tier gratuito — 100 submissions/día)
+**LLM:** OpenRouter via GPT4O_API_KEY (compatible con formato OpenAI)
 
 ---
 
 ## Flujos de Trabajo
 
-### Flujo para cambios en estilos/colores (brand)
+### Cambios en estilos/colores (brand-ficct)
 
 ```bash
-# 1. Editar en el monorepo
-nano /root/openedx-ficct/brand-ficct/paragon/_overrides.scss
-
+# 1. Editar _overrides.scss en el monorepo
 # 2. Commit y push
-cd /root/openedx-ficct
-git add brand-ficct/
-git commit -m "feat: update FICCT brand colors"
-git push
-
-# 3. Rebuild MFE (requerido — SCSS se compila en el build)
+git add brand-ficct/ && git commit -m "feat: update styles" && git push
+# 3. Rebuild MFE (requerido)
 tutor images build mfe
 tutor local restart
 ```
 
-### Flujo para cambios en plugins
+### Cambios en logos/imágenes
 
 ```bash
-# 1. Editar plugin
-nano /root/openedx-ficct/tutor-plugins/ficct_config.py
+# 1. Reemplazar archivos en themes/ficct/lms/static/images/
+# 2. Sincronizar al build de Tutor (ver comando arriba)
+# 3. Rebuild openedx
+tutor images build openedx
+tutor local stop && tutor local start -d
+```
 
+### Cambios en plugins
+
+```bash
+# 1. Editar plugin en tutor-plugins/
 # 2. Reinstalar
-tutor plugins install /root/openedx-ficct/tutor-plugins/ficct_config.py
-
-# 3. Aplicar
+tutor plugins install /root/openedx-ficct/tutor-plugins/nombre.py
 tutor config save
 tutor local restart lms
 ```
 
-### Flujo para sincronizar desde PC de escritorio
+### Sincronizar PC → Servidor
 
 ```bash
+# PC: push
+git add . && git commit -m "..." && git push
+
+# Servidor: pull e instalar
 cd /root/openedx-ficct
 git pull
-tutor plugins install /root/openedx-ficct/tutor-plugins/*.py
+tutor plugins install /root/openedx-ficct/tutor-plugins/brand_ficct.py
+tutor plugins install /root/openedx-ficct/tutor-plugins/catalog_mfe.py
+tutor plugins install /root/openedx-ficct/tutor-plugins/ficct_theme.py
+tutor plugins install /root/openedx-ficct/tutor-plugins/ficct_config.py
 tutor config save
-```
-
-### Flujo para rebuild completo
-
-```bash
-tutor images build mfe
-tutor images build openedx
-tutor local stop
-tutor local start -d
 ```
 
 ---
@@ -290,17 +395,15 @@ tutor local start -d
 ## Comandos de Referencia
 
 ```bash
-# Estado de servicios
+# Estado
 tutor local status
+tutor plugins list
 
-# Logs de un servicio
+# Logs
 tutor local logs --tail=50 lms
-
-# Reiniciar un servicio
-tutor local restart lms
+tutor local logs --tail=50 mfe
 
 # Plugins
-tutor plugins list
 tutor plugins install /root/openedx-ficct/tutor-plugins/nombre.py
 tutor plugins enable nombre
 tutor plugins disable nombre
@@ -309,64 +412,60 @@ tutor plugins disable nombre
 tutor config save
 tutor config printvalue LMS_HOST
 tutor config printvalue MFE_HOST
+tutor config save --set FICCT_JUDGE0_API_KEY=valor
 
-# Verificar inyección de plugins en archivos generados
-grep -r "brand-ficct" ~/.local/share/tutor/env/
-grep -r "ficct" ~/.local/share/tutor/env/apps/openedx/settings/
+# Rebuild
+tutor images build mfe        ← cambios en brand-ficct (SCSS, SVGs)
+tutor images build openedx    ← cambios en themes/ (logos PNG)
 
-# Activar tema comprehensive
-tutor local run lms ./manage.py lms set_theme ficct \
-  --sites "$(tutor config printvalue LMS_HOST)"
+# Restart
+tutor local restart lms
+tutor local stop && tutor local start -d
 
-# Compilar estáticos del tema
-tutor local run lms ./manage.py lms compile_sass
-tutor local run lms ./manage.py lms collectstatic --noinput
+# Verificar logos
+curl -I http://167.172.142.82.nip.io/static/ficct/images/logo.png
+
+# Verificar tema en DB
+docker exec tutor_local-lms-1 python manage.py lms shell \
+  -c "from openedx.core.djangoapps.theming.helpers import get_themes; print(get_themes())"
+
+# Verificar MFE_CONFIG
+grep -r "LOGO_URL" /root/.local/share/tutor/env/apps/openedx/settings/lms/production.py
 ```
 
 ---
 
-## Rutas Importantes del Servidor
+## Rutas Importantes
 
 ```bash
-# Configuración de Tutor
-~/.local/share/tutor/config.yml
+# Servidor
+~/.local/share/tutor/config.yml                              ← config de Tutor (con API keys)
+~/.local/share/tutor/env/                                    ← archivos generados por Tutor
+~/.local/share/tutor-plugins/                                ← plugins instalados en Tutor
+~/.local/share/tutor/env/plugins/mfe/build/mfe/Dockerfile   ← Dockerfile del MFE generado
+~/.local/share/tutor/env/build/openedx/themes/ficct/        ← tema en el build de Tutor
+/root/openedx-ficct/                                         ← monorepo
 
-# Archivos generados por Tutor
-~/.local/share/tutor/env/
-
-# Plugins instalados en Tutor
-~/.local/share/tutor-plugins/
-
-# Monorepo del proyecto
-/root/openedx-ficct/
-
-# Dockerfile del MFE (para verificar inyecciones)
-~/.local/share/tutor/env/plugins/mfe/build/mfe/Dockerfile
+# PC Windows
+C:\Users\PC\AppData\Local\tutor\tutor\config.yml
+C:\Users\PC\AppData\Local\tutor\tutor\env\
+C:\Users\PC\AppData\Local\tutor-plugins\tutor-plugins\
+C:\Users\PC\AppData\Local\tutor\tutor\env\build\openedx\themes\ficct\
+C:\Users\PC\openedx-ficct\
 ```
-
----
-
-## Tareas Pendientes (por orden de prioridad)
-
-1. **Clonar monorepo en el servidor** — `git clone https://github.com/LeonelBM123/openedx-ficct.git /root/openedx-ficct`
-2. **Crear carpetas faltantes** — `themes/`, `tutor-plugins/`, `apps-custom/`
-3. **Migrar plugins actuales al monorepo** — copiar + refactorizar en archivos separados
-4. **Reinstalar plugins desde el monorepo** — fuente de verdad en Git
-5. **Crear comprehensive theme** — carpeta `themes/ficct/` con logos PNG
-6. **Reemplazar SVGs en brand-ficct** — con logos reales de FICCT
-7. **Rebuild de imagen MFE** — para que tome el nuevo brand
-8. **Verificar logos** — en MFEs y páginas legacy
 
 ---
 
 ## Notas Importantes
 
-- **NUNCA edites directamente** los archivos en `~/.local/share/tutor/env/` — se sobreescriben con `tutor config save`
-- **Los plugins son la fuente de verdad** — todo cambio va primero al monorepo, luego se instala en Tutor
-- **Rebuild de MFE es costoso** — solo cuando cambia brand-ficct (SCSS o SVGs)
-- **`tutor config save` regenera el entorno** — correr siempre después de cambiar plugins
-- **Verawood (Tutor 22) sale en junio 2026** — no actualizar hasta que haya parches de estabilización
-- **brand-ficct puede ser submodule** — verificar con `git submodule status` si es submodule o carpeta normal
+- **NUNCA edites** los archivos en `~/.local/share/tutor/env/` — se sobreescriben con `tutor config save`
+- **Los plugins son la fuente de verdad** — todo cambio va primero al monorepo
+- **Rebuild de MFE** — solo cuando cambia brand-ficct (SCSS o SVGs)
+- **Rebuild de openedx** — solo cuando cambian logos en themes/ficct/
+- **Verawood (Tutor 22)** — salió en junio 2026, no actualizar hasta estabilización
+- **`COMPOSE_MOUNTS` con 3 valores** — NO funciona en Tutor 21, no agregar a los plugins
+- **Tema en DB** — debe estar registrado en `/admin/theming/sitetheme/` una sola vez
+- **brand-ficct usa SCSS** — pendiente migrar a Design Tokens en futura release
 
 ---
 
@@ -375,4 +474,5 @@ tutor local run lms ./manage.py lms collectstatic --noinput
 - **Institución:** FICCT-UAGRM, Santa Cruz, Bolivia
 - **Proyecto:** Plataforma Virtual FICCT (Gestión 2026-1)
 - **Instructor:** Ing. Rolando Martínez Canedo (SW1)
-- **Equipo:** Leonel (IoT/Brand/MFEs), D'Alessandro (video), Otsubo (3D), Mauro (tours virtuales), Alejandro (smart contracts)
+- **Equipo:** Leonel (Brand/MFEs/IoT), D'Alessandro (video), Otsubo (3D), Mauro (tours virtuales), Alejandro (smart contracts)
+- **Repo:** github.com/LeonelBM123/openedx-ficct

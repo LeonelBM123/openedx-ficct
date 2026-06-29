@@ -13,16 +13,3 @@ FAVICON_PATH = "ficct/images/favicon.ico"
 """
     ),
 ])
-
-hooks.Filters.COMPOSE_MOUNTS.add_items([
-    (
-        "lms",
-        "/root/openedx-ficct/themes",
-        "/openedx/themes",
-    ),
-    (
-        "cms",
-        "/root/openedx-ficct/themes",
-        "/openedx/themes",
-    ),
-])
