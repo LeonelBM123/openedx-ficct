@@ -18,6 +18,9 @@ MFE_CONFIG["TERMS_OF_SERVICE_URL"] = "http://{{ LMS_HOST }}/tos"
 MFE_CONFIG["PRIVACY_POLICY_URL"] = "http://{{ LMS_HOST }}/privacy"
 MFE_CONFIG["ENABLE_ACCESSIBILITY_PAGE"] = False
 MFE_CONFIG["DISCOVERY_API_BASE_URL"] = "http://discovery.{{ LMS_HOST }}"
+MFE_CONFIG["LANGUAGE_PREFERENCE_COOKIE_NAME"] = "openedx-language-preference"
+MFE_CONFIG["DEFAULT_COURSE_LANGUAGE"] = "es-419"
+MFE_CONFIG["SITE_LANGUAGE"] = "es-419"
 """
     ),
     # Configuración del XBlock de AI Evaluation (Judge0)

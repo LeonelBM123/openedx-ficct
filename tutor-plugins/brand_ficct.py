@@ -5,7 +5,8 @@ hooks.Filters.ENV_PATCHES.add_items([
     (
         "mfe-dockerfile-post-npm-install",
         r"""
-RUN npm install '@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git' --force
+RUN git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" && \
+    npm install '@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git' --force
 """
     ),
     # Inyecta el @import del brand en el SCSS principal de cada MFE
