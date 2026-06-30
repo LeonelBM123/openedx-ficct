@@ -1,0 +1,57 @@
+name: Build MFE
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mfes/frontend-app-learning/**'
+      - 'docker/mfe/Dockerfile'
+      - '.github/workflows/build-mfe.yml'
+  workflow_dispatch:
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/openedx-mfe
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Patch Dockerfile (legacy-peer-deps para learning)
+        run: |
+          awk '
+            /^FROM base AS learning-common/{in_section=1}
+            /^FROM.*AS learning-dev/{in_section=0}
+            in_section && /npm clean-install/{sub("npm clean-install","npm install --legacy-peer-deps")}
+            {print}
+          ' docker/mfe/Dockerfile > /tmp/Dockerfile.patched
+          mv /tmp/Dockerfile.patched docker/mfe/Dockerfile
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: docker/mfe
+          build-contexts: |
+            learning-src=mfes/frontend-app-learning
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:21.0.0
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
