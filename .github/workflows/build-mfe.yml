@@ -34,15 +34,26 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Patch Dockerfile (legacy-peer-deps para learning)
+      - name: Patch Dockerfile para learning
         run: |
+          # 1. npm install --legacy-peer-deps en vez de npm ci
           awk '
             /^FROM base AS learning-common/{in_section=1}
             /^FROM.*AS learning-dev/{in_section=0}
             in_section && /npm clean-install/{sub("npm clean-install","npm install --legacy-peer-deps")}
             {print}
-          ' docker/mfe/Dockerfile > /tmp/Dockerfile.patched
-          mv /tmp/Dockerfile.patched docker/mfe/Dockerfile
+          ' docker/mfe/Dockerfile > /tmp/df1
+
+          # 2. Quitar COPY env.config.jsx en el stage de learning
+          #    (el nuestro ya viene de learning-src con el AvatarTour)
+          awk '
+            /^FROM base AS learning-common/{in_section=1}
+            /^FROM.*AS learning-dev/{in_section=0}
+            in_section && /COPY env\.config\.jsx \/openedx\/app/{next}
+            {print}
+          ' /tmp/df1 > /tmp/df2
+
+          mv /tmp/df2 docker/mfe/Dockerfile
 
       - name: Build and push
         uses: docker/build-push-action@v5
