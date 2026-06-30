@@ -194,6 +194,13 @@ initialize({
         PROCTORED_EXAM_RULES_URL: process.env.PROCTORED_EXAM_RULES_URL || null,
         PRIVACY_POLICY_URL: process.env.PRIVACY_POLICY_URL || null,
         SHOW_UNGRADED_ASSIGNMENT_PROGRESS: process.env.SHOW_UNGRADED_ASSIGNMENT_PROGRESS || false,
+        AVATAR_ENABLED: process.env.AVATAR_ENABLED || 'false',
+        AVATAR_TTS_API_URL: process.env.AVATAR_TTS_API_URL || null,
+        AVATAR_QA_API_URL: process.env.AVATAR_QA_API_URL || null,
+        AZURE_SPEECH_KEY: process.env.AZURE_SPEECH_KEY || '',
+        AZURE_SPEECH_REGION: process.env.AZURE_SPEECH_REGION || '',
+        OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || '',
+        OPENROUTER_MODEL: process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',
       }, 'LearnerAppConfig');
     },
   },

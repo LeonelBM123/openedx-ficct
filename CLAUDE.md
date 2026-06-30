@@ -6,6 +6,17 @@ Plataforma de aprendizaje virtual de la **FICCT-UAGRM** (Facultad de Ingeniería
 
 ---
 
+## Regla fundamental de desarrollo
+
+**Todo el desarrollo y despliegue se hace a través de Tutor. Nunca mediante `npm start` standalone.**
+
+- Las variables de entorno de los MFEs llegan siempre vía **Tutor config** (`tutor config save --set KEY=valor`) → plugin Python → `MFE_CONFIG` → runtime API del LMS → `getConfig()` en el MFE.
+- Los archivos `.env` y `.env.development` de los MFEs **no se usan** en este proyecto. No proponer editar `.env.*` para configurar variables — siempre usar el plugin de Tutor correspondiente.
+- Para aplicar cambios de configuración: `tutor config save` → `tutor local restart lms` (o `tutor dev restart lms`).
+- Los secretos (API keys, claves de servicios externos) van en `~/.local/share/tutor/config.yml` vía `tutor config save --set KEY=valor`, nunca en archivos del repositorio.
+
+---
+
 ## Infraestructura
 
 | Componente | Detalle |
@@ -467,12 +478,3 @@ C:\Users\PC\openedx-ficct\
 - **Tema en DB** — debe estar registrado en `/admin/theming/sitetheme/` una sola vez
 - **brand-ficct usa SCSS** — pendiente migrar a Design Tokens en futura release
 
----
-
-## Contexto Académico
-
-- **Institución:** FICCT-UAGRM, Santa Cruz, Bolivia
-- **Proyecto:** Plataforma Virtual FICCT (Gestión 2026-1)
-- **Instructor:** Ing. Rolando Martínez Canedo (SW1)
-- **Equipo:** Leonel (Brand/MFEs/IoT), D'Alessandro (video), Otsubo (3D), Mauro (tours virtuales), Alejandro (smart contracts)
-- **Repo:** github.com/LeonelBM123/openedx-ficct

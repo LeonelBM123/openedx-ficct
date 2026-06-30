@@ -24,8 +24,9 @@ logs
 # Local package dependencies
 module.config.js
 
-# Local environment overrides
+# Local environment overrides (nunca commitear claves reales)
 .env.private
+.env.development.local
 
 src/i18n/messages/
 

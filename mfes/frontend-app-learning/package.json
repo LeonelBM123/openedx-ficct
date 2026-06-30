@@ -46,6 +46,8 @@
     "@openedx/frontend-plugin-framework": "^1.7.0",
     "@openedx/paragon": "^23.4.5",
     "@popperjs/core": "2.11.8",
+    "@react-three/drei": "^9.114.0",
+    "@react-three/fiber": "^8.17.10",
     "@reduxjs/toolkit": "1.9.7",
     "buffer": "^6.0.3",
     "classnames": "2.5.1",
@@ -60,6 +62,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-helmet": "6.1.0",
+    "react-joyride": "^2.9.3",
     "react-redux": "7.2.9",
     "react-router": "6.15.0",
     "react-router-dom": "6.15.0",
@@ -69,6 +72,8 @@
     "sass": "^1.79.3",
     "sass-loader": "^16.0.2",
     "source-map-loader": "^5.0.0",
+    "microsoft-cognitiveservices-speech-sdk": "^1.43.0",
+    "three": "^0.169.0",
     "truncate-html": "1.0.4"
   },
   "devDependencies": {
