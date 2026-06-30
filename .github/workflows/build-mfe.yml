@@ -9,9 +9,6 @@ on:
       - '.github/workflows/build-mfe.yml'
   workflow_dispatch:
 
-env:
-  IMAGE: ghcr.io/${{ github.repository_owner }}/openedx-mfe
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,6 +19,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set image name (lowercase)
+        id: image
+        run: echo "name=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/openedx-mfe" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -51,7 +52,7 @@ jobs:
             learning-src=mfes/frontend-app-learning
           push: true
           tags: |
-            ${{ env.IMAGE }}:21.0.0
-            ${{ env.IMAGE }}:latest
+            ${{ steps.image.outputs.name }}:21.0.0
+            ${{ steps.image.outputs.name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
