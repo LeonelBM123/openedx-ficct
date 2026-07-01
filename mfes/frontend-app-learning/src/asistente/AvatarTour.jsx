@@ -1,6 +1,7 @@
 import React, {
   Suspense, useState, useRef, useEffect, useMemo, useCallback,
 } from 'react';
+import { useSelector } from 'react-redux';
 import { Canvas } from '@react-three/fiber';
 import Joyride from 'react-joyride';
 import { getConfig } from '@edx/frontend-platform';
@@ -13,6 +14,7 @@ import { portalTours } from './config/ToursConfig';
 import { AzureSpeechService } from './config/azureSpeechService';
 import { useContextId } from '../data/hooks';
 import { getProgressTabData } from '../course-home/data/api';
+import { useModel } from '../generic/model-store';
 
 import './index.scss';
 
@@ -21,6 +23,13 @@ const InvisibleTooltip = () => <div style={{ display: 'none' }} />;
 const AvatarTour = ({ tourName = 'learning' }) => {
   const steps = portalTours[tourName];
   const courseId = useContextId();
+
+  const sequenceId = useSelector((state) => state.courseware?.sequenceId);
+  const unitId = useSelector((state) => state.courseware?.unitId);
+  const course = useModel('coursewareMeta', courseId);
+  const sequence = useModel('sequences', sequenceId);
+  const section = useModel('sections', sequence?.sectionId);
+  const unit = useModel('units', unitId);
 
   const [isMinimized, setIsMinimized] = useState(false);
   const [isTourActive, setIsTourActive] = useState(false);
@@ -104,6 +113,38 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     };
   }, [currentStep, isTourActive, steps, azureSpeech, selectedAvatar.voice, cleanupAudio]);
 
+  const buildLLMContext = useCallback(() => {
+    const lines = [];
+    if (course?.title) { lines.push(`Curso: ${course.title}`); }
+    if (section?.title) { lines.push(`Sección: ${section.title}`); }
+    if (sequence?.title) {
+      lines.push(`Lección: ${sequence.title}${sequence.format ? ` (${sequence.format})` : ''}`);
+    }
+    if (unit?.title) { lines.push(`Unidad actual: ${unit.title}`); }
+    if (statsData?.completionSummary) {
+      const { completeCount, incompleteCount, lockedCount } = statsData.completionSummary;
+      const total = completeCount + incompleteCount + lockedCount;
+      if (total > 0) {
+        lines.push(`Progreso: ${completeCount}/${total} unidades completadas (${Math.round((completeCount / total) * 100)}%)`);
+      }
+    }
+    if (statsData?.courseGrade?.percent != null) {
+      const g = statsData.courseGrade;
+      lines.push(`Nota: ${Math.round(g.percent * 100)}%${g.letterGrade ? ` (${g.letterGrade})` : ''}${g.isPassing ? ' · Aprobado' : ' · No aprobado'}`);
+    }
+    if (statsData?.sectionScores && section?.title) {
+      const sec = statsData.sectionScores.find((s) => s.displayName === section.title);
+      if (sec) {
+        const earned = sec.subsections.reduce((s, sub) => s + (sub.numPointsEarned || 0), 0);
+        const possible = sec.subsections.reduce((s, sub) => s + (sub.numPointsPossible || 0), 0);
+        if (possible > 0) {
+          lines.push(`Puntos en sección actual: ${earned}/${possible} (${Math.round((earned / possible) * 100)}%)`);
+        }
+      }
+    }
+    return lines.join('\n');
+  }, [course, section, sequence, unit, statsData]);
+
   const handleAskQuestion = useCallback(async (q) => {
     const openrouterKey = getConfig().OPENROUTER_API_KEY;
     const qaApiUrl = getConfig().AVATAR_QA_API_URL;
@@ -119,13 +160,13 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     setIsSpeaking(false);
 
     try {
-      const contexto = steps?.[currentStep]?.text;
+      const contexto = buildLLMContext();
       let answer = '';
 
       if (openrouterKey) {
         const model = getConfig().OPENROUTER_MODEL || 'openai/gpt-4o-mini';
-        const systemPrompt = 'Eres un asistente académico. Responde de forma clara y concisa en español, máximo 3 oraciones.';
-        const userMsg = contexto ? `Contexto del curso: ${contexto}\n\nPregunta: ${q}` : q;
+        const systemPrompt = 'Eres un asistente académico de la plataforma. Recibes contexto del curso y progreso del estudiante. Responde preguntas sobre el curso de forma clara y concisa en español, máximo 3 oraciones. Si la pregunta es sobre el contenido específico de una lección que no puedes ver, indícalo.';
+        const userMsg = contexto ? `${contexto}\n\nPregunta del estudiante: ${q}` : q;
         const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -147,7 +188,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
         const res = await fetch(qaApiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pregunta: q, contexto }),
+          body: JSON.stringify({ pregunta: q, contexto: contexto || undefined }),
         });
         const data = await res.json();
         answer = data.respuesta || data.response || '';
@@ -175,7 +216,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
       setIsThinking(false);
       setAiResponse('❌ No pude responder esa pregunta en este momento.');
     }
-  }, [steps, currentStep, azureSpeech, selectedAvatar.voice, cleanupAudio]);
+  }, [buildLLMContext, azureSpeech, selectedAvatar.voice, cleanupAudio]);
 
   const handlePrevAvatar = () => {
     cleanupAudio();
