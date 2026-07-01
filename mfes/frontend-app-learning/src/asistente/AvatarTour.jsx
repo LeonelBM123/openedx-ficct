@@ -288,6 +288,28 @@ const AvatarTour = ({ tourName = 'learning' }) => {
         }}
       />
 
+      {/* Panel de estadísticas — a la IZQUIERDA del avatar */}
+      {statsVisible && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '332px',
+          width: '270px',
+          zIndex: 9999,
+          pointerEvents: 'auto',
+          fontFamily: 'system-ui, -apple-system, sans-serif',
+          maxHeight: '480px',
+          overflowY: 'auto',
+        }}
+        >
+          <StatsPanel
+            data={statsData}
+            loading={statsLoading}
+            onClose={() => setStatsVisible(false)}
+          />
+        </div>
+      )}
+
       <div style={{
         position: 'fixed',
         bottom: '20px',
@@ -298,15 +320,6 @@ const AvatarTour = ({ tourName = 'learning' }) => {
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
       >
-        {/* Panel de estadísticas de progreso */}
-        {statsVisible && (
-          <StatsPanel
-            data={statsData}
-            loading={statsLoading}
-            onClose={() => setStatsVisible(false)}
-          />
-        )}
-
         {/* Burbuja respuesta — ENCIMA del avatar */}
         {aiBubbleVisible && (
           <div style={{
