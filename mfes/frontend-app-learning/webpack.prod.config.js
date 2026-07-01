@@ -11,6 +11,11 @@ config.plugins.push(
         from: path.resolve(__dirname, './public/static'),
         to: path.resolve(__dirname, './dist/static'),
       },
+      {
+        from: path.resolve(__dirname, './public'),
+        to: path.resolve(__dirname, './dist'),
+        globOptions: { ignore: ['**/static/**', '**/index.html'] },
+      },
     ],
   }),
 );

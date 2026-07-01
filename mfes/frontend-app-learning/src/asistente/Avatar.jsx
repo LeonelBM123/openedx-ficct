@@ -32,7 +32,7 @@ export default function Avatar({
 }) {
   const group = useRef();
   const { scene, nodes } = useGLTF(avatarPath);
-  const { animations: idleAnim } = useFBX('/animacion.fbx');
+  const { animations: idleAnim } = useFBX(`${process.env.PUBLIC_PATH || '/'}animacion.fbx`);
 
   const clips = useMemo(() => {
     if (!idleAnim || !idleAnim[0]) { return []; }
