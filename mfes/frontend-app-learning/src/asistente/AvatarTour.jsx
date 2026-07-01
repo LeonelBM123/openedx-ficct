@@ -7,9 +7,12 @@ import { getConfig } from '@edx/frontend-platform';
 
 import Avatar from './Avatar';
 import TourUI from './TourUI';
+import StatsPanel from './StatsPanel';
 import { AVATAR_LIST } from './AvatarSwitcher';
 import { portalTours } from './config/ToursConfig';
 import { AzureSpeechService } from './config/azureSpeechService';
+import { useContextId } from '../data/hooks';
+import { getProgressTabData } from '../course-home/data/api';
 
 import './index.scss';
 
@@ -17,6 +20,7 @@ const InvisibleTooltip = () => <div style={{ display: 'none' }} />;
 
 const AvatarTour = ({ tourName = 'learning' }) => {
   const steps = portalTours[tourName];
+  const courseId = useContextId();
 
   const [isMinimized, setIsMinimized] = useState(false);
   const [isTourActive, setIsTourActive] = useState(false);
@@ -29,6 +33,9 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   const [question, setQuestion] = useState('');
   const [aiBubbleVisible, setAiBubbleVisible] = useState(false);
   const hideTimer = useRef(null);
+  const [statsVisible, setStatsVisible] = useState(false);
+  const [statsData, setStatsData] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const selectedAvatar = AVATAR_LIST[avatarIndex];
 
@@ -184,9 +191,19 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     setAvatarIndex((i) => (i + 1) % AVATAR_LIST.length);
   };
 
-  const handleStats = () => {
-    // TODO: implementar panel de estadísticas
-  };
+  const handleStats = useCallback(async () => {
+    setStatsVisible((v) => {
+      if (v) { return false; }
+      if (!statsData && courseId) {
+        setStatsLoading(true);
+        getProgressTabData(courseId)
+          .then((d) => { setStatsData(d); })
+          .catch(() => { setStatsData(null); })
+          .finally(() => { setStatsLoading(false); });
+      }
+      return true;
+    });
+  }, [courseId, statsData]);
 
   useEffect(() => {
     if (aiResponse || isThinking) {
@@ -281,6 +298,15 @@ const AvatarTour = ({ tourName = 'learning' }) => {
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
       >
+        {/* Panel de estadísticas de progreso */}
+        {statsVisible && (
+          <StatsPanel
+            data={statsData}
+            loading={statsLoading}
+            onClose={() => setStatsVisible(false)}
+          />
+        )}
+
         {/* Burbuja respuesta — ENCIMA del avatar */}
         {aiBubbleVisible && (
           <div style={{
