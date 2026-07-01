@@ -354,6 +354,35 @@ Settings → Advanced Settings → Advanced Module List
 
 ## Flujos de Trabajo
 
+### Cambios en el MFE learning (avatar, código React)
+
+El MFE `frontend-app-learning` se construye automáticamente via **GitHub Actions** en el repo `LeonelBM123/openedx-ficct`. El workflow `.github/workflows/build-mfe.yml` se activa en cada push a `main` que toque `mfes/frontend-app-learning/**`.
+
+```bash
+# 1. Editar código en mfes/frontend-app-learning/src/
+# 2. Commit y push (dispara GitHub Actions automáticamente)
+git add mfes/frontend-app-learning/... && git commit -m "feat: ..." && git push
+
+# 3. Esperar ~7 min a que termine el build en GitHub Actions
+#    https://github.com/LeonelBM123/openedx-ficct/actions
+
+# 4. Aplicar la nueva imagen en el servidor
+docker pull ghcr.io/leonelbm123/openedx-mfe:21.0.0
+docker tag ghcr.io/leonelbm123/openedx-mfe:21.0.0 overhangio/openedx-mfe:21.0.0
+tutor local restart
+```
+
+**Verificar que el código llegó:**
+```bash
+docker exec tutor_local-mfe-1 sh -c "grep -rl 'AvatarTour' /openedx/dist/learning/ 2>/dev/null | head -3"
+```
+
+**Notas del pipeline:**
+- El workflow parchea el Dockerfile: usa `npm install --legacy-peer-deps` (en vez de `npm ci`) y elimina el `COPY env.config.jsx` genérico del stage learning para que use el nuestro en `mfes/frontend-app-learning/env.config.jsx`
+- Los assets 3D (GLB/FBX) deben estar en `mfes/frontend-app-learning/public/` y se copian al `dist/` vía el `CopyPlugin` en `webpack.prod.config.js`
+- Las rutas de assets usan `process.env.PUBLIC_PATH` (= `/learning/` en prod) para que Caddy las resuelva correctamente
+- El repo es público → GitHub Actions gratuito e ilimitado
+
 ### Cambios en estilos/colores (brand-ficct)
 
 ```bash
