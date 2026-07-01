@@ -18,7 +18,7 @@ export const AVATAR_LIST = [
     id: 'avatar3', label: 'Avatar', path: `${BASE}avatar-3.glb`, emoji: '🧑', voice: 'es-MX-JorgeNeural',
   },
   {
-    id: 'avatar4', label: 'Avatar', path: `${BASE}avatar-4 (1).glb`, emoji: '👩', voice: 'es-MX-DaliaNeural',
+    id: 'avatar4', label: 'Avatar', path: `${BASE}avatar-4.glb`, emoji: '👩', voice: 'es-MX-DaliaNeural',
   },
   {
     id: 'avatar6', label: 'Avatar', path: `${BASE}avatar-6.glb`, emoji: '👩', voice: 'es-MX-DaliaNeural',
