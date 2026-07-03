@@ -40,6 +40,32 @@ async function setConfig () {
     if (process.env.APP_ID == 'learner-dashboard') {
     }
     if (process.env.APP_ID == 'learning') {
+      const React = (await import('react')).default;
+      const AvatarTour = React.lazy(() => import('./src/asistente/AvatarTour'));
+
+      class AvatarErrorBoundary extends React.Component {
+        constructor(props) { super(props); this.state = { hasError: false }; }
+        static getDerivedStateFromError() { return { hasError: true }; }
+        render() { return this.state.hasError ? null : this.props.children; }
+      }
+
+      addPlugins(config, 'org.openedx.frontend.layout.header_learning.v1', [
+        {
+          op: PLUGIN_OPERATIONS.Insert,
+          widget: {
+            id: 'avatar_tour_widget',
+            type: DIRECT_PLUGIN,
+            priority: 1,
+            RenderWidget: () => (
+              <AvatarErrorBoundary>
+                <React.Suspense fallback={null}>
+                  <AvatarTour tourName="learning" />
+                </React.Suspense>
+              </AvatarErrorBoundary>
+            ),
+          },
+        },
+      ]);
     }
     if (process.env.APP_ID == 'ora-grading') {
     }
