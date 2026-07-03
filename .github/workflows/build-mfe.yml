@@ -34,15 +34,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Patch Dockerfile para learning
+      - name: Patch Dockerfile
         run: |
-          # npm install --legacy-peer-deps en vez de npm ci (peer deps de Three.js/Azure SDK)
-          awk '
-            /^FROM base AS learning-common/{in_section=1}
-            /^FROM.*AS learning-dev/{in_section=0}
-            in_section && /npm clean-install/{sub("npm clean-install","npm install --legacy-peer-deps")}
-            {print}
-          ' docker/mfe/Dockerfile > /tmp/df_patched && mv /tmp/df_patched docker/mfe/Dockerfile
+          # Reemplazar npm clean-install por npm install --legacy-peer-deps en todos los MFEs
+          sed -i 's/npm clean-install/npm install --legacy-peer-deps/g' docker/mfe/Dockerfile
 
       - name: Build and push
         uses: docker/build-push-action@v5
