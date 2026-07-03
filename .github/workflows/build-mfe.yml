@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - 'mfes/frontend-app-learning/**'
+      - 'mfes/frontend-app-authn/**'
+      - 'mfes/frontend-app-authoring/**'
+      - 'mfes/frontend-app-catalog/**'
+      - 'mfes/frontend-app-learner-dashboard/**'
       - 'docker/mfe/Dockerfile'
       - '.github/workflows/build-mfe.yml'
   workflow_dispatch:
@@ -61,6 +65,10 @@ jobs:
           context: docker/mfe
           build-contexts: |
             learning-src=mfes/frontend-app-learning
+            authn-src=mfes/frontend-app-authn
+            authoring-src=mfes/frontend-app-authoring
+            catalog-src=mfes/frontend-app-catalog
+            learner-dashboard-src=mfes/frontend-app-learner-dashboard
           push: true
           tags: |
             ${{ steps.image.outputs.name }}:21.0.0
