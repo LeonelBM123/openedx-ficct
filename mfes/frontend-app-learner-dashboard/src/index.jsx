@@ -26,6 +26,7 @@ import ContextProviders from 'data/context';
 import { configuration } from './config';
 
 import messages from './i18n';
+import localeOverrides from './i18n/localeOverrides';
 
 import App from './App';
 
@@ -74,6 +75,6 @@ initialize({
       mergeConfig(configuration, appName);
     },
   },
-  messages,
+  messages: [...messages, localeOverrides],
   requireAuthenticatedUser: true,
 });
