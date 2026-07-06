@@ -6,6 +6,7 @@ on:
     paths:
       - 'mfes/**'
       - 'docker/mfe/**'
+      - 'brand-ficct'
       - 'brand-ficct/**'
       - '.github/workflows/build-mfe.yml'
   workflow_dispatch:
