@@ -15,8 +15,8 @@ RUN git config --global url."https://github.com/".insteadOf "ssh://git@github.co
         r"""
 RUN scss_file=$(find /openedx/app/src -maxdepth 2 \( -name 'index.scss' -o -name 'App.scss' \) 2>/dev/null | head -1) && \
     if [ -n "$scss_file" ]; then \
-        echo "@import '~@edx/brand/paragon/overrides';" >> "$scss_file" && \
-        echo "Injected brand into $scss_file"; \
+        grep -q "@import '~@edx/brand/paragon/overrides';" "$scss_file" || \
+        echo "@import '~@edx/brand/paragon/overrides';" >> "$scss_file"; \
     fi
 """
     ),
