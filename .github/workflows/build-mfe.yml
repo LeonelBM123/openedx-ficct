@@ -41,6 +41,10 @@ jobs:
           # Reemplazar npm clean-install por npm install --legacy-peer-deps en todos los MFEs
           sed -i 's/npm clean-install/npm install --legacy-peer-deps/g' docker/mfe/Dockerfile
 
+      - name: Resolve brand-ficct commit (cache-buster)
+        id: brand
+        run: echo "sha=$(git ls-remote https://github.com/LeonelBM123/brand-ficct.git refs/heads/master | cut -f1)" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -51,6 +55,8 @@ jobs:
             authoring-src=mfes/frontend-app-authoring
             catalog-src=mfes/frontend-app-catalog
             learner-dashboard-src=mfes/frontend-app-learner-dashboard
+          build-args: |
+            BRAND_FICCT_REF=${{ steps.brand.outputs.sha }}
           push: true
           tags: |
             ${{ steps.image.outputs.name }}:21.0.0
