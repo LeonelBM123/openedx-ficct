@@ -44,8 +44,7 @@ ENV CPPFLAGS=-DPNG_ARM_NEON_OPT=0
 ENV PACT_SKIP_BINARY_INSTALL=true
 RUN --mount=type=cache,target=/root/.npm,sharing=shared npm clean-install --no-audit --no-fund --registry=$NPM_REGISTRY
 
-ARG BRAND_FICCT_REF=master
-RUN npm install "@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git#${BRAND_FICCT_REF}" --force
+RUN npm install '@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git' --force
 
 COPY --from=admin-console-src / /openedx/app
 
@@ -200,8 +199,7 @@ ENV CPPFLAGS=-DPNG_ARM_NEON_OPT=0
 ENV PACT_SKIP_BINARY_INSTALL=true
 RUN --mount=type=cache,target=/root/.npm,sharing=shared npm clean-install --no-audit --no-fund --registry=$NPM_REGISTRY
 
-ARG BRAND_FICCT_REF=master
-RUN npm install "@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git#${BRAND_FICCT_REF}" --force
+RUN npm install '@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git' --force
 
 COPY --from=account-src / /openedx/app
 
@@ -252,8 +250,7 @@ ENV CPPFLAGS=-DPNG_ARM_NEON_OPT=0
 ENV PACT_SKIP_BINARY_INSTALL=true
 RUN --mount=type=cache,target=/root/.npm,sharing=shared npm clean-install --no-audit --no-fund --registry=$NPM_REGISTRY
 
-ARG BRAND_FICCT_REF=master
-RUN npm install "@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git#${BRAND_FICCT_REF}" --force
+RUN npm install '@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git' --force
 
 COPY --from=communications-src / /openedx/app
 
@@ -304,8 +301,7 @@ ENV CPPFLAGS=-DPNG_ARM_NEON_OPT=0
 ENV PACT_SKIP_BINARY_INSTALL=true
 RUN --mount=type=cache,target=/root/.npm,sharing=shared npm clean-install --no-audit --no-fund --registry=$NPM_REGISTRY
 
-ARG BRAND_FICCT_REF=master
-RUN npm install "@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git#${BRAND_FICCT_REF}" --force
+RUN npm install '@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git' --force
 
 COPY --from=discussions-src / /openedx/app
 
@@ -356,8 +352,7 @@ ENV CPPFLAGS=-DPNG_ARM_NEON_OPT=0
 ENV PACT_SKIP_BINARY_INSTALL=true
 RUN --mount=type=cache,target=/root/.npm,sharing=shared npm clean-install --no-audit --no-fund --registry=$NPM_REGISTRY
 
-ARG BRAND_FICCT_REF=master
-RUN npm install "@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git#${BRAND_FICCT_REF}" --force
+RUN npm install '@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git' --force
 
 COPY --from=gradebook-src / /openedx/app
 
@@ -512,8 +507,7 @@ ENV CPPFLAGS=-DPNG_ARM_NEON_OPT=0
 ENV PACT_SKIP_BINARY_INSTALL=true
 RUN --mount=type=cache,target=/root/.npm,sharing=shared npm clean-install --no-audit --no-fund --registry=$NPM_REGISTRY
 
-ARG BRAND_FICCT_REF=master
-RUN npm install "@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git#${BRAND_FICCT_REF}" --force
+RUN npm install '@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git' --force
 
 COPY --from=ora-grading-src / /openedx/app
 
@@ -564,8 +558,7 @@ ENV CPPFLAGS=-DPNG_ARM_NEON_OPT=0
 ENV PACT_SKIP_BINARY_INSTALL=true
 RUN --mount=type=cache,target=/root/.npm,sharing=shared npm clean-install --no-audit --no-fund --registry=$NPM_REGISTRY
 
-ARG BRAND_FICCT_REF=master
-RUN npm install "@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git#${BRAND_FICCT_REF}" --force
+RUN npm install '@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git' --force
 
 COPY --from=profile-src / /openedx/app
 
