@@ -378,7 +378,9 @@ docker exec tutor_local-mfe-1 sh -c "grep -rl 'AvatarTour' /openedx/dist/learnin
 ```
 
 **Notas del pipeline:**
-- El workflow parchea el Dockerfile: usa `npm install --legacy-peer-deps` (en vez de `npm ci`) y elimina el `COPY env.config.jsx` genérico del stage learning para que use el nuestro en `mfes/frontend-app-learning/env.config.jsx`
+- El workflow aplica `npm install --legacy-peer-deps` a todos los MFEs (en vez de `npm ci`) para evitar conflictos de peer deps con Three.js/Azure SDK
+- Los 5 MFEs del monorepo se pasan como `build-contexts` al build de Docker, sobreescribiendo el git clone de upstream con el código local
+- Los plugins de slot (AvatarTour, etc.) se registran en `docker/mfe/env.config.jsx` — UN solo archivo compartido con bloques `if (process.env.APP_ID == 'learning')` por MFE. No se usa un env.config.jsx por MFE
 - Los assets 3D (GLB/FBX) deben estar en `mfes/frontend-app-learning/public/` y se copian al `dist/` vía el `CopyPlugin` en `webpack.prod.config.js`
 - Las rutas de assets usan `process.env.PUBLIC_PATH` (= `/learning/` en prod) para que Caddy las resuelva correctamente
 - El repo es público → GitHub Actions gratuito e ilimitado
@@ -412,6 +414,54 @@ tutor local stop && tutor local start -d
 tutor plugins install /root/openedx-ficct/tutor-plugins/nombre.py
 tutor config save
 tutor local restart lms
+```
+
+### Modo desarrollo (tutor dev)
+
+`tutor dev` permite editar código y ver cambios en vivo sin hacer push ni rebuild. El MFE corre con webpack watch en el puerto asignado.
+
+**MFEs montados actualmente:**
+- `frontend-app-learning` → `http://apps.167.172.142.82.nip.io:2000/learning/`
+- `frontend-app-authn` → montado, puerto 1999
+
+**Ver logs del dev server de un MFE:**
+```bash
+tutor dev logs --tail=50 learning
+tutor dev logs --tail=50 authn
+```
+
+**Montar un nuevo MFE para desarrollo (hacerlo una sola vez):**
+```bash
+# 1. Agregar el mount
+tutor mounts add /root/openedx-ficct/mfes/frontend-app-<nombre>
+
+# 2. Instalar dependencias en el contenedor (el mount tapa el node_modules de la imagen)
+tutor dev run <nombre> npm install --legacy-peer-deps
+
+# 3. Instalar brand-ficct (el @import ya está en el SCSS, solo falta el paquete)
+tutor dev run <nombre> npm install '@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git' --force
+
+# 4. Iniciar el dev server
+tutor dev start <nombre>
+```
+
+**Registrar plugins de slot en otro MFE (sin artilugios de git):**
+Editar `docker/mfe/env.config.jsx` y agregar el bloque correspondiente:
+```jsx
+if (process.env.APP_ID == 'authn') {
+  // importar y registrar plugins aquí
+  addPlugins(config, 'nombre-del-slot', [...]);
+}
+```
+Commit normal (sin `git add -f`). El archivo se aplica a todos los MFEs en el build.
+
+**Flujo completo de desarrollo:**
+```
+tutor dev start          ← inicia todos los MFEs en modo watch
+# editar archivos en mfes/frontend-app-<nombre>/src/
+# webpack recarga automáticamente
+# cuando estás conforme:
+git push                 ← dispara GitHub Actions → imagen de producción
 ```
 
 ### Sincronizar PC → Servidor
