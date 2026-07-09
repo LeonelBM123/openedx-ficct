@@ -1,10 +1,12 @@
 import React, {
   Suspense, useState, useRef, useEffect, useMemo, useCallback,
 } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { useMatch } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import Joyride from 'react-joyride';
 import { getConfig } from '@edx/frontend-platform';
+import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
 
 import Avatar from './Avatar';
 import TourUI from './TourUI';
@@ -15,6 +17,8 @@ import { AzureSpeechService } from './config/azureSpeechService';
 import { useContextId } from '../data/hooks';
 import { getProgressTabData } from '../course-home/data/api';
 import { useModel } from '../generic/model-store';
+import { closeNewUserCourseHomeModal, endCourseHomeTour } from '../product-tours/data';
+import { DECODE_ROUTES } from '../constants';
 
 import './index.scss';
 
@@ -23,6 +27,7 @@ const InvisibleTooltip = () => <div style={{ display: 'none' }} />;
 const AvatarTour = ({ tourName = 'learning' }) => {
   const steps = portalTours[tourName];
   const courseId = useContextId();
+  const dispatch = useDispatch();
 
   const sequenceId = useSelector((state) => state.courseware?.sequenceId);
   const unitId = useSelector((state) => state.courseware?.unitId);
@@ -31,8 +36,13 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   const section = useModel('sections', sequence?.sectionId);
   const unit = useModel('units', unitId);
 
+  const { toursEnabled, showNewUserCourseHomeModal } = useSelector((state) => state.tours);
+  const isOnCourseHome = !!useMatch(DECODE_ROUTES.HOME);
+  const { username } = getAuthenticatedUser() || {};
+
   const [isMinimized, setIsMinimized] = useState(false);
   const [isTourActive, setIsTourActive] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [lipSyncData, setLipSyncData] = useState(null);
@@ -45,6 +55,8 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   const [statsVisible, setStatsVisible] = useState(false);
   const [statsData, setStatsData] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const tourIsFirstVisitRef = useRef(false);
+  const suppressedNativeModalRef = useRef(false);
 
   const selectedAvatar = AVATAR_LIST[avatarIndex];
 
@@ -69,15 +81,66 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     }
   }, []);
 
+  const endTour = useCallback(() => {
+    setIsTourActive(false);
+    setCurrentStep(0);
+    setIsSpeaking(false);
+    cleanupAudio();
+    if (tourIsFirstVisitRef.current && username) {
+      dispatch(endCourseHomeTour(username));
+    }
+    tourIsFirstVisitRef.current = false;
+  }, [cleanupAudio, dispatch, username]);
+
+  const startTour = useCallback((isFirstVisit) => {
+    tourIsFirstVisitRef.current = isFirstVisit;
+    setShowWelcome(false);
+    setIsMinimized(false);
+    setCurrentStep(0);
+    setIsTourActive(true);
+  }, []);
+
+  const handleDismissWelcome = useCallback(() => {
+    setShowWelcome(false);
+    if (username) {
+      dispatch(endCourseHomeTour(username));
+    }
+  }, [dispatch, username]);
+
+  // Detecta si el usuario entra por primera vez al tab de inicio del curso
+  // (vía el estado nativo de product-tours) y ofrece el recorrido del avatar
+  // en lugar del modal nativo.
+  useEffect(() => {
+    if (
+      isOnCourseHome
+      && toursEnabled
+      && showNewUserCourseHomeModal
+      && !suppressedNativeModalRef.current
+    ) {
+      suppressedNativeModalRef.current = true;
+      dispatch(closeNewUserCourseHomeModal());
+      setShowWelcome(true);
+    }
+  }, [isOnCourseHome, toursEnabled, showNewUserCourseHomeModal, dispatch]);
+
   useEffect(() => {
     if (!steps) { return undefined; }
     const step = steps[currentStep];
+    const isLastStep = currentStep === steps.length - 1;
 
     cleanupAudio();
 
     if (!isTourActive || !step?.useAzureTTS || !azureSpeech) { return undefined; }
 
     let cancelled = false;
+
+    const advanceTour = () => {
+      if (isLastStep) {
+        endTour();
+      } else {
+        setCurrentStep((s) => s + 1);
+      }
+    };
 
     const loadAudio = async () => {
       try {
@@ -92,7 +155,10 @@ const AvatarTour = ({ tourName = 'learning' }) => {
         revokeAudioRef.current = () => URL.revokeObjectURL(audioUrl);
 
         audioRef.current = new Audio(audioUrl);
-        audioRef.current.onended = () => setIsSpeaking(false);
+        audioRef.current.onended = () => {
+          setIsSpeaking(false);
+          advanceTour();
+        };
         setLipSyncData(ld);
 
         await audioRef.current.play();
@@ -101,6 +167,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
         if (!cancelled) {
           // eslint-disable-next-line no-console
           console.error('Error generando audio Azure:', err);
+          advanceTour();
         }
       }
     };
@@ -111,7 +178,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
       cancelled = true;
       cleanupAudio();
     };
-  }, [currentStep, isTourActive, steps, azureSpeech, selectedAvatar.voice, cleanupAudio]);
+  }, [currentStep, isTourActive, steps, azureSpeech, selectedAvatar.voice, cleanupAudio, endTour]);
 
   const buildLLMContext = useCallback(() => {
     const lines = [];
@@ -299,11 +366,16 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     );
   }
 
-  const joyrideSteps = steps.map((step) => ({
-    target: step.targetDOMId ? `#${step.targetDOMId}` : 'body',
-    disableBeacon: true,
-    content: '',
-  }));
+  const joyrideSteps = steps.map((step) => {
+    const targetExists = step.targetDOMId
+      && typeof document !== 'undefined'
+      && document.getElementById(step.targetDOMId);
+    return {
+      target: targetExists ? `#${step.targetDOMId}` : 'body',
+      disableBeacon: true,
+      content: '',
+    };
+  });
 
   const glassStyle = {
     background: 'rgba(255,255,255,0.88)',
@@ -361,8 +433,89 @@ const AvatarTour = ({ tourName = 'learning' }) => {
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
       >
+        {/* Prompt de bienvenida — usuario nuevo en el curso */}
+        {showWelcome && (
+          <div style={{
+            ...glassStyle,
+            pointerEvents: 'auto',
+            padding: '10px 12px',
+            marginBottom: '6px',
+            fontSize: '12.5px',
+            color: '#1a2a4a',
+            lineHeight: 1.5,
+            borderLeft: '3px solid #0056D2',
+          }}
+          >
+            <div style={{ marginBottom: '8px' }}>
+              👋 ¡Bienvenido! ¿Quieres un recorrido guiado por el curso?
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={handleDismissWelcome}
+                style={{
+                  border: 'none', background: 'transparent', color: '#666',
+                  fontSize: '12px', cursor: 'pointer', padding: '4px 8px',
+                }}
+              >
+                Ahora no
+              </button>
+              <button
+                type="button"
+                onClick={() => startTour(true)}
+                style={{
+                  border: 'none', borderRadius: '8px', background: '#0056D2',
+                  color: '#fff', fontSize: '12px', cursor: 'pointer', padding: '4px 10px',
+                }}
+              >
+                Comenzar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Burbuja del recorrido — narración del paso actual */}
+        {!showWelcome && isTourActive && steps[currentStep] && (
+          <div style={{
+            ...glassStyle,
+            pointerEvents: 'auto',
+            padding: '9px 12px',
+            marginBottom: '6px',
+            fontSize: '12.5px',
+            color: '#1a2a4a',
+            lineHeight: 1.55,
+            borderLeft: '3px solid #0056D2',
+          }}
+          >
+            <div>
+              {steps[currentStep].text}
+              {isSpeaking && (
+                <span style={{ marginLeft: '6px', fontSize: '11px', color: '#0056D2' }}>🔊</span>
+              )}
+            </div>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px',
+            }}
+            >
+              <span style={{ fontSize: '10px', color: '#999' }}>
+                Paso {currentStep + 1}/{steps.length}
+              </span>
+              <button
+                type="button"
+                onClick={endTour}
+                style={{
+                  border: 'none', background: 'transparent', color: '#0056D2',
+                  fontSize: '11px', cursor: 'pointer', textDecoration: 'underline',
+                }}
+              >
+                Saltar recorrido
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Burbuja respuesta — ENCIMA del avatar */}
-        {aiBubbleVisible && (
+        {!showWelcome && !isTourActive && aiBubbleVisible && (
           <div style={{
             ...glassStyle,
             pointerEvents: 'auto',
@@ -490,6 +643,8 @@ const AvatarTour = ({ tourName = 'learning' }) => {
           question={question}
           setQuestion={setQuestion}
           onStats={handleStats}
+          onStartTour={() => startTour(false)}
+          isTourActive={isTourActive}
         />
       </div>
     </>

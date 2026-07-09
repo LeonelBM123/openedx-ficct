@@ -8,6 +8,12 @@ const StatsIcon = () => (
   </svg>
 );
 
+const TourIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 15 15" fill="currentColor" aria-hidden="true">
+    <path d="M3 1.5L13 7.5L3 13.5V1.5Z" />
+  </svg>
+);
+
 const glassBar = {
   background: 'rgba(255,255,255,0.88)',
   backdropFilter: 'blur(10px)',
@@ -22,6 +28,8 @@ const TourUI = ({
   question,
   setQuestion,
   onStats,
+  onStartTour,
+  isTourActive,
 }) => {
   const inputRef = useRef(null);
 
@@ -47,6 +55,28 @@ const TourUI = ({
       gap: '6px',
     }}
     >
+      {/* Recorrido guiado — izquierda del input */}
+      <button
+        type="button"
+        onClick={onStartTour}
+        disabled={isTourActive}
+        title="Recorrido guiado"
+        style={{
+          ...glassBar,
+          border: 'none',
+          cursor: isTourActive ? 'not-allowed' : 'pointer',
+          width: '36px',
+          height: '36px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: isTourActive ? '#aaa' : '#0056D2',
+          flexShrink: 0,
+        }}
+      >
+        <TourIcon />
+      </button>
+
       {/* Estadísticas — izquierda del input */}
       <button
         type="button"

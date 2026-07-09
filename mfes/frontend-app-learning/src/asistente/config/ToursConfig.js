@@ -6,14 +6,19 @@ export const portalTours = {
       useAzureTTS: true,
     },
     {
-      text: 'Desde aquí puedes navegar entre el contenido del curso, tu progreso y las discusiones.',
+      text: 'Desde estos tabs accedes al contenido del curso, tu progreso, fechas importantes y las discusiones.',
       useAzureTTS: true,
-      targetDOMId: 'course-tabs-navigation',
+      targetDOMId: 'courseTabsNavigation',
     },
     {
-      text: 'Usa estos controles para avanzar o retroceder entre las unidades del curso.',
+      text: 'Aquí tienes el índice del curso: puedes explorar sus secciones y lecciones.',
       useAzureTTS: true,
-      targetDOMId: 'sequence-navigation',
+      targetDOMId: 'courseHome-outline',
+    },
+    {
+      text: 'En fechas importantes puedes ver tus entregas y plazos para no atrasarte.',
+      useAzureTTS: true,
+      targetDOMId: 'courseHome-dates',
     },
     {
       text: 'Eso es todo por ahora. Si tienes alguna duda, puedes preguntarme desde el chat en cualquier momento.',
