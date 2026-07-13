@@ -18,6 +18,7 @@ import { useContextId } from '../data/hooks';
 import { getProgressTabData, getDatesTabData, getOutlineTabData } from '../course-home/data/api';
 import { useModel } from '../generic/model-store';
 import { closeNewUserCourseHomeModal, endCourseHomeTour } from '../product-tours/data';
+import { getTourData } from '../product-tours/data/api';
 import { DECODE_ROUTES } from '../constants';
 
 import './index.scss';
@@ -36,7 +37,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   const section = useModel('sections', sequence?.sectionId);
   const unit = useModel('units', unitId);
 
-  const { toursEnabled, showNewUserCourseHomeModal } = useSelector((state) => state.tours);
+  const { showNewUserCourseHomeModal } = useSelector((state) => state.tours);
   const isOnCourseHome = !!useMatch(DECODE_ROUTES.HOME);
   const { username } = getAuthenticatedUser() || {};
 
@@ -58,7 +59,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   const [datesData, setDatesData] = useState(null);
   const [outlineData, setOutlineData] = useState(null);
   const tourIsFirstVisitRef = useRef(false);
-  const suppressedNativeModalRef = useRef(false);
+  const checkedTourRef = useRef(false);
   const greetedRef = useRef(false);
 
   const selectedAvatar = AVATAR_LIST[avatarIndex];
@@ -127,21 +128,36 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     }
   }, [dispatch, username]);
 
-  // Detecta si el usuario entra por primera vez al tab de inicio del curso
-  // (vía el estado nativo de product-tours) y ofrece el recorrido del avatar
-  // en lugar del modal nativo.
+  // Mantiene oculto el modal nativo de "nuevo usuario": el avatar toma su lugar.
   useEffect(() => {
-    if (
-      isOnCourseHome
-      && toursEnabled
-      && showNewUserCourseHomeModal
-      && !suppressedNativeModalRef.current
-    ) {
-      suppressedNativeModalRef.current = true;
+    if (showNewUserCourseHomeModal) {
       dispatch(closeNewUserCourseHomeModal());
-      setShowWelcome(true);
     }
-  }, [isOnCourseHome, toursEnabled, showNewUserCourseHomeModal, dispatch]);
+  }, [showNewUserCourseHomeModal, dispatch]);
+
+  // Detecta al alumno nuevo consultando directamente el estado del tour por
+  // cuenta (getTourData), sin depender del gate de proctoring del ProductTours
+  // nativo (que a menudo impide que la señal llegue). Si es 'show-new-user-tour'
+  // ofrece el recorrido del avatar. El "ya lo vio" se persiste por cuenta al
+  // aceptar+terminar (endTour) o al descartar (handleDismissWelcome) con
+  // PATCH 'no-tour'.
+  useEffect(() => {
+    if (checkedTourRef.current) { return undefined; }
+    if (!isOnCourseHome || !username) { return undefined; }
+    if (getConfig().AVATAR_ENABLED?.toLowerCase() !== 'true') { return undefined; }
+    checkedTourRef.current = true;
+    let cancelled = false;
+    getTourData(username)
+      .then((data) => {
+        if (!cancelled
+          && data?.toursEnabled
+          && data?.courseHomeTourStatus === 'show-new-user-tour') {
+          setShowWelcome(true);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isOnCourseHome, username]);
 
   useEffect(() => {
     if (!steps) { return undefined; }
