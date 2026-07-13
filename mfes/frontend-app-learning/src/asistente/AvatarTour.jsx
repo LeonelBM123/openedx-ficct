@@ -103,6 +103,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     setIsTourActive(false);
     setCurrentStep(0);
     setIsSpeaking(false);
+    setStatsVisible(false);
     cleanupAudio();
     if (tourIsFirstVisitRef.current && username) {
       dispatch(endCourseHomeTour(username));
@@ -197,6 +198,14 @@ const AvatarTour = ({ tourName = 'learning' }) => {
       cleanupAudio();
     };
   }, [currentStep, isTourActive, steps, ttsEnabled, selectedAvatar.voice, cleanupAudio, endTour]);
+
+  // Durante el tour, abre el panel de progreso en el paso marcado con
+  // `openStats` y lo cierra al pasar a otro paso.
+  useEffect(() => {
+    if (!isTourActive) { return; }
+    const step = steps?.[currentStep];
+    setStatsVisible(!!step?.openStats);
+  }, [currentStep, isTourActive, steps]);
 
   // Reproduce texto con voz + lip-sync (síntesis en el servicio Modal).
   // Lanza si el navegador bloquea el autoplay (audio.play() sin gesto previo).

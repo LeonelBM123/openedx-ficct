@@ -21,6 +21,11 @@ export const portalTours = {
       targetDOMId: 'courseHome-dates',
     },
     {
+      text: 'Y aquí tienes tu panel de progreso: arriba ves el porcentaje del curso que ya completaste y tu calificación general, con si vas aprobado o no. Más abajo se desglosa tu desempeño por tipo de actividad y por sección, para que identifiques rápido dónde te va bien y qué conviene reforzar.',
+      useTTS: true,
+      openStats: true,
+    },
+    {
       text: 'Eso es todo por ahora. Si tienes alguna duda, puedes preguntarme desde el chat en cualquier momento.',
       useTTS: true,
     },
