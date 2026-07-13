@@ -15,7 +15,7 @@ import { AVATAR_LIST } from './AvatarSwitcher';
 import { portalTours } from './config/ToursConfig';
 import { textToSpeech } from './config/ttsService';
 import { useContextId } from '../data/hooks';
-import { getProgressTabData, getDatesTabData } from '../course-home/data/api';
+import { getProgressTabData, getDatesTabData, getOutlineTabData } from '../course-home/data/api';
 import { useModel } from '../generic/model-store';
 import { closeNewUserCourseHomeModal, endCourseHomeTour } from '../product-tours/data';
 import { DECODE_ROUTES } from '../constants';
@@ -56,6 +56,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   const [statsData, setStatsData] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [datesData, setDatesData] = useState(null);
+  const [outlineData, setOutlineData] = useState(null);
   const tourIsFirstVisitRef = useRef(false);
   const suppressedNativeModalRef = useRef(false);
   const greetedRef = useRef(false);
@@ -79,6 +80,9 @@ const AvatarTour = ({ tourName = 'learning' }) => {
       .catch(() => {});
     getDatesTabData(courseId)
       .then((d) => { if (!cancelled) { setDatesData(d); } })
+      .catch(() => {});
+    getOutlineTabData(courseId)
+      .then((d) => { if (!cancelled) { setOutlineData(d); } })
       .catch(() => {});
     return () => { cancelled = true; };
   }, [courseId]);
@@ -254,9 +258,44 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     return weak;
   }, [statsData]);
 
+  // Temario del curso (secciones y sus lecciones, en orden) a partir del outline.
+  const buildCourseOutline = useCallback(() => {
+    const cb = outlineData?.courseBlocks;
+    const courseBlock = cb?.courses?.[courseId];
+    const sectionIds = courseBlock?.sectionIds || [];
+    if (!sectionIds.length) { return ''; }
+
+    const withLessons = sectionIds.map((sid) => {
+      const sec = cb.sections[sid];
+      if (!sec) { return null; }
+      const lessons = (sec.sequenceIds || [])
+        .map((qid) => cb.sequences[qid]?.title)
+        .filter(Boolean);
+      return `- ${sec.title}${lessons.length ? `: ${lessons.join(', ')}` : ''}`;
+    }).filter(Boolean);
+
+    const full = withLessons.join('\n');
+    if (full.length <= 1500) { return full; }
+    // Si es muy largo, solo títulos de sección para no inflar el prompt.
+    return sectionIds
+      .map((sid) => cb.sections[sid]?.title)
+      .filter(Boolean)
+      .map((t) => `- ${t}`)
+      .join('\n');
+  }, [outlineData, courseId]);
+
   const buildLLMContext = useCallback(() => {
     const lines = [];
     if (course?.title) { lines.push(`Curso: ${course.title}`); }
+    if (outlineData?.welcomeMessageHtml) {
+      const desc = outlineData.welcomeMessageHtml
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (desc) { lines.push(`Descripción del curso: ${desc.slice(0, 400)}`); }
+    }
+    const outline = buildCourseOutline();
+    if (outline) { lines.push(`Temario del curso:\n${outline}`); }
     if (section?.title) { lines.push(`Sección actual: ${section.title}`); }
     if (sequence?.title) {
       lines.push(`Lección actual: ${sequence.title}${sequence.format ? ` (${sequence.format})` : ''}`);
@@ -295,7 +334,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
       lines.push(`Áreas a reforzar (bajo 60%): ${weak.join('; ')}`);
     }
     return lines.join('\n');
-  }, [course, section, sequence, unit, statsData, getDeadlines, getWeakAreas]);
+  }, [course, section, sequence, unit, statsData, outlineData, buildCourseOutline, getDeadlines, getWeakAreas]);
 
   // Resumen corto y natural para el saludo proactivo hablado.
   const buildGreeting = useCallback(() => {
@@ -344,7 +383,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
 
       if (openrouterKey) {
         const model = getConfig().OPENROUTER_MODEL || 'openai/gpt-4o-mini';
-        const systemPrompt = 'Eres el asistente académico virtual del estudiante en esta plataforma. En el contexto recibes su ubicación actual en el curso (curso, sección, lección y unidad), su progreso de completitud, su calificación, sus próximas entregas y entregas vencidas, y las áreas que debe reforzar (temas o tipos de actividad por debajo del 60%). Usa esos datos concretos para responder preguntas como en qué va, qué le falta, cuándo entrega algo o qué debe repasar. Responde en español, claro, conciso y con tono alentador, máximo 3 oraciones. Si te preguntan por el contenido específico de una lección que no aparece en el contexto, indícalo con honestidad.';
+        const systemPrompt = 'Eres el asistente académico virtual del estudiante en esta plataforma. En el contexto recibes el título, la descripción y el temario del curso (sus secciones y lecciones), su ubicación actual (curso, sección, lección y unidad), su progreso de completitud, su calificación, sus próximas entregas y entregas vencidas, y las áreas que debe reforzar (temas o tipos de actividad por debajo del 60%). Usa esos datos concretos para responder. Preguntas generales como "¿de qué trata el curso?" o "¿qué temas cubre?" respóndelas resumiendo el título y el temario del contexto; nunca digas que no tienes información si el temario está presente. Responde en español, claro, conciso y con tono alentador, máximo 3 oraciones. Reserva el "no tengo esa información" solo para el contenido interno específico de una lección que no aparece en el contexto.';
         const userMsg = contexto ? `${contexto}\n\nPregunta del estudiante: ${q}` : q;
         const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
