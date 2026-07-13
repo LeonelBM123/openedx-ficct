@@ -113,6 +113,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
 
   const startTour = useCallback((isFirstVisit) => {
     tourIsFirstVisitRef.current = isFirstVisit;
+    greetedRef.current = true; // evita el saludo proactivo al terminar el tour
     setShowWelcome(false);
     setIsMinimized(false);
     setCurrentStep(0);
