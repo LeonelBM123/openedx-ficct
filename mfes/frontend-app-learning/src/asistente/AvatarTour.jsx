@@ -13,7 +13,7 @@ import TourUI from './TourUI';
 import StatsPanel from './StatsPanel';
 import { AVATAR_LIST } from './AvatarSwitcher';
 import { portalTours } from './config/ToursConfig';
-import { AzureSpeechService } from './config/azureSpeechService';
+import { textToSpeech } from './config/ttsService';
 import { useContextId } from '../data/hooks';
 import { getProgressTabData } from '../course-home/data/api';
 import { useModel } from '../generic/model-store';
@@ -63,11 +63,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   const audioRef = useRef(null);
   const revokeAudioRef = useRef(null);
 
-  const azureSpeech = useMemo(() => {
-    const key = getConfig().AZURE_SPEECH_KEY;
-    const region = getConfig().AZURE_SPEECH_REGION;
-    return (key && region) ? new AzureSpeechService(key, region) : null;
-  }, []);
+  const ttsEnabled = useMemo(() => !!getConfig().AVATAR_TTS_API_URL, []);
 
   const cleanupAudio = useCallback(() => {
     if (audioRef.current) {
@@ -130,7 +126,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
 
     cleanupAudio();
 
-    if (!isTourActive || !step?.useAzureTTS || !azureSpeech) { return undefined; }
+    if (!isTourActive || !step?.useTTS || !ttsEnabled) { return undefined; }
 
     let cancelled = false;
 
@@ -144,13 +140,13 @@ const AvatarTour = ({ tourName = 'learning' }) => {
 
     const loadAudio = async () => {
       try {
-        const { audioData, lipSyncData: ld } = await azureSpeech.textToSpeech(
+        const { audioData, lipSyncData: ld } = await textToSpeech(
           step.text,
           selectedAvatar.voice,
         );
         if (cancelled) { return; }
 
-        const blob = new Blob([audioData], { type: 'audio/mpeg' });
+        const blob = new Blob([audioData], { type: 'audio/wav' });
         const audioUrl = URL.createObjectURL(blob);
         revokeAudioRef.current = () => URL.revokeObjectURL(audioUrl);
 
@@ -178,7 +174,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
       cancelled = true;
       cleanupAudio();
     };
-  }, [currentStep, isTourActive, steps, azureSpeech, selectedAvatar.voice, cleanupAudio, endTour]);
+  }, [currentStep, isTourActive, steps, ttsEnabled, selectedAvatar.voice, cleanupAudio, endTour]);
 
   const buildLLMContext = useCallback(() => {
     const lines = [];
@@ -265,12 +261,12 @@ const AvatarTour = ({ tourName = 'learning' }) => {
       setIsThinking(false);
       setQuestion('');
 
-      if (answer && azureSpeech) {
-        const { audioData, lipSyncData: ld } = await azureSpeech.textToSpeech(
+      if (answer && ttsEnabled) {
+        const { audioData, lipSyncData: ld } = await textToSpeech(
           answer,
           selectedAvatar.voice,
         );
-        const blob = new Blob([audioData], { type: 'audio/mpeg' });
+        const blob = new Blob([audioData], { type: 'audio/wav' });
         const audioUrl = URL.createObjectURL(blob);
         revokeAudioRef.current = () => URL.revokeObjectURL(audioUrl);
         audioRef.current = new Audio(audioUrl);
@@ -283,7 +279,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
       setIsThinking(false);
       setAiResponse('❌ No pude responder esa pregunta en este momento.');
     }
-  }, [buildLLMContext, azureSpeech, selectedAvatar.voice, cleanupAudio]);
+  }, [buildLLMContext, ttsEnabled, selectedAvatar.voice, cleanupAudio]);
 
   const handlePrevAvatar = () => {
     cleanupAudio();

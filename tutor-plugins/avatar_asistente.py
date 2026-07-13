@@ -2,6 +2,7 @@ from tutor import hooks
 
 hooks.Filters.CONFIG_DEFAULTS.add_items([
     ("AVATAR_ENABLED", "false"),
+    ("AVATAR_TTS_API_URL", ""),
     ("AVATAR_QA_API_URL", ""),
     ("AZURE_SPEECH_KEY", ""),
     ("AZURE_SPEECH_REGION", ""),
@@ -14,6 +15,7 @@ hooks.Filters.ENV_PATCHES.add_items([
         "mfe-lms-common-settings",
         """
 MFE_CONFIG["AVATAR_ENABLED"] = "{{ AVATAR_ENABLED }}"
+MFE_CONFIG["AVATAR_TTS_API_URL"] = "{{ AVATAR_TTS_API_URL }}"
 MFE_CONFIG["AVATAR_QA_API_URL"] = "{{ AVATAR_QA_API_URL }}"
 MFE_CONFIG["AZURE_SPEECH_KEY"] = "{{ AZURE_SPEECH_KEY }}"
 MFE_CONFIG["AZURE_SPEECH_REGION"] = "{{ AZURE_SPEECH_REGION }}"

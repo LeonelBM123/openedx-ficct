@@ -6,22 +6,22 @@ const BASE = process.env.PUBLIC_PATH || '/';
 
 export const AVATAR_LIST = [
   {
-    id: 'default', label: 'Avatar', path: `${BASE}avatar.glb`, emoji: '🧑', voice: 'es-MX-JorgeNeural',
+    id: 'default', label: 'Avatar', path: `${BASE}avatar.glb`, emoji: '🧑', voice: 'alex',
   },
   {
-    id: 'avatar1', label: 'Avatar', path: `${BASE}avatar-1.glb`, emoji: '🧑', voice: 'es-MX-JorgeNeural',
+    id: 'avatar1', label: 'Avatar', path: `${BASE}avatar-1.glb`, emoji: '🧑', voice: 'alex',
   },
   {
-    id: 'avatar2', label: 'Avatar', path: `${BASE}avatar-2.glb`, emoji: '🧑', voice: 'es-MX-JorgeNeural',
+    id: 'avatar2', label: 'Avatar', path: `${BASE}avatar-2.glb`, emoji: '🧑', voice: 'alex',
   },
   {
-    id: 'avatar3', label: 'Avatar', path: `${BASE}avatar-3.glb`, emoji: '🧑', voice: 'es-MX-JorgeNeural',
+    id: 'avatar3', label: 'Avatar', path: `${BASE}avatar-3.glb`, emoji: '🧑', voice: 'alex',
   },
   {
-    id: 'avatar4', label: 'Avatar', path: `${BASE}avatar-4.glb`, emoji: '👩', voice: 'es-MX-DaliaNeural',
+    id: 'avatar4', label: 'Avatar', path: `${BASE}avatar-4.glb`, emoji: '👩', voice: 'dora',
   },
   {
-    id: 'avatar6', label: 'Avatar', path: `${BASE}avatar-6.glb`, emoji: '👩', voice: 'es-MX-DaliaNeural',
+    id: 'avatar6', label: 'Avatar', path: `${BASE}avatar-6.glb`, emoji: '👩', voice: 'dora',
   },
 ];
 
