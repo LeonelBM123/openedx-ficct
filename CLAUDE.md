@@ -101,6 +101,7 @@ Los plugins de Tutor son archivos Python que inyectan código en archivos que Tu
 | `catalog_mfe.py` | Solo registra el MFE catalog y configura sus URLs por entorno |
 | `ficct_theme.py` | Solo configura el Comprehensive Theme para páginas Django legacy |
 | `ficct_config.py` | MFE_CONFIG (logos, email, URLs) + Judge0 XBlock |
+| `notifications_ficct.py` | Activa el waffle flag `notifications.enable_notifications` (campana de notificaciones en todos los headers) |
 
 ### Patches más usados
 
@@ -265,6 +266,34 @@ XBLOCK_SETTINGS = {
     ),
 ])
 ```
+
+### `notifications_ficct.py`
+
+Activa la campana de notificaciones (`@edx/frontend-plugin-notifications`, ya embebida por defecto en `@edx/frontend-component-header` ≥ 8.2.1) en los headers de `learning`, `learner-dashboard`, `authoring` y `catalog`. El frontend no necesita ningún flag de `MFE_CONFIG` — solo lee la respuesta de `GET /api/notifications/count/`, que depende 100% del waffle flag de Django `notifications.enable_notifications` (`CourseWaffleFlag`, default `False`).
+
+Se activa vía `CLI_DO_INIT_TASKS` (mismo patrón que usa el plugin oficial `tutor-contrib-forum` para su propio waffle flag) en vez de Django Admin manual, para que quede versionado y se re-aplique solo en cada `tutor local do init`.
+
+```python
+from tutor import hooks
+
+hooks.Filters.CLI_DO_INIT_TASKS.add_item(
+    (
+        "lms",
+        """
+(./manage.py lms waffle_flag --list | grep notifications.enable_notifications) || ./manage.py lms waffle_flag --create --everyone notifications.enable_notifications
+"""
+    )
+)
+```
+
+⚠️ **`--limit` filtra por el contexto del plugin, no por el nombre de la tupla.** Para volver a correr esta tarea manualmente hay que usar el nombre del plugin, no `lms`:
+```bash
+tutor local do init --limit notifications_ficct
+```
+
+⚠️ La campana solo se muestra a un usuario autenticado si tiene **al menos una inscripción activa a un curso** (`get_show_notifications_tray()` en `notifications/utils.py` recorre los `CourseEnrollment` activos del usuario) — comportamiento nativo de Open edX, no configurable vía Tutor.
+
+**Push notifications:** el flag hermano `notifications.enable_push_notifications` es solo para la app móvil nativa (FCM/APNs vía `django-push-notifications`); no aplica a MFEs web y no tiene efecto en este monorepo (no hay app móvil FICCT).
 
 ---
 
@@ -477,7 +506,9 @@ tutor plugins install /root/openedx-ficct/tutor-plugins/brand_ficct.py
 tutor plugins install /root/openedx-ficct/tutor-plugins/catalog_mfe.py
 tutor plugins install /root/openedx-ficct/tutor-plugins/ficct_theme.py
 tutor plugins install /root/openedx-ficct/tutor-plugins/ficct_config.py
+tutor plugins install /root/openedx-ficct/tutor-plugins/notifications_ficct.py
 tutor config save
+tutor local do init --limit notifications_ficct
 ```
 
 ---
