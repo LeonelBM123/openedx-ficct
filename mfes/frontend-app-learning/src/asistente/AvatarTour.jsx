@@ -474,38 +474,18 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     return () => clearTimeout(hideTimer.current);
   }, [aiResponse, isThinking, isSpeaking]);
 
-  // Saludo proactivo hablado, una sola vez por carga, cuando ya hay datos y
-  // no hay tour/bienvenida activos. El texto se muestra de inmediato; el audio
-  // se intenta reproducir y, si el navegador bloquea el autoplay (sin gesto
-  // previo), se reproduce en el primer clic del usuario en la página.
+  // Saludo proactivo SOLO en texto (sin voz), una vez por carga, cuando ya hay
+  // datos y no hay tour/bienvenida activos. Informa sin interrumpir con audio.
   useEffect(() => {
-    if (greetedRef.current) { return undefined; }
-    if (!statsData && !datesData) { return undefined; }
-    if (isTourActive || showWelcome || isMinimized) { return undefined; }
+    if (greetedRef.current) { return; }
+    if (!statsData && !datesData) { return; }
+    if (isTourActive || showWelcome || isMinimized) { return; }
     const text = buildGreeting();
-    if (!text) { return undefined; }
+    if (!text) { return; }
     greetedRef.current = true;
-
     setAiResponse(text);
     setAiBubbleVisible(true);
-
-    let gestureHandler = null;
-    const cleanupGesture = () => {
-      if (gestureHandler) {
-        document.removeEventListener('pointerdown', gestureHandler);
-        gestureHandler = null;
-      }
-    };
-    speakText(text).catch(() => {
-      gestureHandler = () => {
-        cleanupGesture();
-        speakText(text).catch(() => {});
-      };
-      document.addEventListener('pointerdown', gestureHandler);
-    });
-
-    return cleanupGesture;
-  }, [statsData, datesData, isTourActive, showWelcome, isMinimized, buildGreeting, speakText]);
+  }, [statsData, datesData, isTourActive, showWelcome, isMinimized, buildGreeting]);
 
   if (!steps || getConfig().AVATAR_ENABLED?.toLowerCase() !== 'true') { return null; }
 
