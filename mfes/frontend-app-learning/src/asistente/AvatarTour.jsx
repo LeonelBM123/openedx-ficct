@@ -15,7 +15,7 @@ import { AVATAR_LIST } from './AvatarSwitcher';
 import { portalTours } from './config/ToursConfig';
 import { textToSpeech } from './config/ttsService';
 import { useContextId } from '../data/hooks';
-import { getProgressTabData } from '../course-home/data/api';
+import { getProgressTabData, getDatesTabData } from '../course-home/data/api';
 import { useModel } from '../generic/model-store';
 import { closeNewUserCourseHomeModal, endCourseHomeTour } from '../product-tours/data';
 import { DECODE_ROUTES } from '../constants';
@@ -55,8 +55,10 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   const [statsVisible, setStatsVisible] = useState(false);
   const [statsData, setStatsData] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [datesData, setDatesData] = useState(null);
   const tourIsFirstVisitRef = useRef(false);
   const suppressedNativeModalRef = useRef(false);
+  const greetedRef = useRef(false);
 
   const selectedAvatar = AVATAR_LIST[avatarIndex];
 
@@ -64,6 +66,22 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   const revokeAudioRef = useRef(null);
 
   const ttsEnabled = useMemo(() => !!getConfig().AVATAR_TTS_API_URL, []);
+
+  // Carga eager (al abrir el curso) del progreso y las fechas para que el
+  // avatar tenga todo el contexto listo sin depender de que el estudiante
+  // abra el panel de estadísticas. Fallos silenciosos: si algo no carga,
+  // simplemente no se incluye esa parte del contexto.
+  useEffect(() => {
+    if (!courseId) { return undefined; }
+    let cancelled = false;
+    getProgressTabData(courseId)
+      .then((d) => { if (!cancelled) { setStatsData(d); } })
+      .catch(() => {});
+    getDatesTabData(courseId)
+      .then((d) => { if (!cancelled) { setDatesData(d); } })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [courseId]);
 
   const cleanupAudio = useCallback(() => {
     if (audioRef.current) {
@@ -176,12 +194,72 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     };
   }, [currentStep, isTourActive, steps, ttsEnabled, selectedAvatar.voice, cleanupAudio, endTour]);
 
+  // Reproduce texto con voz + lip-sync (síntesis en el servicio Modal).
+  // Lanza si el navegador bloquea el autoplay (audio.play() sin gesto previo).
+  const speakText = useCallback(async (text) => {
+    if (!text || !ttsEnabled) { return; }
+    const { audioData, lipSyncData: ld } = await textToSpeech(text, selectedAvatar.voice);
+    cleanupAudio();
+    const blob = new Blob([audioData], { type: 'audio/wav' });
+    const audioUrl = URL.createObjectURL(blob);
+    revokeAudioRef.current = () => URL.revokeObjectURL(audioUrl);
+    audioRef.current = new Audio(audioUrl);
+    audioRef.current.onended = () => setIsSpeaking(false);
+    setLipSyncData(ld);
+    await audioRef.current.play();
+    setIsSpeaking(true);
+  }, [ttsEnabled, selectedAvatar.voice, cleanupAudio]);
+
+  // Formatea la fecha de una entrega en español legible (ej. "18 de julio").
+  const formatDueDate = (iso) => {
+    try {
+      return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'long' });
+    } catch {
+      return '';
+    }
+  };
+
+  // Próximas entregas y entregas vencidas a partir de los date blocks del curso.
+  const getDeadlines = useCallback(() => {
+    const blocks = datesData?.courseDateBlocks || [];
+    const now = new Date();
+    const assignments = blocks.filter(
+      (b) => b.dateType === 'assignment-due-date' && !b.complete && b.learnerHasAccess,
+    );
+    const upcoming = assignments
+      .filter((b) => new Date(b.date) >= now)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    const overdue = assignments
+      .filter((b) => new Date(b.date) < now)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    return { upcoming, overdue };
+  }, [datesData]);
+
+  // Áreas a reforzar: tipos de actividad y secciones por debajo del 60%.
+  const getWeakAreas = useCallback(() => {
+    const weak = [];
+    (statsData?.assignmentTypeGradeSummary || [])
+      .filter((a) => a.weight > 0 && a.averageGrade < 0.6)
+      .forEach((a) => weak.push(`${a.type} (${Math.round((a.averageGrade || 0) * 100)}%)`));
+    (statsData?.sectionScores || [])
+      .map((sec) => {
+        const earned = sec.subsections?.reduce((s, sub) => s + (sub.numPointsEarned || 0), 0) || 0;
+        const possible = sec.subsections?.reduce((s, sub) => s + (sub.numPointsPossible || 0), 0) || 0;
+        return { name: sec.displayName, pct: possible > 0 ? earned / possible : null };
+      })
+      .filter((s) => s.pct !== null && s.pct < 0.6)
+      .sort((a, b) => a.pct - b.pct)
+      .slice(0, 3)
+      .forEach((s) => weak.push(`${s.name} (${Math.round(s.pct * 100)}%)`));
+    return weak;
+  }, [statsData]);
+
   const buildLLMContext = useCallback(() => {
     const lines = [];
     if (course?.title) { lines.push(`Curso: ${course.title}`); }
-    if (section?.title) { lines.push(`Sección: ${section.title}`); }
+    if (section?.title) { lines.push(`Sección actual: ${section.title}`); }
     if (sequence?.title) {
-      lines.push(`Lección: ${sequence.title}${sequence.format ? ` (${sequence.format})` : ''}`);
+      lines.push(`Lección actual: ${sequence.title}${sequence.format ? ` (${sequence.format})` : ''}`);
     }
     if (unit?.title) { lines.push(`Unidad actual: ${unit.title}`); }
     if (statsData?.completionSummary) {
@@ -205,8 +283,46 @@ const AvatarTour = ({ tourName = 'learning' }) => {
         }
       }
     }
+    const { upcoming, overdue } = getDeadlines();
+    if (upcoming.length) {
+      lines.push(`Próximas entregas: ${upcoming.slice(0, 3).map((b) => `${b.assignmentType ? `${b.assignmentType}: ` : ''}${b.title} — ${formatDueDate(b.date)}`).join('; ')}`);
+    }
+    if (overdue.length) {
+      lines.push(`Entregas vencidas sin completar: ${overdue.slice(0, 3).map((b) => `${b.title} (venció el ${formatDueDate(b.date)})`).join('; ')}`);
+    }
+    const weak = getWeakAreas();
+    if (weak.length) {
+      lines.push(`Áreas a reforzar (bajo 60%): ${weak.join('; ')}`);
+    }
     return lines.join('\n');
-  }, [course, section, sequence, unit, statsData]);
+  }, [course, section, sequence, unit, statsData, getDeadlines, getWeakAreas]);
+
+  // Resumen corto y natural para el saludo proactivo hablado.
+  const buildGreeting = useCallback(() => {
+    const parts = [];
+    let progressPct = null;
+    if (statsData?.completionSummary) {
+      const { completeCount, incompleteCount, lockedCount } = statsData.completionSummary;
+      const total = completeCount + incompleteCount + lockedCount;
+      if (total > 0) { progressPct = Math.round((completeCount / total) * 100); }
+    }
+    if (progressPct !== null) {
+      parts.push(`Llevas ${progressPct}% del curso completado.`);
+    }
+    const { upcoming, overdue } = getDeadlines();
+    if (overdue.length) {
+      parts.push(`Tienes ${overdue.length} entrega${overdue.length > 1 ? 's' : ''} vencida${overdue.length > 1 ? 's' : ''}, revisémoslas.`);
+    } else if (upcoming.length) {
+      const next = upcoming[0];
+      parts.push(`Tu próxima entrega es "${next.title}" el ${formatDueDate(next.date)}.`);
+    }
+    const weak = getWeakAreas();
+    if (weak.length) {
+      parts.push(`Te recomiendo reforzar ${weak[0].replace(/\s*\(\d+%\)$/, '')}.`);
+    }
+    if (!parts.length) { return ''; }
+    return `¡Hola! ${parts.join(' ')} Pregúntame lo que necesites.`;
+  }, [statsData, getDeadlines, getWeakAreas]);
 
   const handleAskQuestion = useCallback(async (q) => {
     const openrouterKey = getConfig().OPENROUTER_API_KEY;
@@ -228,7 +344,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
 
       if (openrouterKey) {
         const model = getConfig().OPENROUTER_MODEL || 'openai/gpt-4o-mini';
-        const systemPrompt = 'Eres un asistente académico de la plataforma. Recibes contexto del curso y progreso del estudiante. Responde preguntas sobre el curso de forma clara y concisa en español, máximo 3 oraciones. Si la pregunta es sobre el contenido específico de una lección que no puedes ver, indícalo.';
+        const systemPrompt = 'Eres el asistente académico virtual del estudiante en esta plataforma. En el contexto recibes su ubicación actual en el curso (curso, sección, lección y unidad), su progreso de completitud, su calificación, sus próximas entregas y entregas vencidas, y las áreas que debe reforzar (temas o tipos de actividad por debajo del 60%). Usa esos datos concretos para responder preguntas como en qué va, qué le falta, cuándo entrega algo o qué debe repasar. Responde en español, claro, conciso y con tono alentador, máximo 3 oraciones. Si te preguntan por el contenido específico de una lección que no aparece en el contexto, indícalo con honestidad.';
         const userMsg = contexto ? `${contexto}\n\nPregunta del estudiante: ${q}` : q;
         const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
@@ -262,24 +378,13 @@ const AvatarTour = ({ tourName = 'learning' }) => {
       setQuestion('');
 
       if (answer && ttsEnabled) {
-        const { audioData, lipSyncData: ld } = await textToSpeech(
-          answer,
-          selectedAvatar.voice,
-        );
-        const blob = new Blob([audioData], { type: 'audio/wav' });
-        const audioUrl = URL.createObjectURL(blob);
-        revokeAudioRef.current = () => URL.revokeObjectURL(audioUrl);
-        audioRef.current = new Audio(audioUrl);
-        audioRef.current.onended = () => setIsSpeaking(false);
-        setLipSyncData(ld);
-        await audioRef.current.play();
-        setIsSpeaking(true);
+        await speakText(answer);
       }
     } catch {
       setIsThinking(false);
       setAiResponse('❌ No pude responder esa pregunta en este momento.');
     }
-  }, [buildLLMContext, ttsEnabled, selectedAvatar.voice, cleanupAudio]);
+  }, [buildLLMContext, ttsEnabled, speakText]);
 
   const handlePrevAvatar = () => {
     cleanupAudio();
@@ -319,6 +424,39 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     }
     return () => clearTimeout(hideTimer.current);
   }, [aiResponse, isThinking, isSpeaking]);
+
+  // Saludo proactivo hablado, una sola vez por carga, cuando ya hay datos y
+  // no hay tour/bienvenida activos. El texto se muestra de inmediato; el audio
+  // se intenta reproducir y, si el navegador bloquea el autoplay (sin gesto
+  // previo), se reproduce en el primer clic del usuario en la página.
+  useEffect(() => {
+    if (greetedRef.current) { return undefined; }
+    if (!statsData && !datesData) { return undefined; }
+    if (isTourActive || showWelcome || isMinimized) { return undefined; }
+    const text = buildGreeting();
+    if (!text) { return undefined; }
+    greetedRef.current = true;
+
+    setAiResponse(text);
+    setAiBubbleVisible(true);
+
+    let gestureHandler = null;
+    const cleanupGesture = () => {
+      if (gestureHandler) {
+        document.removeEventListener('pointerdown', gestureHandler);
+        gestureHandler = null;
+      }
+    };
+    speakText(text).catch(() => {
+      gestureHandler = () => {
+        cleanupGesture();
+        speakText(text).catch(() => {});
+      };
+      document.addEventListener('pointerdown', gestureHandler);
+    });
+
+    return cleanupGesture;
+  }, [statsData, datesData, isTourActive, showWelcome, isMinimized, buildGreeting, speakText]);
 
   if (!steps || getConfig().AVATAR_ENABLED?.toLowerCase() !== 'true') { return null; }
 
@@ -439,7 +577,6 @@ const AvatarTour = ({ tourName = 'learning' }) => {
             fontSize: '12.5px',
             color: '#1a2a4a',
             lineHeight: 1.5,
-            borderLeft: '3px solid #0056D2',
           }}
           >
             <div style={{ marginBottom: '8px' }}>
@@ -480,14 +617,10 @@ const AvatarTour = ({ tourName = 'learning' }) => {
             fontSize: '12.5px',
             color: '#1a2a4a',
             lineHeight: 1.55,
-            borderLeft: '3px solid #0056D2',
           }}
           >
             <div>
               {steps[currentStep].text}
-              {isSpeaking && (
-                <span style={{ marginLeft: '6px', fontSize: '11px', color: '#0056D2' }}>🔊</span>
-              )}
             </div>
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px',
@@ -520,15 +653,11 @@ const AvatarTour = ({ tourName = 'learning' }) => {
             fontSize: '12.5px',
             color: '#1a2a4a',
             lineHeight: 1.55,
-            borderLeft: '3px solid #0056D2',
           }}
           >
             {isThinking
               ? <span style={{ color: '#888' }}>Pensando…</span>
               : aiResponse}
-            {isSpeaking && (
-              <span style={{ marginLeft: '6px', fontSize: '11px', color: '#0056D2' }}>🔊</span>
-            )}
           </div>
         )}
 
