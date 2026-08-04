@@ -30,9 +30,16 @@ export const creditPurchaseUrl = (courseId) => {
 };
 export const creditRequestUrl = (providerId) => `${getApiUrl()}/credit/v1/providers/${providerId}/request/`;
 
+// Studio (CMS) endpoints para el flujo de "course creator" / solicitud de instructor.
+// STUDIO_BASE_URL llega en runtime vía MFE_CONFIG.
+const getStudioBaseUrl = () => getConfig().STUDIO_BASE_URL;
+const requestCourseCreator = () => `${getStudioBaseUrl()}/request_course_creator`;
+const courseCreatorStatus = () => `${getStudioBaseUrl()}/api/contentstore/v1/home`;
+
 export default StrictDict({
   getApiUrl,
   baseAppUrl,
+  courseCreatorStatus,
   courseUnenroll,
   creditPurchaseUrl,
   creditRequestUrl,
@@ -41,5 +48,6 @@ export default StrictDict({
   getInitApiUrl,
   learningMfeUrl,
   programsUrl,
+  requestCourseCreator,
   updateEmailSettings,
 });

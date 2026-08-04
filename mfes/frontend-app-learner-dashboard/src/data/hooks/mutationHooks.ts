@@ -3,6 +3,7 @@ import { logError } from '@edx/frontend-platform/logging';
 import {
   createCreditRequest,
   deleteEntitlementEnrollment,
+  requestCourseCreator,
   sendConfirmEmail,
   unenrollFromCourse,
   updateEmailSettings,
@@ -106,6 +107,22 @@ const useCreateCreditRequest = () => {
   });
 };
 
+const useRequestCourseCreator = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: learnerDashboardQueryKeys.requestCourseCreator(),
+    mutationFn: () => requestCourseCreator(),
+    onSuccess: () => {
+      // Refresca el estado para que pase a "pending" solo.
+      queryClient.invalidateQueries({ queryKey: learnerDashboardQueryKeys.courseCreatorStatus() });
+    },
+    onError: (error) => {
+      logError('Failed to request course creator access:', error);
+    },
+  });
+};
+
 const useSendConfirmEmail = (sendEmailUrl: string) => {
   const queryClient = useQueryClient();
 
@@ -127,5 +144,6 @@ export {
   useDeleteEntitlementEnrollment,
   useUpdateEmailSettings,
   useCreateCreditRequest,
+  useRequestCourseCreator,
   useSendConfirmEmail,
 };

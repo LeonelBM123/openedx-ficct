@@ -82,6 +82,19 @@ const sendConfirmEmail = async (sendEmailUrl: string) => {
   return response;
 };
 
+// Estado de "course creator" del usuario (unrequested | pending | granted | denied).
+// Viene dentro del payload del home de Studio, en snake_case.
+const getCourseCreatorStatus = async (): Promise<string | undefined> => {
+  const { data } = await getAuthenticatedHttpClient().get(urls.courseCreatorStatus());
+  return data?.course_creator_status;
+};
+
+// Solicita el rol de course creator (queda en estado "pending"). No lleva body.
+const requestCourseCreator = async () => {
+  const { data } = await getAuthenticatedHttpClient().post(urls.requestCourseCreator());
+  return data;
+};
+
 export {
   initializeList,
   unenrollFromCourse,
@@ -92,4 +105,6 @@ export {
   logShare,
   createCreditRequest,
   sendConfirmEmail,
+  getCourseCreatorStatus,
+  requestCourseCreator,
 };

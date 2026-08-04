@@ -11,6 +11,16 @@ const messages = defineMessages({
     defaultMessage: 'Find a course {arrow}',
     description: 'Button to explore more courses',
   },
+  becomeInstructorButton: {
+    id: 'WidgetSidebar.becomeInstructorButton',
+    defaultMessage: 'Conviértete en instructor {arrow}',
+    description: 'Button for a learner to request course creator (instructor) access',
+  },
+  instructorRequestPending: {
+    id: 'WidgetSidebar.instructorRequestPending',
+    defaultMessage: 'Tu solicitud para ser instructor está pendiente de aprobación.',
+    description: 'Status text shown when the instructor (course creator) request is pending or denied',
+  },
 });
 
 export default messages;

@@ -1,10 +1,12 @@
 import React from 'react';
 
 import { useIntl } from '@edx/frontend-platform/i18n';
-import { Card, Hyperlink, Icon } from '@openedx/paragon';
+import {
+  Button, Card, Hyperlink, Icon,
+} from '@openedx/paragon';
 import { ArrowForward } from '@openedx/paragon/icons';
 
-import { useInitializeLearnerHome } from 'data/hooks';
+import { useInitializeLearnerHome, useCourseCreatorStatus, useRequestCourseCreator } from 'data/hooks';
 import moreCoursesSVG from 'assets/more-courses-sidewidget.svg';
 import { baseAppUrl } from 'data/services/lms/urls';
 
@@ -19,6 +21,37 @@ export const LookingForChallengeWidget = () => {
   const { data: learnerData } = useInitializeLearnerHome();
   const courseSearchUrl = learnerData?.platformSettings?.courseSearchUrl || '';
   const hyperlinkDestination = baseAppUrl(courseSearchUrl) || '';
+
+  const { data: creatorStatus } = useCourseCreatorStatus();
+  const requestCourseCreator = useRequestCourseCreator();
+
+  const renderInstructorAction = () => {
+    // Sin dato (cargando/error/CORS) o ya es creator: no mostrar nada.
+    if (!creatorStatus || creatorStatus === 'granted') {
+      return null;
+    }
+    // Solicitud en curso o ya rechazada: solo mostramos el estado, sin re-solicitar.
+    if (creatorStatus === 'pending' || creatorStatus === 'denied') {
+      return (
+        <p className="small text-gray-500 mt-2 mb-0">
+          {formatMessage(messages.instructorRequestPending)}
+        </p>
+      );
+    }
+    // 'unrequested': botón para solicitar.
+    return (
+      <h5 className="mt-2">
+        <Button
+          variant="link"
+          className="p-0 d-flex align-items-center"
+          onClick={() => requestCourseCreator.mutate()}
+          disabled={requestCourseCreator.isPending}
+        >
+          {formatMessage(messages.becomeInstructorButton, { arrow: arrowIcon })}
+        </Button>
+      </h5>
+    );
+  };
 
   return (
     <Card orientation="horizontal" id="looking-for-challenge-widget">
@@ -40,6 +73,7 @@ export const LookingForChallengeWidget = () => {
             {formatMessage(messages.findCoursesButton, { arrow: arrowIcon })}
           </Hyperlink>
         </h5>
+        {renderInstructorAction()}
       </Card.Body>
     </Card>
   );

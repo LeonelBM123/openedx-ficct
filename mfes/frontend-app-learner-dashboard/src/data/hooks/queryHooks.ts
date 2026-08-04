@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useBackedData, useMasquerade } from 'data/context';
 import {
   initializeList,
+  getCourseCreatorStatus,
 } from 'data/services/lms/api';
 import { learnerDashboardQueryKeys } from './queryKeys';
 
@@ -33,6 +34,15 @@ const useInitializeLearnerHome = () => {
   return { ...query, data };
 };
 
+// Estado de course creator del usuario, desde el home de Studio.
+// retry: false para que un 403/CORS no reintente en bucle.
+const useCourseCreatorStatus = () => useQuery({
+  queryKey: learnerDashboardQueryKeys.courseCreatorStatus(),
+  queryFn: () => getCourseCreatorStatus(),
+  retry: false,
+});
+
 export {
   useInitializeLearnerHome,
+  useCourseCreatorStatus,
 };
