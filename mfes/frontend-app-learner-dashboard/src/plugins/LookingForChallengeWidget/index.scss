@@ -3,4 +3,12 @@
     overflow: visible;
     min-width: auto;
   }
+
+  // El color ya lo pone .brand-link; lo unico que rompia la simetria con
+  // "Encuentra un curso" era la tipografia propia de .btn, que ignora el h5.
+  .become-instructor-link {
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+  }
 }

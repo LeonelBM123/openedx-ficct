@@ -1,17 +1,62 @@
 .course-card-progress {
-  max-width: 22rem;
+  max-width: 24rem;
 
-  .course-card-progress-label {
-    color: var(--pgn-color-gray-700);
+  .course-card-progress-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--pgn-spacing-spacer-2);
     margin-bottom: var(--pgn-spacing-spacer-1);
+    color: var(--pgn-color-gray-700);
   }
 
+  .course-card-progress-label {
+    display: flex;
+    align-items: center;
+  }
+
+  .course-card-progress-percent {
+    font-weight: var(--pgn-typography-font-weight-bold);
+    color: var(--pgn-color-gray-800);
+  }
+
+  // Pill: se redondean tanto el riel como el relleno.
   .progress {
-    height: .5rem;
+    height: .625rem;
+    border-radius: var(--pgn-size-border-radius-lg);
+    background-color: var(--pgn-color-gray-200);
+  }
+
+  .progress-bar {
+    border-radius: var(--pgn-size-border-radius-lg);
+    transition: width .6s ease;
+  }
+
+  // Curso terminado. El brand de FICCT fuerza `.progress-bar` a rojo con
+  // !important (brand-ficct/paragon/_overrides.scss), asi que el verde
+  // necesita la misma arma para ganarle.
+  &.is-complete {
+    .course-card-progress-header {
+      color: var(--pgn-color-success-500);
+    }
+
+    .course-card-progress-percent {
+      color: var(--pgn-color-success-500);
+    }
+
+    .course-card-progress-check {
+      width: 1.125rem;
+      height: 1.125rem;
+      margin-right: var(--pgn-spacing-spacer-1);
+    }
+
+    .progress-bar {
+      background-color: var(--pgn-color-success-base) !important;
+    }
   }
 }
 
-// Misma altura que la barra + su etiqueta, para que la tarjeta no salte mientras carga.
+// Misma altura que la cabecera + la barra, para que la tarjeta no salte mientras carga.
 .course-card-progress-placeholder {
   height: 2rem;
 }

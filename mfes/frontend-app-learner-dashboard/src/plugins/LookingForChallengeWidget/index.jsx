@@ -41,9 +41,11 @@ export const LookingForChallengeWidget = () => {
     // 'unrequested': botón para solicitar.
     return (
       <h5 className="mt-2">
+        {/* brand-link es la misma clase que aplica <Hyperlink variant="brand">,
+            para que se vea igual que "Encuentra un curso" sin duplicar colores. */}
         <Button
           variant="link"
-          className="p-0 d-flex align-items-center"
+          className="become-instructor-link brand-link p-0 d-flex align-items-center"
           onClick={() => requestCourseCreator.mutate()}
           disabled={requestCourseCreator.isPending}
         >

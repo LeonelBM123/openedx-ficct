@@ -5,6 +5,7 @@ import { useCourseData, useEntitlementInfo, useIsMasquerading } from 'hooks';
 import { useCourseProgress } from 'data/hooks';
 
 import CourseCardProgress from '.';
+import messages from './messages';
 
 jest.mock('hooks', () => ({
   useCourseData: jest.fn(),
@@ -35,10 +36,24 @@ const renderComponent = ({
 };
 
 describe('CourseCardProgress', () => {
-  it('renders the completed percentage of the course', () => {
+  it('renders the label and the completed percentage of the course', () => {
     renderComponent();
     expect(screen.getByTestId('CourseCardProgress')).toBeInTheDocument();
-    expect(screen.getByText('30 % completado')).toBeInTheDocument();
+    expect(screen.getByText(messages.progressLabel.defaultMessage)).toBeInTheDocument();
+    expect(screen.getByText('30 %')).toBeInTheDocument();
+  });
+
+  it('shows the completed state when the course is at 100%', () => {
+    renderComponent({ completionSummary: { complete_count: 10, incomplete_count: 0, locked_count: 0 } });
+    expect(screen.getByText(messages.courseCompleted.defaultMessage)).toBeInTheDocument();
+    expect(screen.getByText('100 %')).toBeInTheDocument();
+    expect(screen.getByTestId('CourseCardProgress')).toHaveClass('is-complete');
+  });
+
+  it('does not show the completed state below 100%', () => {
+    renderComponent();
+    expect(screen.queryByText(messages.courseCompleted.defaultMessage)).not.toBeInTheDocument();
+    expect(screen.getByTestId('CourseCardProgress')).not.toHaveClass('is-complete');
   });
 
   it('renders a placeholder while loading', () => {

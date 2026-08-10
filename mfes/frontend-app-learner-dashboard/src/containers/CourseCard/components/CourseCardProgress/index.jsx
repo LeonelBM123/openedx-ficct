@@ -1,8 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 
 import { useIntl } from '@edx/frontend-platform/i18n';
-import { Card, ProgressBar } from '@openedx/paragon';
+import { Card, Icon, ProgressBar } from '@openedx/paragon';
+import { Check } from '@openedx/paragon/icons';
 
 import { useCourseData, useEntitlementInfo, useIsMasquerading } from 'hooks';
 import { useCourseProgress } from 'data/hooks';
@@ -49,16 +51,25 @@ export const CourseCardProgress = ({ cardId }) => {
   }
 
   const percent = Math.round((completeCount / totalCount) * 100);
+  const isComplete = percent === 100;
 
   return (
     <Card.Section className="pt-0 pb-3">
-      <div className="course-card-progress" data-testid="CourseCardProgress">
-        <div className="course-card-progress-label small">
-          {formatMessage(messages.progressLabel, { percent })}
+      <div
+        className={classNames('course-card-progress', { 'is-complete': isComplete })}
+        data-testid="CourseCardProgress"
+      >
+        <div className="course-card-progress-header small">
+          <span className="course-card-progress-label">
+            {isComplete && <Icon src={Check} className="course-card-progress-check" />}
+            {formatMessage(isComplete ? messages.courseCompleted : messages.progressLabel)}
+          </span>
+          <span className="course-card-progress-percent">
+            {formatMessage(messages.progressPercent, { percent })}
+          </span>
         </div>
         <ProgressBar
           now={percent}
-          variant="success"
           label=""
           aria-label={formatMessage(messages.progressBarAlt, { percent })}
         />
