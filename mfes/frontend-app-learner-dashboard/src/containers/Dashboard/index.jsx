@@ -4,6 +4,7 @@ import { useSelectSessionModal } from 'data/context';
 import { useInitializeLearnerHome } from 'data/hooks';
 import SelectSessionModal from 'containers/SelectSessionModal';
 import CoursesPanel from 'containers/CoursesPanel';
+import PopularCourses from 'containers/PopularCourses';
 import DashboardModalSlot from 'plugin-slots/DashboardModalSlot';
 
 import LoadingView from './LoadingView';
@@ -32,9 +33,12 @@ export const Dashboard = () => {
         {isPending
           ? (<LoadingView />)
           : (
-            <DashboardLayout>
-              <CoursesPanel />
-            </DashboardLayout>
+            <>
+              <PopularCourses />
+              <DashboardLayout>
+                <CoursesPanel />
+              </DashboardLayout>
+            </>
           )}
       </div>
     </div>

@@ -1,4 +1,9 @@
-import { useInitializeLearnerHome, useCourseCreatorStatus } from './queryHooks';
+import {
+  useInitializeLearnerHome,
+  useCourseCreatorStatus,
+  usePopularCourses,
+  useCourseProgress,
+} from './queryHooks';
 import {
   useUnenrollFromCourse,
   useUpdateEntitlementEnrollment,
@@ -12,6 +17,8 @@ import {
 export {
   useInitializeLearnerHome,
   useCourseCreatorStatus,
+  usePopularCourses,
+  useCourseProgress,
   useUnenrollFromCourse,
   useUpdateEntitlementEnrollment,
   useDeleteEntitlementEnrollment,

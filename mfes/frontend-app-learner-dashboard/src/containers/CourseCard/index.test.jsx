@@ -14,6 +14,7 @@ const namesMockComponents = [
   'CourseCardMenu',
   'CourseCardActions',
   'CourseCardDetails',
+  'CourseCardProgress',
   'CourseCardTitle',
 ];
 
@@ -22,6 +23,7 @@ jest.mock('./components/CourseCardImage', () => jest.fn(() => <div>CourseCardIma
 jest.mock('./components/CourseCardMenu', () => jest.fn(() => <div>CourseCardMenu</div>));
 jest.mock('./components/CourseCardActions', () => jest.fn(() => <div>CourseCardActions</div>));
 jest.mock('./components/CourseCardDetails', () => jest.fn(() => <div>CourseCardDetails</div>));
+jest.mock('./components/CourseCardProgress', () => jest.fn(() => <div>CourseCardProgress</div>));
 jest.mock('./components/CourseCardTitle', () => jest.fn(() => <div>CourseCardTitle</div>));
 
 const cardId = 'test-card-id';

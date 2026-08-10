@@ -1,0 +1,17 @@
+.course-card-progress {
+  max-width: 22rem;
+
+  .course-card-progress-label {
+    color: var(--pgn-color-gray-700);
+    margin-bottom: var(--pgn-spacing-spacer-1);
+  }
+
+  .progress {
+    height: .5rem;
+  }
+}
+
+// Misma altura que la barra + su etiqueta, para que la tarjeta no salte mientras carga.
+.course-card-progress-placeholder {
+  height: 2rem;
+}

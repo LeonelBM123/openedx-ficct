@@ -30,6 +30,13 @@ export const creditPurchaseUrl = (courseId) => {
 };
 export const creditRequestUrl = (providerId) => `${getApiUrl()}/credit/v1/providers/${providerId}/request/`;
 
+// Cursos mas demandados de la plataforma (API propia de FICCT, ver apps-custom/ficct-dashboard-api).
+const popularCourses = () => `${getApiUrl()}/ficct/popular-courses/`;
+
+// Progreso del alumno en un curso. Es el BFF que usa el MFE learning para su pestana
+// de "Progreso"; trae completion_summary con las unidades completas e incompletas.
+const courseProgress = (courseId) => `${getApiUrl()}/course_home/progress/${courseId}/`;
+
 // Studio (CMS) endpoints para el flujo de "course creator" / solicitud de instructor.
 // STUDIO_BASE_URL llega en runtime vía MFE_CONFIG.
 const getStudioBaseUrl = () => getConfig().STUDIO_BASE_URL;
@@ -40,6 +47,7 @@ export default StrictDict({
   getApiUrl,
   baseAppUrl,
   courseCreatorStatus,
+  courseProgress,
   courseUnenroll,
   creditPurchaseUrl,
   creditRequestUrl,
@@ -47,6 +55,7 @@ export default StrictDict({
   event,
   getInitApiUrl,
   learningMfeUrl,
+  popularCourses,
   programsUrl,
   requestCourseCreator,
   updateEmailSettings,

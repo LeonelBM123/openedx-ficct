@@ -95,8 +95,26 @@ const requestCourseCreator = async () => {
   return data;
 };
 
+// Cursos mas demandados de la plataforma, ordenados por inscritos activos.
+// El endpoint es publico, pero se usa el cliente autenticado por consistencia con el resto.
+const getPopularCourses = async (limit: number) => {
+  const { data } = await getAuthenticatedHttpClient().get(
+    stringifyUrl(urls.popularCourses(), { limit }),
+  );
+  return data?.results ?? [];
+};
+
+// Progreso del alumno en un curso. Solo se usa completion_summary
+// ({ complete_count, incomplete_count, locked_count }).
+const getCourseProgress = async (courseId: string) => {
+  const { data } = await getAuthenticatedHttpClient().get(urls.courseProgress(courseId));
+  return data?.completion_summary;
+};
+
 export {
   initializeList,
+  getPopularCourses,
+  getCourseProgress,
   unenrollFromCourse,
   updateEntitlementEnrollment,
   deleteEntitlementEnrollment,

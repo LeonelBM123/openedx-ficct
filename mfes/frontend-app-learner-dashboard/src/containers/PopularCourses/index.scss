@@ -1,0 +1,47 @@
+.popular-courses {
+  margin-bottom: var(--pgn-spacing-spacer-4);
+
+  .popular-courses-title {
+    // Mismo peso visual que el titulo "Mis cursos" (containers/CoursesPanel/index.scss).
+    font-size: var(--pgn-typography-font-size-h2-base);
+    margin: var(--pgn-spacing-spacer-3) 0;
+  }
+
+  .popular-courses-list {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--pgn-spacing-spacer-3);
+  }
+
+  .popular-course-card {
+    height: 100%;
+
+    .popular-course-card-title {
+      color: var(--pgn-color-black);
+    }
+  }
+}
+
+@media (--pgn-size-breakpoint-max-width-lg) {
+  .popular-courses .popular-courses-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (--pgn-size-breakpoint-max-width-md) {
+  .popular-courses {
+    .popular-courses-title {
+      font-size: var(--pgn-typography-font-size-h3-base);
+      margin: var(--pgn-spacing-spacer-2) 0;
+    }
+
+    // En movil la fila se desplaza horizontalmente en vez de apilarse.
+    .popular-courses-list {
+      grid-auto-flow: column;
+      grid-auto-columns: 70%;
+      grid-template-columns: none;
+      overflow-x: auto;
+      padding-bottom: var(--pgn-spacing-spacer-2);
+    }
+  }
+}

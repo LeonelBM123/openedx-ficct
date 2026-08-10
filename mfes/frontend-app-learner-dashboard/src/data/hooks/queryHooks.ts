@@ -4,8 +4,12 @@ import { useBackedData, useMasquerade } from 'data/context';
 import {
   initializeList,
   getCourseCreatorStatus,
+  getPopularCourses,
+  getCourseProgress,
 } from 'data/services/lms/api';
 import { learnerDashboardQueryKeys } from './queryKeys';
+
+const FIVE_MINUTES = 5 * 60 * 1000;
 
 const useInitializeLearnerHome = () => {
   const { masqueradeUser } = useMasquerade();
@@ -42,7 +46,28 @@ const useCourseCreatorStatus = () => useQuery({
   retry: false,
 });
 
+// Cursos mas demandados. retry: false para que, si el endpoint aun no esta desplegado,
+// la seccion simplemente no se muestre en vez de reintentar en bucle.
+const usePopularCourses = (limit: number = 8) => useQuery({
+  queryKey: learnerDashboardQueryKeys.popularCourses(limit),
+  queryFn: () => getPopularCourses(limit),
+  retry: false,
+  staleTime: FIVE_MINUTES,
+});
+
+// Progreso de un curso. Cada CourseCard pide el suyo, por lo que solo se consultan
+// los cursos de la pagina visible.
+const useCourseProgress = (courseId: string, enabled: boolean = true) => useQuery({
+  queryKey: learnerDashboardQueryKeys.courseProgress(courseId),
+  queryFn: () => getCourseProgress(courseId),
+  enabled: enabled && !!courseId,
+  retry: false,
+  staleTime: FIVE_MINUTES,
+});
+
 export {
   useInitializeLearnerHome,
   useCourseCreatorStatus,
+  usePopularCourses,
+  useCourseProgress,
 };

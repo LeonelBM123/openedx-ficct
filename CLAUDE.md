@@ -68,7 +68,8 @@ openedx-ficct/
 │   ├── catalog_mfe.py               ← Registra MFE catalog
 │   ├── ficct_theme.py               ← Comprehensive Theme Django legacy
 │   └── ficct_config.py              ← MFE_CONFIG + Judge0 + logos
-├── apps-custom/                     ← Django apps custom (futuro)
+├── apps-custom/                     ← Django apps custom instaladas en la imagen openedx
+│   └── ficct-dashboard-api/         ← Plugin app LMS: /api/ficct/popular-courses/
 ├── docs/                            ← Guías y documentación
 ├── CLAUDE.md
 ├── .gitignore
@@ -102,6 +103,7 @@ Los plugins de Tutor son archivos Python que inyectan código en archivos que Tu
 | `ficct_theme.py` | Solo configura el Comprehensive Theme para páginas Django legacy |
 | `ficct_config.py` | MFE_CONFIG (logos, email, URLs) + Judge0 XBlock |
 | `notifications_ficct.py` | Activa el waffle flag `notifications.enable_notifications` (campana de notificaciones en todos los headers) |
+| `ficct_dashboard_api.py` | Instala el paquete `apps-custom/ficct-dashboard-api` en la imagen openedx (APIs propias bajo `/api/ficct/`) |
 
 ### Patches más usados
 
@@ -295,6 +297,63 @@ tutor local do init --limit notifications_ficct
 
 **Push notifications:** el flag hermano `notifications.enable_push_notifications` es solo para la app móvil nativa (FCM/APNs vía `django-push-notifications`); no aplica a MFEs web y no tiene efecto en este monorepo (no hay app móvil FICCT).
 
+### `ficct_dashboard_api.py`
+
+Instala el paquete `apps-custom/ficct-dashboard-api` en la imagen `openedx` vía el patch `openedx-dockerfile-post-python-requirements`. El paquete es una **plugin app de Open edX** (entry point `lms.djangoapp`): se auto-registra en `INSTALLED_APPS` y monta sus URLs bajo `/api/ficct/` sin tocar `lms/urls.py` del core. Mismo patrón que usa `edx-completion`.
+
+```python
+from tutor import hooks
+
+hooks.Filters.CONFIG_DEFAULTS.add_items([
+    ("FICCT_DASHBOARD_API_REF", "main"),
+])
+
+hooks.Filters.ENV_PATCHES.add_items([
+    (
+        "openedx-dockerfile-post-python-requirements",
+        """
+RUN $PIP_COMMAND install 'git+https://github.com/LeonelBM123/openedx-ficct.git@{{ FICCT_DASHBOARD_API_REF }}#subdirectory=apps-custom/ficct-dashboard-api'
+"""
+    ),
+])
+```
+
+⚠️ **El pip install es desde el repo remoto, no desde el disco.** Hay que hacer `git push` ANTES de rebuildear, y como el ref forma parte del comando, cambiarlo es lo que invalida la capa de Docker:
+
+```bash
+tutor config save --set FICCT_DASHBOARD_API_REF=<commit-sha>   # fuerza reinstalación del paquete
+tutor images build openedx                                     # ~20 min
+tutor local stop && tutor local start -d
+```
+
+---
+
+## APIs propias de FICCT (`apps-custom/ficct-dashboard-api`)
+
+| Endpoint | Auth | Devuelve |
+|----------|------|----------|
+| `GET /api/ficct/popular-courses/?limit=8` | Pública | Cursos visibles ordenados por inscritos activos (desc) |
+
+Cada curso trae `course_id`, `title`, `org`, `number`, `short_description`, `image_url`, `about_url`, `enrollment_count`, `start`. Las URLs son **relativas al LMS** (igual que `learner_home/init`), el MFE las resuelve con `baseAppUrl()`.
+
+- El conteo sale de `CourseEnrollment.objects.filter(is_active=True)` agrupado por curso — el mismo dato que usa el Instructor Dashboard, que Open edX no expone por REST en ningún lado.
+- Se excluyen cursos con `catalog_visibility='none'`, `invitation_only`, `visible_to_staff_only` y cursos ya terminados. Los cursos con 0 inscritos van al final en vez de omitirse.
+- La respuesta se cachea 10 min (`django.core.cache`). No depende del usuario: el filtrado de "cursos en los que ya estoy inscrito" lo hace el MFE.
+
+---
+
+## Progreso del alumno en el learner dashboard
+
+`/api/learner_home/init` **no trae ningún porcentaje de avance** (solo `gradeData.isPassing` y `courseRun.progressUrl`, que es un link). La barra de progreso de cada tarjeta consume `/api/course_home/progress/{course_id}/` — el BFF del MFE learning — y usa `completion_summary`:
+
+```
+porcentaje = complete_count / (complete_count + incomplete_count)
+```
+
+Es una petición por tarjeta visible (la lista está paginada), con `staleTime` de 5 min. No se renderiza cuando el usuario está en modo "Ver como" (el endpoint devolvería el progreso del staff, no el del alumno observado), ni para entitlements sin sesión asignada.
+
+⚠️ El plugin `completion_aggregator` de OpenCraft (el que expone `/api/completion/v1/course/.../` con el % ya agregado) **no está instalado** en esta plataforma. Si algún día se instala, conviene migrar a él: es 1 request para todos los cursos en vez de N.
+
 ---
 
 ## Sistema de Logos e Imágenes
@@ -383,9 +442,11 @@ Settings → Advanced Settings → Advanced Module List
 
 ## Flujos de Trabajo
 
-### Cambios en el MFE learning (avatar, código React)
+### Cambios en los MFEs (avatar, código React)
 
-El MFE `frontend-app-learning` se construye automáticamente via **GitHub Actions** en el repo `LeonelBM123/openedx-ficct`. El workflow `.github/workflows/build-mfe.yml` se activa en cada push a `main` que toque `mfes/frontend-app-learning/**`.
+Los MFEs se construyen automáticamente via **GitHub Actions** en el repo `LeonelBM123/openedx-ficct`. El workflow `.github/workflows/build-mfe.yml` se activa en cada push a `main` que toque `mfes/**` y construye **una sola imagen** con los 5 MFEs del monorepo (learning, authn, authoring, catalog, learner-dashboard) pasados como `build-contexts`.
+
+⚠️ El workflow **solo construye la imagen `mfe`**. Los cambios de backend (`apps-custom/`, XBlocks, temas) viven en la imagen `openedx` y requieren `tutor images build openedx` en el servidor.
 
 ```bash
 # 1. Editar código en mfes/frontend-app-learning/src/
@@ -507,6 +568,7 @@ tutor plugins install /root/openedx-ficct/tutor-plugins/catalog_mfe.py
 tutor plugins install /root/openedx-ficct/tutor-plugins/ficct_theme.py
 tutor plugins install /root/openedx-ficct/tutor-plugins/ficct_config.py
 tutor plugins install /root/openedx-ficct/tutor-plugins/notifications_ficct.py
+tutor plugins install /root/openedx-ficct/tutor-plugins/ficct_dashboard_api.py
 tutor config save
 tutor local do init --limit notifications_ficct
 ```
