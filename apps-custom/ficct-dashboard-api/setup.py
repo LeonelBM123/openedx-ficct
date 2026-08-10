@@ -20,5 +20,8 @@ setup(
         'lms.djangoapp': [
             'ficct_dashboard_api = ficct_dashboard_api.apps:FicctDashboardApiConfig',
         ],
+        'cms.djangoapp': [
+            'ficct_dashboard_api = ficct_dashboard_api.apps:FicctDashboardApiConfig',
+        ],
     },
 )

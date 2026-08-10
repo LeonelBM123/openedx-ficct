@@ -90,9 +90,10 @@ const getCourseCreatorStatus = async (): Promise<string | undefined> => {
 };
 
 // Solicita el rol de course creator (queda en estado "pending"). No lleva body.
-const requestCourseCreator = async () => {
+// Devuelve el estado resultante, releido de la base por el endpoint.
+const requestCourseCreator = async (): Promise<string | undefined> => {
   const { data } = await getAuthenticatedHttpClient().post(urls.requestCourseCreator());
-  return data;
+  return data?.course_creator_status;
 };
 
 // Cursos mas demandados de la plataforma, ordenados por inscritos activos.

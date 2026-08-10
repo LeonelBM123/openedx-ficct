@@ -6,7 +6,7 @@ import messages from './messages';
 
 const courseSearchUrl = 'http://localhost:18000/course-search-url';
 
-const mutate = jest.fn();
+const mockMutate = jest.fn();
 
 jest.mock('data/hooks', () => ({
   useInitializeLearnerHome: () => ({
@@ -17,7 +17,7 @@ jest.mock('data/hooks', () => ({
     },
   }),
   useCourseCreatorStatus: jest.fn(),
-  useRequestCourseCreator: () => ({ mutate, isPending: false }),
+  useRequestCourseCreator: () => ({ mutate: mockMutate, isPending: false }),
 }));
 
 jest.mock('./track', () => ({

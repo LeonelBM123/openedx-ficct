@@ -330,9 +330,15 @@ tutor local stop && tutor local start -d
 
 ## APIs propias de FICCT (`apps-custom/ficct-dashboard-api`)
 
-| Endpoint | Auth | Devuelve |
-|----------|------|----------|
-| `GET /api/ficct/popular-courses/?limit=8` | Pública | Cursos visibles ordenados por inscritos activos (desc) |
+| Endpoint | Servicio | Auth | Devuelve |
+|----------|----------|------|----------|
+| `GET /api/ficct/popular-courses/?limit=8` | LMS | Pública | Cursos visibles ordenados por inscritos activos (desc) |
+| `POST /api/ficct/request-course-creator/` | **Studio (CMS)** | JWT | `{"course_creator_status": "pending"}` |
+
+El paquete declara los dos entry points (`lms.djangoapp` y `cms.djangoapp`) con un módulo de URLs por servicio (`urls.py` y `cms_urls.py`), porque las vistas del LMS importan `CourseEnrollment`/`CourseOverview` y las del CMS importan `course_creators`, que **solo está instalado en Studio**.
+
+⚠️ **Por qué existe `request-course-creator`:** la vista nativa `/request_course_creator` del CMS es una vista Django legacy (`@require_POST @login_required`). Al no ser DRF no acepta el JWT y depende de la cookie de sesión de `studio.<host>`, que un alumno que nunca entró a Studio no tiene: responde 302 al flujo SSO y el XHR del MFE muere con error de CORS. El endpoint propio hace lo mismo como `APIView`, de modo que las clases de autenticación por defecto del CMS (JWT + sesión) resuelven la llamada entre dominios. El GET de estado sigue usando `/api/contentstore/v1/home`, que sí es DRF y funciona.
+
 
 Cada curso trae `course_id`, `title`, `org`, `number`, `short_description`, `image_url`, `about_url`, `enrollment_count`, `start`. Las URLs son **relativas al LMS** (igual que `learner_home/init`), el MFE las resuelve con `baseAppUrl()`.
 

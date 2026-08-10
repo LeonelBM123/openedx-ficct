@@ -40,7 +40,11 @@ const courseProgress = (courseId) => `${getApiUrl()}/course_home/progress/${cour
 // Studio (CMS) endpoints para el flujo de "course creator" / solicitud de instructor.
 // STUDIO_BASE_URL llega en runtime vía MFE_CONFIG.
 const getStudioBaseUrl = () => getConfig().STUDIO_BASE_URL;
-const requestCourseCreator = () => `${getStudioBaseUrl()}/request_course_creator`;
+// Endpoint propio (apps-custom/ficct-dashboard-api) en lugar de la vista nativa
+// `/request_course_creator`, que es una vista Django legacy con @login_required:
+// al no ser DRF no acepta el JWT y responde un 302 al SSO, lo que desde el MFE
+// termina en un error de CORS.
+const requestCourseCreator = () => `${getStudioBaseUrl()}/api/ficct/request-course-creator/`;
 const courseCreatorStatus = () => `${getStudioBaseUrl()}/api/contentstore/v1/home`;
 
 export default StrictDict({
