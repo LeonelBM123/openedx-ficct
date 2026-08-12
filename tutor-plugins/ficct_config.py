@@ -21,6 +21,11 @@ MFE_CONFIG["DISCOVERY_API_BASE_URL"] = "http://discovery.{{ LMS_HOST }}"
 MFE_CONFIG["LANGUAGE_PREFERENCE_COOKIE_NAME"] = "openedx-language-preference"
 MFE_CONFIG["DEFAULT_COURSE_LANGUAGE"] = "es-419"
 MFE_CONFIG["SITE_LANGUAGE"] = "es-419"
+# El botón "Cerrar sesión" de los MFEs usa este valor tal cual (getConfig().LOGOUT_URL),
+# sin agregar redirect_url propio. Lo horneamos aquí para que el logout termine en la
+# landing page en vez de caer al destino por defecto de Django ("/", que a su vez
+# redirige al catalog MFE por ENABLE_CATALOG_MICROFRONTEND=True en catalog_mfe.py).
+MFE_CONFIG["LOGOUT_URL"] = "http://{{ LMS_HOST }}/logout?redirect_url=http%3A%2F%2F{{ FICCT_LANDING_HOST }}%2F"
 """
     ),
     # Configuración del XBlock de AI Evaluation (Judge0)
@@ -35,6 +40,10 @@ XBLOCK_SETTINGS = {
         "GPT4O_API_KEY": "{{ FICCT_OPENROUTER_API_KEY }}",
     }
 }
+
+# Permite que Django acepte la landing page como destino seguro de redirect
+# tras logout (ver MFE_CONFIG["LOGOUT_URL"] arriba).
+LOGIN_REDIRECT_WHITELIST.append("{{ FICCT_LANDING_HOST }}")
 """
     ),
 ])
