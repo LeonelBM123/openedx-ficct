@@ -6,7 +6,7 @@ import { useMatch } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import Joyride from 'react-joyride';
 import { getConfig } from '@edx/frontend-platform';
-import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
+import { getAuthenticatedHttpClient, getAuthenticatedUser } from '@edx/frontend-platform/auth';
 
 import Avatar from './Avatar';
 import TourUI from './TourUI';
@@ -390,14 +390,6 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   }, [statsData, getDeadlines, getWeakAreas]);
 
   const handleAskQuestion = useCallback(async (q) => {
-    const openrouterKey = getConfig().OPENROUTER_API_KEY;
-    const qaApiUrl = getConfig().AVATAR_QA_API_URL;
-
-    if (!openrouterKey && !qaApiUrl) {
-      setAiResponse('⚠️ El módulo de preguntas no está disponible por el momento.');
-      return;
-    }
-
     setIsThinking(true);
     setAiResponse('');
     cleanupAudio();
@@ -405,38 +397,15 @@ const AvatarTour = ({ tourName = 'learning' }) => {
 
     try {
       const contexto = buildLLMContext();
-      let answer = '';
 
-      if (openrouterKey) {
-        const model = getConfig().OPENROUTER_MODEL || 'openai/gpt-4o-mini';
-        const systemPrompt = 'Eres el asistente académico virtual del estudiante en esta plataforma. En el contexto recibes el título, la descripción y el temario del curso (sus secciones y lecciones), su ubicación actual (curso, sección, lección y unidad), su progreso de completitud, su calificación, sus próximas entregas y entregas vencidas, y las áreas que debe reforzar (temas o tipos de actividad por debajo del 60%). Usa esos datos concretos para responder. Preguntas generales como "¿de qué trata el curso?" o "¿qué temas cubre?" respóndelas resumiendo el título y el temario del contexto; nunca digas que no tienes información si el temario está presente. Responde en español, claro, conciso y con tono alentador, máximo 3 oraciones. Reserva el "no tengo esa información" solo para el contenido interno específico de una lección que no aparece en el contexto.';
-        const userMsg = contexto ? `${contexto}\n\nPregunta del estudiante: ${q}` : q;
-        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${openrouterKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userMsg },
-            ],
-            max_tokens: 300,
-          }),
-        });
-        const data = await res.json();
-        answer = data.choices?.[0]?.message?.content || '';
-      } else {
-        const res = await fetch(qaApiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pregunta: q, contexto: contexto || undefined }),
-        });
-        const data = await res.json();
-        answer = data.respuesta || data.response || '';
-      }
+      // El LLM se consulta desde el LMS (apps-custom/ficct-dashboard-api), no desde
+      // aca: la key de OpenRouter se publicaba en MFE_CONFIG, que es un endpoint
+      // publico. El system prompt tambien vive del lado del servidor.
+      const { data } = await getAuthenticatedHttpClient().post(
+        `${getConfig().LMS_BASE_URL}/api/ficct/avatar/ask/`,
+        { pregunta: q, contexto: contexto || undefined },
+      );
+      const answer = data.respuesta || '';
 
       setAiResponse(answer);
       setIsThinking(false);

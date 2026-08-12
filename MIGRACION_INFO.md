@@ -65,9 +65,7 @@ Archivo: `/root/.local/share/tutor/config.yml` (**fuera del repositorio Git**).
 
 ```yaml
 AVATAR_ENABLED: true
-AVATAR_QA_API_URL: ''                    # vacío — backend de preguntas del avatar sin configurar
 AVATAR_TTS_API_URL: https://leonel-barriosmay--avatar-tts-api-v3-fastapi-app.modal.run/synthesize
-AZURE_SPEECH_REGION: eastus
 CMS_HOST: studio.167.172.142.82.nip.io
 CONTACT_EMAIL: leonel.barriosmay@gmail.com
 ENABLE_HTTPS: false
@@ -134,15 +132,15 @@ viejo al nuevo por canal seguro (`scp` del `config.yml`, gestor de contraseñas,
 | `MEILISEARCH_API_KEY_UID` | UID de esa API key | Idem |
 | `CMS_OAUTH2_SECRET` | secreto OAuth2 del CMS contra el LMS | Studio no autentica contra el LMS |
 | `ID` | identificador único de la instancia Tutor | Cosmético, pero conviene conservarlo |
-| `AZURE_SPEECH_KEY` | API key de Azure Speech (TTS del avatar) | Avatar sin voz |
 | `IAASSISTANT_OPENROUTER_API_KEY` | API key OpenRouter para el XBlock `ia-assistant-plugin` | Asistente IA sin LLM |
-| `OPENROUTER_API_KEY` | API key OpenRouter expuesta al MFE learning (avatar) | Chat del avatar sin LLM |
+| `OPENROUTER_API_KEY` | API key OpenRouter del avatar. Solo en settings de Django, la usa `/api/ficct/avatar/ask/` | Chat del avatar sin LLM |
 | `FICCT_JUDGE0_API_KEY` | API key RapidAPI Judge0 (XBlock `ai_eval`) | Ejercicios de código sin ejecución |
 
-> ⚠️ **`OPENROUTER_API_KEY` se publica en `MFE_CONFIG`** (plugin `avatar_asistente.py`), es
-> decir queda **visible en el navegador** vía `GET /api/mfe_config/v1`. Es una key expuesta
-> públicamente hoy. Recomendación fuerte: rotarla y moverla detrás de `AVATAR_QA_API_URL`
-> (backend propio) durante la migración.
+> ✅ **Corregido.** `OPENROUTER_API_KEY` y `AZURE_SPEECH_KEY` se publicaban en `MFE_CONFIG`,
+> que el LMS sirve **sin autenticación** en `GET /api/mfe_config/v1`: eran legibles por
+> cualquiera. Ahora el MFE consulta el LLM vía `POST /api/ficct/avatar/ask/` y la key no sale
+> del servidor; las variables de Azure se eliminaron (la voz la genera el servicio propio en
+> Modal). Ver §4.4. **Ningún secreto puede volver al patch `mfe-lms-*-settings`.**
 
 #### Variable declarada pero NO seteada
 
@@ -190,7 +188,7 @@ Ubicación **instalada**: `/root/.local/share/tutor-plugins/` (copiados con `tut
 | `ficct_config` | `tutor-plugins/ficct_config.py` | `CONFIG_DEFAULTS`: `FICCT_JUDGE0_API_KEY`, `FICCT_OPENROUTER_API_KEY`. `ENV_PATCHES`: `mfe-lms-production-settings` (logos, `SUPPORT_EMAIL`, TOS/privacy, `DISCOVERY_API_BASE_URL`, idioma, `LOGOUT_URL` → landing), `openedx-lms-common-settings` (`XBLOCK_SETTINGS.ai_eval` con Judge0 + `LOGIN_REDIRECT_WHITELIST.append(FICCT_LANDING_HOST)`) |
 | `notifications_ficct` | `tutor-plugins/notifications_ficct.py` | `CLI_DO_INIT_TASKS` (`lms`): crea el waffle flag `notifications.enable_notifications` si no existe |
 | `ficct_dashboard_api` | `tutor-plugins/ficct_dashboard_api.py` | `CONFIG_DEFAULTS`: `FICCT_DASHBOARD_API_REF` (default `main`). `ENV_PATCHES`: `openedx-dockerfile-post-python-requirements` → `pip install git+https://github.com/LeonelBM123/openedx-ficct.git@<REF>#subdirectory=apps-custom/ficct-dashboard-api` |
-| `avatar_asistente` | `tutor-plugins/avatar_asistente.py` | `CONFIG_DEFAULTS`: `AVATAR_ENABLED`, `AVATAR_TTS_API_URL`, `AVATAR_QA_API_URL`, `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`. `ENV_PATCHES`: `mfe-lms-common-settings` → publica esas 7 claves en `MFE_CONFIG` |
+| `avatar_asistente` | `tutor-plugins/avatar_asistente.py` | `CONFIG_DEFAULTS`: `AVATAR_ENABLED`, `AVATAR_TTS_API_URL`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `AVATAR_OPENROUTER_THROTTLE_RATE`. `ENV_PATCHES`: `mfe-lms-common-settings` → publica solo `AVATAR_ENABLED` y `AVATAR_TTS_API_URL` (no secretos); `openedx-lms-common-settings` → dict `FICCT_AVATAR` con la key de OpenRouter, que consume `/api/ficct/avatar/ask/` |
 | `landing_page` | `tutor-plugins/landing_page.py` ⚠️ **untracked en Git** | `CONFIG_DEFAULTS`: `FICCT_LANDING_HOST`, `FICCT_LANDING_DEPLOY_PATH`. `ENV_PATCHES`: `local-docker-compose-services` (agrega el servicio `landing` con `caddy:2.7.4` sirviendo `/root/landing-deploy`), `caddyfile` (vhost `www.<LMS_HOST>` → `landing:80`) |
 | `iaassistant` | ❌ **NO existe en el repo** — solo en `/root/.local/share/tutor-plugins/iaassistant.py` | `CONFIG_DEFAULTS`: `IAASSISTANT_OPENROUTER_API_KEY`, `_MODEL`, `_BASE_URL`, `_TIMEOUT`, `_FALLBACK_MODELS`. `ENV_PATCHES`: `openedx-common-settings` → define `OPENROUTER_API_KEY/MODEL/BASE_URL/TIMEOUT/FALLBACK_MODELS` en Django (LMS+CMS) para el XBlock `ia-assistant-plugin` |
 
@@ -366,15 +364,17 @@ De `ficct_config.py` (`mfe-lms-production-settings`): `LOGO_URL`, `LOGO_WHITE_UR
 `ENABLE_ACCESSIBILITY_PAGE`, `DISCOVERY_API_BASE_URL`, `LANGUAGE_PREFERENCE_COOKIE_NAME`,
 `DEFAULT_COURSE_LANGUAGE`, `SITE_LANGUAGE`, `LOGOUT_URL`.
 
-De `avatar_asistente.py` (`mfe-lms-common-settings`): `AVATAR_ENABLED`, `AVATAR_TTS_API_URL`,
-`AVATAR_QA_API_URL`, `AZURE_SPEECH_KEY` 🔑, `AZURE_SPEECH_REGION`, `OPENROUTER_API_KEY` 🔑,
-`OPENROUTER_MODEL`.
+De `avatar_asistente.py` (`mfe-lms-common-settings`): `AVATAR_ENABLED` y
+`AVATAR_TTS_API_URL` (URL pública del servicio de voz en Modal). **Nada más: ningún
+secreto.**
 
 Consumidas en el código del avatar (`mfes/frontend-app-learning/src/asistente/`):
-`getConfig().AVATAR_ENABLED`, `.AVATAR_QA_API_URL`, `.AVATAR_TTS_API_URL`,
-`.OPENROUTER_API_KEY`, `.OPENROUTER_MODEL`.
+`getConfig().AVATAR_ENABLED` y `.AVATAR_TTS_API_URL`.
 
-> 🔑 = **secreto expuesto al navegador.** Ver la advertencia de §1.3.
+> El LLM ya no se consulta desde el navegador: `AvatarTour.jsx` hace
+> `POST {LMS_BASE_URL}/api/ficct/avatar/ask/` con `getAuthenticatedHttpClient()`, y el LMS
+> pone la key. Cambiar la key **no requiere rebuild del MFE**, solo `tutor config save` +
+> `tutor local restart lms`.
 
 ### 4.5 GitHub Actions: `.github/workflows/build-mfe.yml`
 
@@ -415,8 +415,6 @@ Consumidas en el código del avatar (`mfes/frontend-app-learning/src/asistente/`
 | `FICCT_DASHBOARD_API_REF` | config.yml | `e9a6be5` |
 | `AVATAR_ENABLED` | config.yml | `true` |
 | `AVATAR_TTS_API_URL` | config.yml | endpoint Modal (público) |
-| `AVATAR_QA_API_URL` | config.yml | *(vacío)* |
-| `AZURE_SPEECH_REGION` | config.yml | `eastus` |
 | `IAASSISTANT_OPENROUTER_MODEL` | config.yml | `openai/gpt-4o-mini` |
 | `IAASSISTANT_OPENROUTER_BASE_URL` | config.yml | `https://openrouter.ai/api/v1` |
 | `IAASSISTANT_OPENROUTER_TIMEOUT` | config.yml | `30` |
@@ -434,8 +432,7 @@ Consumidas en el código del avatar (`mfes/frontend-app-learning/src/asistente/`
 | Servicio | Variables | Notas |
 |----------|-----------|-------|
 | **SMTP** | `SMTP_HOST=smtp`, `SMTP_PORT=8025`, `EMAIL_HOST_USER=""`, `EMAIL_USE_TLS=false`, `RUN_SMTP=true` | Usa el relay interno `devture/exim-relay` **sin autenticación**. Entrega directa desde la IP del servidor. **PENDIENTE — verificar en servidor origen si el correo realmente llega** (IP nueva = reputación nueva; conviene migrar a un SMTP externo tipo SES/SendGrid) |
-| **Azure Speech** (TTS avatar) | `AZURE_SPEECH_KEY` 🔑, `AZURE_SPEECH_REGION` | Región `eastus` |
-| **OpenRouter** (avatar, MFE) | `OPENROUTER_API_KEY` 🔑, `OPENROUTER_MODEL` | Expuesta al navegador |
+| **OpenRouter** (avatar) | `OPENROUTER_API_KEY` 🔑, `OPENROUTER_MODEL`, `AVATAR_OPENROUTER_THROTTLE_RATE` | Solo en Django settings (`FICCT_AVATAR`). La consume `/api/ficct/avatar/ask/`, que exige usuario autenticado y limita a 20 req/min |
 | **OpenRouter** (XBlock ia-assistant, backend) | `IAASSISTANT_OPENROUTER_API_KEY` 🔑 + `_MODEL`, `_BASE_URL`, `_TIMEOUT`, `_FALLBACK_MODELS` | Solo en Django settings, no expuesta |
 | **RapidAPI Judge0** (XBlock ai_eval) | `FICCT_JUDGE0_API_KEY` 🔑, `JUDGE0_API_URL`, `JUDGE0_API_HOST` (hardcodeados en `ficct_config.py`) | Tier gratuito: 100 submissions/día |
 | **OpenRouter GPT4O** (XBlock ai_eval) | `FICCT_OPENROUTER_API_KEY` | **sin setear** |
@@ -457,7 +454,6 @@ MEILISEARCH_API_KEY
 MEILISEARCH_API_KEY_UID
 CMS_OAUTH2_SECRET
 ID
-AZURE_SPEECH_KEY
 OPENROUTER_API_KEY
 IAASSISTANT_OPENROUTER_API_KEY
 FICCT_JUDGE0_API_KEY
@@ -635,7 +631,10 @@ Leyenda: 🤖 automatizable · 🖐️ manual · ⚠️ punto de fallo típico
 - [ ] 🖐️ Anotar el estado de `Advanced Module List`, `SiteTheme` y apps OAuth2 desde el admin
       (respaldo por si algo del dump falla).
 - [ ] 🖐️ ⚠️ **Rotar el GitHub PAT** embebido en el remote y en `/root/.git-credentials`.
-      Considerar también rotar `OPENROUTER_API_KEY` (está expuesta en el navegador).
+- [ ] 🖐️ ⚠️ **Rotar `OPENROUTER_API_KEY`** — estuvo publicada en `/api/mfe_config/v1`, así que
+      hay que darla por quemada. Recién tiene sentido rotarla **después** de desplegar el
+      endpoint `/api/ficct/avatar/ask/` (ver §4.4); antes, la nueva se volvería a publicar.
+      Aprovechar para ponerle **límite de gasto** en OpenRouter: hoy no tiene (`limit: None`).
 
 ### Fase 1 — Backup del servidor origen
 

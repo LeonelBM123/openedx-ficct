@@ -195,12 +195,9 @@ initialize({
         PRIVACY_POLICY_URL: process.env.PRIVACY_POLICY_URL || null,
         SHOW_UNGRADED_ASSIGNMENT_PROGRESS: process.env.SHOW_UNGRADED_ASSIGNMENT_PROGRESS || false,
         AVATAR_ENABLED: process.env.AVATAR_ENABLED || 'false',
+        // La voz la genera el servicio propio en Modal; es una URL publica, no un secreto.
+        // El LLM se consulta via /api/ficct/avatar/ask/, asi que aca no va ninguna key.
         AVATAR_TTS_API_URL: process.env.AVATAR_TTS_API_URL || null,
-        AVATAR_QA_API_URL: process.env.AVATAR_QA_API_URL || null,
-        AZURE_SPEECH_KEY: process.env.AZURE_SPEECH_KEY || '',
-        AZURE_SPEECH_REGION: process.env.AZURE_SPEECH_REGION || '',
-        OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || '',
-        OPENROUTER_MODEL: process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',
       }, 'LearnerAppConfig');
     },
   },

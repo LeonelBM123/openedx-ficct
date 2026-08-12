@@ -15,10 +15,12 @@ mfes/frontend-app-learning/src/asistente/
 ├── TourUI.jsx              ← UI de chat, botones, input de preguntas
 ├── index.scss              ← Estilos (mínimos, mayoría es inline CSS)
 └── config/
-    ├── azureSpeechService.js  ← Síntesis de voz con Azure + lip sync
     ├── ToursConfig.js         ← Scripts del tour por MFE
-    └── qaService.js           ← Cliente del backend de preguntas
+    └── ttsService.js          ← Cliente del servicio de voz propio (Modal) + lip sync
 ```
+
+> `azureSpeechService.js`, `qaService.js` y `useTts.js` fueron eliminados: la voz pasó a
+> generarse en el servicio propio de Modal y las preguntas van al endpoint del LMS.
 
 ## Assets 3D (en public/)
 
@@ -50,23 +52,50 @@ if (process.env.APP_ID == 'learning') {
 }
 ```
 
+## Cómo se responden las preguntas
+
+El navegador **no habla con OpenRouter**. El MFE hace `POST /api/ficct/avatar/ask/`
+(paquete `apps-custom/ficct-dashboard-api`, módulo `avatar_views.py`) y el LMS hace la
+llamada al LLM.
+
+```
+TourUI → AvatarTour.handleAskQuestion()
+   ↓ getAuthenticatedHttpClient().post({ pregunta, contexto })
+POST {LMS_BASE_URL}/api/ficct/avatar/ask/     ← IsAuthenticated + throttle por usuario
+   ↓ requests.post (key desde settings.FICCT_AVATAR)
+https://openrouter.ai/api/v1/chat/completions
+   ↓ { respuesta }
+speakText() → AVATAR_TTS_API_URL (servicio propio en Modal) → audio + visemas
+```
+
+Antes la key de OpenRouter se publicaba en `MFE_CONFIG`, que el LMS sirve **sin
+autenticación** en `GET /api/mfe_config/v1`: era legible por cualquiera. Por eso ningún
+secreto puede volver a ese patch. El *system prompt* también vive en el servidor, para
+que el cliente no pueda reemplazarlo.
+
 ## Configuración requerida (Tutor)
 
 ```bash
 # Habilitar el avatar
 tutor config save --set AVATAR_ENABLED=true
 
-# Azure Speech Services (síntesis de voz)
-tutor config save --set AZURE_SPEECH_KEY=tu_clave_azure
-tutor config save --set AZURE_SPEECH_REGION=eastus
+# Voz: servicio propio desplegado en Modal (URL pública, no es un secreto)
+tutor config save --set AVATAR_TTS_API_URL=https://<tu-app>.modal.run/synthesize
 
-# LLM para responder preguntas (OpenRouter)
+# LLM para responder preguntas (OpenRouter). La key queda solo en los settings de
+# Django, nunca en MFE_CONFIG.
 tutor config save --set OPENROUTER_API_KEY=tu_clave_openrouter
 tutor config save --set OPENROUTER_MODEL=openai/gpt-4o-mini
+
+# Límite de peticiones por usuario al endpoint del LLM (opcional, default 20/min)
+tutor config save --set AVATAR_OPENROUTER_THROTTLE_RATE=20/min
 
 # Aplicar
 tutor local restart lms
 ```
+
+⚠️ Cambiar la key **no requiere rebuild de la imagen del MFE**: solo `tutor config save`
+y `tutor local restart lms`. Antes sí hacía falta, porque el valor viajaba al navegador.
 
 ## Contexto que el LLM recibe por pregunta
 
