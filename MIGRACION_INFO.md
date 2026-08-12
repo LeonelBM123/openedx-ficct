@@ -30,6 +30,55 @@
 
 ---
 
+## 0.1 Estado de avance de la migración
+
+> Actualizado el **2026-08-12**. Cada ✅ está verificado contra el estado real, no asumido.
+
+| Fase | Estado |
+|---|---|
+| **Fase 0** — Rescatar lo no versionado | 🟡 Casi completa — faltan 2 rotaciones de credenciales |
+| **Fase 1** — Backup del servidor origen | 🔴 **No iniciada** |
+| **Fase 2** — Preparar el servidor nuevo | 🟡 Hardware verificado; falta definir red y instalar Tutor |
+| **Fases 3-8** | ⬜ Sin empezar |
+
+### Hecho
+
+| Qué | Commit / evidencia |
+|---|---|
+| `iaassistant.py` versionado (solo existía en `~/.local/share/tutor-plugins/`) | `6130705` |
+| `landing_page.py` + 9 líneas de `ficct_config.py` commiteadas | `819d0de` |
+| Landing incorporada al monorepo en `landing-page/` (era repo Git anidado con 137 MB) | `af41d47`, y sus 4 componentes pendientes en `landingpage-main@5187c84` |
+| Build de la landing documentado y **verificado** (no hay Node en el host, se compila en contenedor) | `0cb34e5`, §7.5 |
+| `.gitignore` en la raíz del monorepo (no existía) | `af41d47` |
+| Servicio de voz versionado — vivía solo en la PC | `3d929e7`, §7.6 |
+| **Keys sacadas del navegador**: el avatar consultaba OpenRouter desde el cliente con la key publicada en `/api/mfe_config/v1` | `8552a14`, `40ba3fc`, §4.4 |
+| `e9a6be5` confirmado en el remoto (lo referencia `FICCT_DASHBOARD_API_REF`) | `git ls-remote` |
+| Repos de terceros sin pin siguen accesibles | `git ls-remote` sobre los 4 |
+
+Verificado tras el despliegue del endpoint propio: `/api/mfe_config/v1` ya **no** expone
+ninguna key, `POST /api/ficct/avatar/ask/` responde **401** a anónimos y **200** a un usuario
+autenticado, y el bundle del MFE **no contiene** ninguna referencia a `openrouter.ai`.
+
+### Pendiente y bloqueante
+
+| Qué | Por qué importa |
+|---|---|
+| 🔴 **Rotar el GitHub PAT** | Verificado el 2026-08-12: **el token embebido en el remote sigue autenticando**, o sea que NO fue rotado. Está en `.git/config` y en `/root/.git-credentials`, y viaja con cualquier copia o snapshot del disco. Rotarlo **antes** de la Fase 1 |
+| 🔴 **Rotar `OPENROUTER_API_KEY`** | Estuvo publicada en un endpoint público; darla por quemada. Ahora sí tiene sentido rotarla: ya no se republica. Aprovechar para ponerle límite de gasto, que hoy no tiene (`limit: None`) |
+| 🟡 Definir el direccionamiento del servidor nuevo | `10.253.10.77` es una IP privada — condiciona hosts, DNS y HTTPS. Ver Fase 2 |
+| 🟡 Confirmar que `modal_api_v3.py` versionado es el desplegado | Ver §7.6 |
+| ⚪ Descartar los `package*.json` de los MFEs | Artefactos de `tutor dev`, ver §2.3: `git checkout -- 'mfes/*/package*.json'` |
+
+### Fuera del plan original
+
+El relevamiento destapó que **`OPENROUTER_API_KEY` y `AZURE_SPEECH_KEY` se servían en claro**
+a cualquiera en internet vía `GET /api/mfe_config/v1`, sin autenticación y por HTTP. Se
+corrigió antes de migrar, para no arrastrar el problema al servidor nuevo: el LLM se consulta
+ahora desde el LMS (§4.4) y las variables de Azure se eliminaron porque la voz la genera el
+servicio propio en Modal (§7.6).
+
+---
+
 ## 1. Versión y configuración base
 
 ### 1.1 Versiones
@@ -563,6 +612,62 @@ Verificado que el `dist/` desplegado hoy en `/root/landing-deploy` **corresponde
 fuente actual** (ambos contienen los enlaces a `catalog`, `authn` y `learner-dashboard`).
 Ver §8.3 para los 3 enlaces con el host hardcodeado que hay que editar al migrar.
 
+### 7.6 Servicio de voz del avatar (TTS + visemas)
+
+Genera el audio que habla el avatar y los **visemas** del lip sync: Kokoro sintetiza la voz
+y MMS_FA (torchaudio) hace *forced alignment* del audio real contra el texto. Lo consume
+`ttsService.js` del MFE `learning` vía `AVATAR_TTS_API_URL`.
+
+**Hoy corre en Modal.com** (app `avatar-tts-api-v3`, GPU T4, `scaledown_window=300`), o sea
+**fuera de este servidor**. Eso lo hace indiferente a la migración: el LMS nuevo apunta a la
+misma URL y sigue funcionando.
+
+✅ **Código versionado** en `services/avatar-tts/` (commit `3d929e7`). Antes vivía solo en la
+PC del desarrollador: si esa máquina se perdía, la voz no se podía reconstruir.
+
+| Archivo | Para qué |
+|---|---|
+| `modal/modal_api_v3.py` | La versión desplegada hoy. `modal deploy modal_api_v3.py` |
+| `app.py` + `Dockerfile` + `requirements.txt` | La misma app para correrla como contenedor propio |
+| `README.md` | Cómo medir la latencia y cómo desplegar en cualquiera de las dos formas |
+| `tutor-plugins/avatar_tts.py` | Plugin **opcional, sin instalar** — agrega el servicio al compose + vhost `tts.<LMS_HOST>` |
+
+**PENDIENTE — confirmar que `modal/modal_api_v3.py` es exactamente lo desplegado.** Se
+versionó a partir del código que pasó el desarrollador; no se pudo verificar contra Modal.
+Si en Modal hay algo más nuevo, el repo guarda la versión vieja, que es peor que no guardar
+nada porque da falsa seguridad.
+
+#### Decisión abierta: seguir en Modal o correrlo en el servidor
+
+Con 16 GB y 8 cores el servidor nuevo **sí puede** correrlo (necesita ~2-3 GB residentes).
+En el viejo era inviable: con 2 GB libres el OOM killer se llevaba puesto el LMS.
+
+| | Modal (actual) | Contenedor propio |
+|---|---|---|
+| Hardware | GPU T4 | CPU |
+| En reposo | escala a cero a los 5 min | siempre caliente |
+| Tras inactividad | **cold start** (carga modelos + GPU) | ya cargado |
+| Costo | por segundo de GPU | ninguno |
+| Migración | no depende del servidor | se va con el servidor |
+| Acceso | público, `allow_origins=["*"]`, sin auth | detrás del Caddy propio, CORS acotado |
+
+Modal gana en caliente; el contenedor propio gana en frío. Cuál domina depende del uso real.
+
+**Cambiar de una a otra es un solo comando, sin rebuild** — por eso la decisión es de bajo
+riesgo y reversible:
+
+```bash
+tutor config save --set AVATAR_TTS_API_URL=<la otra url> && tutor local restart lms
+```
+
+**La medición se hace en el servidor nuevo** (el viejo tiene otro CPU y no alcanza la RAM):
+`docker build` + un `curl` cronometrado, según `services/avatar-tts/README.md`. Menos de
+~5 s → conviene self-hostear; más de ~15 s → quedarse en Modal.
+
+⚠️ En cualquiera de las dos variantes el endpoint **no tiene autenticación**: cualquiera que
+lea `AVATAR_TTS_API_URL` de `/api/mfe_config/v1` puede mandarle texto y consumir cómputo. La
+solución de fondo es proxearlo por el LMS, igual que se hizo con OpenRouter en §4.4.
+
 ---
 
 ## 8. Dominios y certificados
@@ -638,6 +743,10 @@ Leyenda: 🤖 automatizable · 🖐️ manual · ⚠️ punto de fallo típico
 
 ### Fase 1 — Backup del servidor origen
 
+> 🔴 **NO INICIADA.** Verificado el 2026-08-12: no existe ningún artefacto de backup en el
+> servidor (`/root/backup-tutor/` solo tiene un `config.yml` del 30/06). Ningún ítem de esta
+> fase está hecho.
+
 - [ ] 🤖 `tutor local stop` (para consistencia de los dumps a nivel de archivo).
 - [ ] 🤖 Dump lógico (preferido sobre copiar archivos crudos):
       ```bash
@@ -649,16 +758,43 @@ Leyenda: 🤖 automatizable · 🖐️ manual · ⚠️ punto de fallo típico
 - [ ] 🤖 `tar czf tutor-data.tgz -C ~/.local/share/tutor data` (media + lms/cms data; ~1.3 GB).
 - [ ] 🖐️ 🔐 **Copiar `~/.local/share/tutor/config.yml`** por canal seguro (contiene los 13 secretos de §5.3).
 - [ ] 🤖 `tar czf landing-deploy.tgz -C /root landing-deploy` (o rebuildear la landing desde su repo).
-- [ ] 🖐️ Verificar los backups **antes** de apagar nada del servidor viejo.
+- [ ] 🤖 `tutor local start -d` para restaurar producción mientras se prepara el server nuevo.
+- [ ] 🖐️ Subir los artefactos a un almacenamiento intermedio **no público** alcanzable desde
+      el server nuevo. Ojo: `mysql-backup.sql` contiene todos los datos de usuarios.
+- [ ] 🖐️ Verificar los backups **antes** de apagar nada del servidor viejo: que el `.sql`
+      no esté truncado (`tail -5 mysql-backup.sql` debe cerrar con `Dump completed`) y que
+      los `.tgz` listen (`tar tzf … | head`).
 
 ### Fase 2 — Preparar el servidor nuevo
 
-- [ ] 🤖 Ubuntu 24.04, Docker ≥ 29 + Docker Compose plugin.
-- [ ] 🤖 Disco: **mínimo 60 GB** (las imágenes `openedx` pesan ~5 GB c/u y se acumulan; el server viejo usa 97 GB).
-- [ ] 🤖 RAM: **mínimo 8 GB** (12 contenedores + builds de webpack).
-- [ ] 🤖 Firewall: abrir 80 (y 443 si se activa HTTPS) + 22.
-- [ ] 🤖 `pip install "tutor[full]==21.0.7"` — o como mínimo `tutor==21.0.7 tutor-mfe==21.0.0`.
-- [ ] 🖐️ Autenticación Git: deploy key SSH o `gh auth login` (**no** copiar `.git-credentials`).
+**Servidor destino:** `edx@10.253.10.77`
+
+| Recurso | Servidor nuevo | Servidor viejo | Veredicto |
+|---|---|---|---|
+| CPU | 8 vCPU Xeon Gold 6240 @ 2.60 GHz | 4 vCPU | holgado |
+| RAM | 16 GB | 7 GB (2 libres) | holgado — habilita el TTS propio, ver §7.6 |
+| Disco | 500 GB | 154 GB (98 usados) | holgado |
+| SO | Ubuntu 24.04.4 | Ubuntu 24.04 | igual |
+| Docker | 29.7.2 | 29.1.3 | OK |
+| Python | 3.12.3 | 3.12.3 | igual |
+
+- [x] ✅ Hardware y SO verificados: cumplen y sobran.
+- [ ] 🖐️ ⚠️ **Confirmar el direccionamiento de red.** `10.253.10.77` es una IP **privada**
+      (RFC 1918). Tal como está, la plataforma solo sería alcanzable desde la LAN de la
+      universidad, y además:
+      - `10.253.10.77.nip.io` resuelve, pero solo funciona desde dentro de esa red.
+      - Let's Encrypt **no puede** validar una IP privada: sin IP pública o DNS real no hay
+        HTTPS automático.
+      Hay que definir si va a haber IP pública, NAT/port-forwarding o un reverse proxy de la
+      UAGRM por delante, porque de eso dependen `LMS_HOST`, `CMS_HOST` y todo §8.
+- [ ] 🖐️ Verificar la versión de Docker Compose: el dato relevado dice `5.4.0`, pero Compose
+      va por la serie 2.x. Confirmar con `docker compose version` (el viejo tiene 2.40.3).
+- [ ] 🤖 `pip install "tutor[full]==21.0.7"` — fijar la versión exacta, igual que en el viejo.
+- [ ] 🖐️ Firewall (`ufw`): se puede dejar inactivo mientras se trabaja solo en LAN; definir
+      reglas (22, 80, 443) **antes** de exponerlo.
+- [ ] 🖐️ Autenticación Git: deploy key SSH o `gh auth login`. **No** copiar `.git-credentials`
+      ni reutilizar el PAT viejo.
+- [ ] 🖐️ Rotar la contraseña del usuario `edx` o pasar a autenticación solo por clave SSH.
 
 ### Fase 3 — Código y configuración
 
@@ -670,7 +806,8 @@ Leyenda: 🤖 automatizable · 🖐️ manual · ⚠️ punto de fallo típico
       tutor config save --set LMS_HOST=<nuevo> --set CMS_HOST=studio.<nuevo>
       ```
       (`MFE_HOST` y `FICCT_LANDING_HOST` se derivan solos de `LMS_HOST`).
-- [ ] 🤖 Instalar los 9 plugins custom:
+- [ ] 🤖 Instalar los 9 plugins custom (`avatar_tts` queda afuera a propósito: es opcional,
+      ver §7.6):
       ```bash
       for p in avatar_asistente brand_ficct catalog_mfe ficct_config \
                ficct_dashboard_api ficct_theme iaassistant landing_page notifications_ficct; do
@@ -698,6 +835,11 @@ Leyenda: 🤖 automatizable · 🖐️ manual · ⚠️ punto de fallo típico
       y el tema `ficct`.
       ⚠️ Alternativa mucho más rápida: `docker save`/`docker load` de la imagen del server viejo
       (5 GB por la red) — evita depender de que los repos Git de terceros sigan disponibles.
+      Actualizar `FICCT_DASHBOARD_API_REF` al último commit del monorepo antes de buildear.
+- [ ] ⚪ **Opcional — servicio de voz propio.** Medir si conviene traerlo desde Modal
+      (§7.6): `docker build -t ficct-avatar-tts services/avatar-tts` + el `curl` cronometrado
+      de `services/avatar-tts/README.md`. Es el momento natural para hacerlo, porque el
+      servidor todavía no tiene carga real encima.
 - [ ] 🖐️ ⚠️ Verificar que `github.com/Mau8877/ia-assistant-plugin` y
       `github.com/open-craft/xblock-ai-evaluation` sigan accesibles (ambos sin pin de versión:
       un build nuevo puede traer código distinto al del server viejo).
@@ -791,7 +933,8 @@ docker exec tutor_local-mfe-1 sh -c "grep -rl 'AvatarTour' /openedx/dist/learnin
 /root/openedx-ficct/docker/mfe/Dockerfile    ← Dockerfile de MFEs para GitHub Actions
 /root/openedx-ficct/themes/ficct/            ← comprehensive theme (Django legacy)
 /root/openedx-ficct/brand-ficct/             ← submódulo Git: paquete npm @edx/brand
-/root/openedx-ficct/apps-custom/ficct-dashboard-api/  ← app Django propia
+/root/openedx-ficct/apps-custom/ficct-dashboard-api/  ← app Django propia (APIs /api/ficct/)
+/root/openedx-ficct/services/avatar-tts/     ← servicio de voz (Modal + variante contenedor)
 /root/landing-deploy/                        ← dist/ compilado de la landing (3.2 MB)
 /root/openedx-ficct/landing-page/            ← fuente Vite/React de la landing
 /root/backup-tutor/                          ← backup viejo de config.yml (2026-06-30)
