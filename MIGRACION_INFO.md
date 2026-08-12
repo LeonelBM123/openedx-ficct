@@ -575,6 +575,19 @@ Let's Encrypt ni certificados propios. Todas las URLs internas (`LMS_ROOT_URL`, 
    - **Hay que revisar los `http://` hardcodeados** en `ficct_config.py` (`LOGO_URL`,
      `LOGOUT_URL`, `DISCOVERY_API_BASE_URL`, TOS/privacy) y `catalog_mfe.py`
      (`CATALOG_MICROFRONTEND_URL`) → pasarlos a `https://`, si no habrá mixed content.
+
+⚠️ **El host también está hardcodeado en el fuente de la landing page**, que no pasa por
+Tutor y por lo tanto **no se actualiza con `tutor config save`**. Hay 3 enlaces con
+`http://apps.167.172.142.82.nip.io` embebido, y hay que editarlos a mano y **recompilar**
+la landing al cambiar de servidor:
+
+| Archivo (repo `landingpage-main`) | Enlace |
+|---|---|
+| `src/components/Navbar.jsx:46` | `…/catalog/` — botón "Ver Cursos" |
+| `src/components/Navbar.jsx:47` | `…/authn/login` — botón "Iniciar Sesión" |
+| `src/components/Tools.jsx:9` | `…/learner-dashboard/` — tarjeta "Aula Virtual" |
+
+Si no se tocan, los botones principales de la landing seguirán apuntando al servidor viejo.
    - Actualizar el `Site` de Django y las redirect URIs de las apps OAuth2 en el admin.
 
 ---
