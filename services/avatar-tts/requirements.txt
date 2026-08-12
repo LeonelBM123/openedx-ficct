@@ -1,0 +1,11 @@
+# Rueda CPU de torch: sin esto pip baja la build con CUDA (~2.5 GB inutiles sin GPU).
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch
+torchaudio
+kokoro>=0.9.4
+numpy
+soundfile
+pydantic
+fastapi
+uvicorn[standard]

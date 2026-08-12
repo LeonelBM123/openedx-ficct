@@ -436,7 +436,7 @@ Consumidas en el código del avatar (`mfes/frontend-app-learning/src/asistente/`
 | **OpenRouter** (XBlock ia-assistant, backend) | `IAASSISTANT_OPENROUTER_API_KEY` 🔑 + `_MODEL`, `_BASE_URL`, `_TIMEOUT`, `_FALLBACK_MODELS` | Solo en Django settings, no expuesta |
 | **RapidAPI Judge0** (XBlock ai_eval) | `FICCT_JUDGE0_API_KEY` 🔑, `JUDGE0_API_URL`, `JUDGE0_API_HOST` (hardcodeados en `ficct_config.py`) | Tier gratuito: 100 submissions/día |
 | **OpenRouter GPT4O** (XBlock ai_eval) | `FICCT_OPENROUTER_API_KEY` | **sin setear** |
-| **API TTS propia (Modal)** | `AVATAR_TTS_API_URL` | `https://leonel-barriosmay--avatar-tts-api-v3-fastapi-app.modal.run/synthesize` — servicio externo en Modal.com. **PENDIENTE — verificar quién administra ese deploy y si sigue activo** |
+| **API TTS propia (Modal)** | `AVATAR_TTS_API_URL` | Servicio externo en Modal.com (GPU T4, escala a cero a los 5 min). ✅ **Código ya versionado** en `services/avatar-tts/` — antes vivía solo en la PC. Incluye una variante para correrlo como contenedor propio en el servidor; cambiar de una a otra es un `tutor config save --set AVATAR_TTS_API_URL=…` sin rebuild. Ver `services/avatar-tts/README.md` |
 | **S3 / almacenamiento objeto** | `AWS_ACCESS_KEY_ID=""` (vacío) | **No se usa S3 ni MinIO.** Los media están en disco local |
 | **Pagos / e-commerce** | — | **No hay.** `tutor-credentials` y `discovery` están instalados pero deshabilitados |
 
