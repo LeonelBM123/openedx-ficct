@@ -6,6 +6,7 @@ import ProgressTabCertificateStatusSidePanelSlot from '../../plugin-slots/Progre
 
 import CourseCompletion from './course-completion/CourseCompletion';
 import ProgressHeader from './ProgressHeader';
+import ProgressSummary from './progress-summary/ProgressSummary';
 
 import ProgressTabCertificateStatusMainBodySlot from '../../plugin-slots/ProgressTabCertificateStatusMainBodySlot';
 import ProgressTabCourseGradeSlot from '../../plugin-slots/ProgressTabCourseGradeSlot';
@@ -40,6 +41,7 @@ const ProgressTab = () => {
           {!disableProgressGraph && <CourseCompletion />}
           <ProgressTabCertificateStatusMainBodySlot />
           <ProgressTabCourseGradeSlot />
+          <ProgressSummary />
           <ProgressTabGradeBreakdownSlot />
         </div>
 

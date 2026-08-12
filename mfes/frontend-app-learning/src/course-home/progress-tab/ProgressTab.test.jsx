@@ -7,7 +7,7 @@ import { breakpoints } from '@openedx/paragon';
 import MockAdapter from 'axios-mock-adapter';
 
 import {
-  fireEvent, initializeMockApp, logUnhandledRequests, render, screen, act,
+  fireEvent, initializeMockApp, logUnhandledRequests, render, screen, act, within,
 } from '../../setupTest';
 import { appendBrowserTimezoneToUrl, executeThunk } from '../../utils';
 import * as thunks from '../data/thunks';
@@ -49,6 +49,7 @@ describe('Progress Tab', () => {
   courseMetadataUrl = appendBrowserTimezoneToUrl(courseMetadataUrl);
   const progressUrl = new RegExp(`${getConfig().LMS_BASE_URL}/api/course_home/progress/*`);
   const masqueradeUrl = `${getConfig().LMS_BASE_URL}/courses/${courseId}/masquerade`;
+  const navigationUrl = new RegExp(`${getConfig().LMS_BASE_URL}/api/course_home/v1/navigation/*`);
   const now = new Date();
   const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   const overmorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2);
@@ -63,6 +64,26 @@ describe('Progress Tab', () => {
     axiosMock.onGet(progressUrl).reply(200, progressTabData);
   }
 
+  // Sections of the course navigation endpoint, used by the progress summary section.
+  function buildNavigationBlocks(sections) {
+    const blocks = {};
+    sections.forEach(({ id, displayName, completionStat }) => {
+      blocks[id] = {
+        id,
+        type: 'chapter',
+        display_name: displayName,
+        children: [],
+        complete: completionStat ? completionStat.completion === completionStat.completable_children : false,
+        completion_stat: completionStat,
+      };
+    });
+    return blocks;
+  }
+
+  function setNavigationData(sections) {
+    axiosMock.onGet(navigationUrl).reply(200, { blocks: buildNavigationBlocks(sections) });
+  }
+
   async function fetchAndRender() {
     await executeThunk(thunks.fetchProgressTab(courseId), store.dispatch);
     await act(async () => render(<ProgressTab />, { store }));
@@ -75,6 +96,7 @@ describe('Progress Tab', () => {
     axiosMock.onGet(courseMetadataUrl).reply(200, defaultMetadata);
     axiosMock.onGet(progressUrl).reply(200, defaultTabData);
     axiosMock.onGet(masqueradeUrl).reply(200, { success: true });
+    axiosMock.onGet(navigationUrl).reply(200, { blocks: {} });
 
     // Mock courseware search params
     mockSearchParams();
@@ -652,6 +674,74 @@ describe('Progress Tab', () => {
         ...getConfig(),
         SHOW_UNGRADED_ASSIGNMENT_PROGRESS: false,
       });
+    });
+  });
+
+  describe('Progress Summary', () => {
+    const navigationSections = [
+      {
+        id: 'block-v1:edX+DemoX+Demo_Course+type@chapter+block@first',
+        displayName: 'Introduction unit group',
+        completionStat: { completion: 5, completable_children: 5 },
+      },
+      {
+        id: 'block-v1:edX+DemoX+Demo_Course+type@chapter+block@second',
+        displayName: 'Data structures unit group',
+        completionStat: { completion: 3, completable_children: 8 },
+      },
+    ];
+
+    it('renders a row per section and the course total', async () => {
+      setNavigationData(navigationSections);
+      await fetchAndRender();
+
+      const progressSummary = within(await screen.findByTestId('progress-summary'));
+
+      expect(progressSummary.getByText('Resumen de progreso')).toBeInTheDocument();
+      expect(progressSummary.getByText('Introduction unit group')).toBeInTheDocument();
+      expect(progressSummary.getByText('5 / 5')).toBeInTheDocument();
+      expect(progressSummary.getByText('100%')).toBeInTheDocument();
+      expect(progressSummary.getByText('Data structures unit group')).toBeInTheDocument();
+      expect(progressSummary.getByText('3 / 8')).toBeInTheDocument();
+      expect(progressSummary.getByText('38%')).toBeInTheDocument();
+
+      // 8 of 13 completable units across the course
+      expect(progressSummary.getByText('Avance total del curso')).toBeInTheDocument();
+      expect(progressSummary.getByText('8 / 13')).toBeInTheDocument();
+      expect(screen.getByTestId('progressSummaryTotalPercent')).toHaveTextContent('62%');
+    });
+
+    it('does not render when the course has no completion data', async () => {
+      setNavigationData([
+        {
+          id: 'block-v1:edX+DemoX+Demo_Course+type@chapter+block@first',
+          displayName: 'Introduction unit group',
+          completionStat: undefined,
+        },
+      ]);
+      await fetchAndRender();
+
+      expect(await screen.findByText('Grade summary')).toBeInTheDocument();
+      expect(screen.queryByTestId('progress-summary')).not.toBeInTheDocument();
+    });
+
+    it('only shows the total, from the progress endpoint, when viewing another student', async () => {
+      setMetadata({ is_enrolled: true });
+      setTabData({
+        username: 'otherstudent',
+        completion_summary: { complete_count: 2, incomplete_count: 6, locked_count: 2 },
+      });
+      setNavigationData(navigationSections);
+
+      await executeThunk(thunks.fetchProgressTab(courseId, 10), store.dispatch);
+      await act(async () => render(<ProgressTab />, { store }));
+
+      const progressSummary = within(await screen.findByTestId('progress-summary'));
+
+      expect(progressSummary.getByText('Avance total del curso')).toBeInTheDocument();
+      expect(progressSummary.getByText('2 / 10')).toBeInTheDocument();
+      expect(screen.getByTestId('progressSummaryTotalPercent')).toHaveTextContent('20%');
+      expect(screen.queryByText('Introduction unit group')).not.toBeInTheDocument();
     });
   });
 
