@@ -203,7 +203,7 @@ Esto es lo más importante de todo el informe para no perder trabajo en la migra
 | `ficct_config.py` modificado sin commitear | +9 líneas locales (`LOGOUT_URL` hacia la landing + `LOGIN_REDIRECT_WHITELIST`) | ✅ **Commiteado** en la rama `chore/pendientes-migracion`. Falta mergear a `main` + push |
 | `landing_page.py` sin commitear | `git status` lo reportaba como `??` | ✅ **Commiteado** en la misma rama. Falta mergear a `main` + push |
 | `iaassistant.py` no está en el repo | Solo vive en `/root/.local/share/tutor-plugins/`. Un `git clone` en el server nuevo **no lo trae**. | ✅ **Copiado a `tutor-plugins/iaassistant.py` y commiteado**. Falta mergear a `main` + push |
-| `landing-page/` sin commitear | ⚠️ **No es un directorio común: es un repositorio Git anidado** (`landing-page/landingpage-main/.git`, remote propio `github.com/LeonelBM123/landingpage-main.git`) con **137 MB** incluyendo `node_modules`. Además tiene **4 archivos modificados sin commitear en ESE repo**: `src/components/{Footer,Masters,Navbar,Tools}.jsx` | ❌ **No se commitea en el monorepo** (metería un gitlink roto o 137 MB de `node_modules`). **PENDIENTE — commitear y pushear esos 4 archivos en el repo `landingpage-main`**, que es donde corresponden. Lo que se despliega hoy es el `dist/` ya compilado en `/root/landing-deploy` |
+| `landing-page/` sin commitear | Era un **repositorio Git anidado** (`landing-page/landingpage-main/.git`, remote propio) con 137 MB de `node_modules`, más 4 archivos modificados sin commitear en ESE repo | ✅ **Resuelto en dos pasos**: (1) los 4 componentes se commitearon y pushearon a `landingpage-main` (`5187c84`); (2) el fuente se incorporó al monorepo en `landing-page/` como directorio común y se eliminó el `.git` anidado. Ver §7.5 |
 | `mfes/*/package.json` + `package-lock.json` modificados | **No son cambios deliberados: son artefactos del workflow de `tutor dev`.** El paso documentado en CLAUDE.md `tutor dev run <mfe> npm install '@edx/brand@git+…' --force` reescribe el `package.json` del directorio montado (`@edx/brand` → `github:LeonelBM123/brand-ficct`) y regenera el lock. El único cambio adicional es un reordenamiento de línea de `microsoft-cognitiveservices-speech-sdk` en `learning` (la dependencia **ya estaba** declarada) | ❌ **No commitear.** El Dockerfile instala `@edx/brand` en un paso aparte con `--force`, así que estos cambios no aportan nada al build de producción, y un lock de ~2900 líneas de diferencia puede alterar dependencias transitivas y romper el build de Actions. Descartar con `git checkout -- 'mfes/*/package*.json'` (reaparecerán la próxima vez que se use `tutor dev`) |
 | Token de GitHub embebido en el remote | El `origin` del monorepo tiene un PAT `ghp_…` en la URL, y hay un `/root/.git-credentials` | ⚠️ **Pendiente — rotar el token** y usar SSH keys o `gh auth` en el server nuevo. No copiar `.git-credentials` |
 
@@ -545,6 +545,28 @@ en el repo pero no se copió al build actual** — verificar si hace falta).
 - Aplicaciones OAuth2 del LMS (`/admin/oauth2_provider/application/`) — incluyen las URLs de los MFEs.
 - Usuarios, cursos, inscripciones, calificaciones, certificados.
 
+### 7.5 Landing page — build y despliegue
+
+El fuente vive en **`landing-page/`** dentro del monorepo (antes era un repo anidado;
+el historial previo quedó en `github.com/LeonelBM123/landingpage-main` hasta `5187c84`).
+
+`dist/` y `node_modules/` **no se versionan**, y en el servidor **no hay Node instalado**.
+La compilación se hace con un contenedor — **verificado, funciona en ~1 min**:
+
+```bash
+cd /root/openedx-ficct/landing-page
+docker run --rm -v "$PWD":/app -w /app node:20-alpine \
+  sh -c "npm ci --no-audit --no-fund && npm run build"
+rm -rf /root/landing-deploy/* && cp -r dist/. /root/landing-deploy/
+```
+
+No hace falta reiniciar el contenedor `landing`: monta `/root/landing-deploy` y Caddy
+sirve los archivos nuevos en la siguiente request.
+
+Verificado que el `dist/` desplegado hoy en `/root/landing-deploy` **corresponde al
+fuente actual** (ambos contienen los enlaces a `catalog`, `authn` y `learner-dashboard`).
+Ver §8.3 para los 3 enlaces con el host hardcodeado que hay que editar al migrar.
+
 ---
 
 ## 8. Dominios y certificados
@@ -581,7 +603,7 @@ Tutor y por lo tanto **no se actualiza con `tutor config save`**. Hay 3 enlaces 
 `http://apps.167.172.142.82.nip.io` embebido, y hay que editarlos a mano y **recompilar**
 la landing al cambiar de servidor:
 
-| Archivo (repo `landingpage-main`) | Enlace |
+| Archivo (`landing-page/`) | Enlace |
 |---|---|
 | `src/components/Navbar.jsx:46` | `…/catalog/` — botón "Ver Cursos" |
 | `src/components/Navbar.jsx:47` | `…/authn/login` — botón "Iniciar Sesión" |
@@ -598,20 +620,18 @@ Leyenda: 🤖 automatizable · 🖐️ manual · ⚠️ punto de fallo típico
 
 ### Fase 0 — Antes de tocar el servidor nuevo (en el viejo)
 
-- [x] ✅ **Commitear lo pendiente del monorepo** — hecho en la rama `chore/pendientes-migracion`:
-      `landing_page.py`, `iaassistant.py`, las 9 líneas nuevas de `ficct_config.py`, este informe
-      y `docs/prompt-documento-requerimientos.md`.
-- [ ] 🖐️ ⚠️ **Mergear esa rama a `main` y pushear** — el `pip install` de `ficct-dashboard-api`
-      y el build de Actions leen de `main`:
-      ```bash
-      git checkout main && git merge --ff-only chore/pendientes-migracion && git push
-      ```
-- [ ] 🖐️ **Commitear y pushear los 4 componentes modificados de la landing** en su propio repo
-      (`landing-page/landingpage-main` → `github.com/LeonelBM123/landingpage-main`).
+- [x] ✅ **Rescatado y pusheado a `main` del monorepo** (`e9a6be5..ea73237`): `landing_page.py`,
+      `iaassistant.py`, las 9 líneas nuevas de `ficct_config.py`, este informe y
+      `docs/prompt-documento-requerimientos.md`.
+- [x] ✅ **Los 4 componentes de la landing** commiteados y pusheados a `landingpage-main`
+      (`ce7802f..5187c84`), y el fuente incorporado al monorepo en `landing-page/` (ver §7.5).
+- [x] ✅ **Verificado que `e9a6be5` está en el remoto** — `git ls-remote origin main` lo devolvía
+      como tip de `main` antes del merge, así que el `pip install` de `ficct-dashboard-api`
+      pineado a ese sha resuelve correctamente.
+- [x] ✅ **Verificados los repos de terceros sin pin** — `Mau8877/ia-assistant-plugin` y
+      `open-craft/xblock-ai-evaluation` responden a `git ls-remote` (siguen públicos).
 - [ ] 🖐️ Descartar los `package.json`/`package-lock.json` de los MFEs (artefactos de `tutor dev`,
       ver §2.3): `git checkout -- 'mfes/*/package*.json'`.
-- [ ] 🖐️ Verificar que el commit apuntado por `FICCT_DASHBOARD_API_REF` (`e9a6be5`) esté en
-      GitHub (hoy sí: `main` está sincronizado con `origin/main`).
 - [ ] 🖐️ Anotar el estado de `Advanced Module List`, `SiteTheme` y apps OAuth2 desde el admin
       (respaldo por si algo del dump falla).
 - [ ] 🖐️ ⚠️ **Rotar el GitHub PAT** embebido en el remote y en `/root/.git-credentials`.
@@ -693,8 +713,8 @@ Leyenda: 🤖 automatizable · 🖐️ manual · ⚠️ punto de fallo típico
       ```
       ⚠️ `MYSQL_ROOT_PASSWORD` y `OPENEDX_MYSQL_PASSWORD` del `config.yml` nuevo **deben ser
       los mismos** que los del dump, o MySQL rechazará las conexiones.
-- [ ] 🤖 `tar xzf landing-deploy.tgz -C /root` (o `npm run build` en `landing-page/landingpage-main`
-      y copiar `dist/` a `/root/landing-deploy`).
+- [ ] 🤖 `tar xzf landing-deploy.tgz -C /root` — o recompilar la landing con el contenedor de
+      Node y copiar el `dist/` a `/root/landing-deploy` (comando exacto en §7.5).
 - [ ] 🤖 Descartar `data/redis` — es caché, se regenera.
 
 ### Fase 6 — Arranque e inicialización
@@ -774,7 +794,7 @@ docker exec tutor_local-mfe-1 sh -c "grep -rl 'AvatarTour' /openedx/dist/learnin
 /root/openedx-ficct/brand-ficct/             ← submódulo Git: paquete npm @edx/brand
 /root/openedx-ficct/apps-custom/ficct-dashboard-api/  ← app Django propia
 /root/landing-deploy/                        ← dist/ compilado de la landing (3.2 MB)
-/root/landing-page/landingpage-main/         ← fuente Vite/React de la landing (untracked)
+/root/openedx-ficct/landing-page/            ← fuente Vite/React de la landing
 /root/backup-tutor/                          ← backup viejo de config.yml (2026-06-30)
 ```
 
@@ -784,7 +804,7 @@ docker exec tutor_local-mfe-1 sh -c "grep -rl 'AvatarTour' /openedx/dist/learnin
 |------|-----|-----|
 | `github.com/LeonelBM123/openedx-ficct` | monorepo + `pip install` de `ficct-dashboard-api` | `main` / `e9a6be5` |
 | `github.com/LeonelBM123/brand-ficct` | paquete npm `@edx/brand` (submódulo + `npm install` en el build) | `master` |
-| `github.com/LeonelBM123/landingpage-main` | fuente de la landing page | — |
+| `github.com/LeonelBM123/landingpage-main` | historial previo de la landing (ya migrada al monorepo) | archivado en `5187c84` |
 | `github.com/Mau8877/ia-assistant-plugin` | XBlock asistente IA | `main` (sin pin) |
 | `github.com/open-craft/xblock-ai-evaluation` | XBlock AI evaluation / Judge0 | default (sin pin) |
 | `github.com/openedx/frontend-app-*` | base de los 12 MFEs | `release/ulmo.3` (`catalog`: `master`) |

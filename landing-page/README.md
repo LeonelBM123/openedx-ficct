@@ -1,16 +1,65 @@
-# React + Vite
+# Landing page FICCT
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SPA en React + Vite que se sirve en `www.<LMS_HOST>` (hoy
+`www.167.172.142.82.nip.io`). Es la portada pública del sitio y el destino al que
+caen los MFEs después del logout.
 
-Currently, two official plugins are available:
+Vivía en el repo aparte `github.com/LeonelBM123/landingpage-main` (historial hasta el
+commit `5187c84`); desde entonces forma parte de este monorepo.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Cómo se despliega
 
-## React Compiler
+No corre en un contenedor de Node: se compila a estáticos y los sirve un Caddy.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```
+landing-page/          →  npm run build  →  dist/  →  /root/landing-deploy
+                                                            ↓ bind-mount :ro
+                                              servicio `landing` (caddy:2.7.4)
+                                                            ↓
+                                    vhost www.<LMS_HOST> en el Caddy de Tutor
+```
 
-## Expanding the ESLint configuration
+El servicio y el vhost los define el plugin `tutor-plugins/landing_page.py`, con las
+variables `FICCT_LANDING_HOST` y `FICCT_LANDING_DEPLOY_PATH`.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Build
+
+En el servidor **no hay Node instalado**: se compila con un contenedor.
+
+```bash
+cd /root/openedx-ficct/landing-page
+docker run --rm -v "$PWD":/app -w /app node:20-alpine \
+  sh -c "npm ci --no-audit --no-fund && npm run build"
+```
+
+Toma ~1 minuto. Después hay que publicar el resultado:
+
+```bash
+rm -rf /root/landing-deploy/* && cp -r dist/. /root/landing-deploy/
+```
+
+No hace falta reiniciar nada: el contenedor `landing` monta ese directorio y Caddy
+sirve los archivos nuevos en la siguiente request.
+
+`dist/` y `node_modules/` están en el `.gitignore` — no se versionan.
+
+## ⚠️ Al migrar de servidor
+
+Hay **3 enlaces con el host hardcodeado** que no pasan por Tutor y por lo tanto no se
+actualizan con `tutor config save`:
+
+| Archivo | Enlace |
+|---|---|
+| `src/components/Navbar.jsx:46` | `…/catalog/` — botón "Ver Cursos" |
+| `src/components/Navbar.jsx:47` | `…/authn/login` — botón "Iniciar Sesión" |
+| `src/components/Tools.jsx:9` | `…/learner-dashboard/` — tarjeta "Aula Virtual" |
+
+Hay que editarlos a mano y recompilar, o los botones principales de la portada van a
+seguir apuntando al servidor viejo.
+
+## Desarrollo
+
+```bash
+docker run --rm -it -p 5173:5173 -v "$PWD":/app -w /app node:20-alpine \
+  sh -c "npm install && npm run dev -- --host 0.0.0.0"
+```
