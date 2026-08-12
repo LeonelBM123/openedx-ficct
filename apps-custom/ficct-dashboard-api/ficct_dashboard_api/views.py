@@ -17,8 +17,8 @@ log = logging.getLogger(__name__)
 
 DEFAULT_LIMIT = 8
 MAX_LIMIT = 20
-CACHE_KEY = 'ficct.popular_courses'
-CACHE_TIMEOUT = 60 * 10  # 10 minutos
+COUNTS_CACHE_KEY = 'ficct.enrollment_counts'
+COUNTS_CACHE_TIMEOUT = 60 * 10  # 10 minutos
 
 
 def _enrollment_counts():
@@ -27,14 +27,23 @@ def _enrollment_counts():
 
     Es la misma consulta que usa el Instructor Dashboard
     (CourseEnrollmentManager.enrollment_counts), pero agregada para toda la plataforma.
+
+    Es lo unico que se cachea: el agregado es lo caro, y que el numero de inscritos
+    tarde unos minutos en actualizarse no afecta a un ranking de "mas demandados".
+    Los datos del curso (imagen, titulo) se leen frescos, para que una edicion en
+    Studio se refleje al instante.
     """
-    rows = (
-        CourseEnrollment.objects
-        .filter(is_active=True)
-        .values('course_id')
-        .annotate(total=Count('id'))
-    )
-    return {str(row['course_id']): row['total'] for row in rows}
+    counts = cache.get(COUNTS_CACHE_KEY)
+    if counts is None:
+        rows = (
+            CourseEnrollment.objects
+            .filter(is_active=True)
+            .values('course_id')
+            .annotate(total=Count('id'))
+        )
+        counts = {str(row['course_id']): row['total'] for row in rows}
+        cache.set(COUNTS_CACHE_KEY, counts, COUNTS_CACHE_TIMEOUT)
+    return counts
 
 
 def _visible_courses():
@@ -94,9 +103,12 @@ class PopularCoursesView(APIView):
                       "image_url", "about_url", "enrollment_count", "start"}, ...]}
 
     Es informacion de catalogo (misma sensibilidad que /api/courses/v1/courses/),
-    asi que no requiere autenticacion. La respuesta no depende del usuario, lo que
-    permite cachearla; el filtrado de "cursos en los que ya estoy inscrito" lo hace
-    el MFE con los datos que ya tiene de /api/learner_home/init.
+    asi que no requiere autenticacion. El filtrado de "cursos en los que ya estoy
+    inscrito" lo hace el MFE con los datos que ya tiene de /api/learner_home/init.
+
+    Solo se cachea el agregado de inscripciones (ver `_enrollment_counts`), no la
+    respuesta completa: cachearla entera hacia que una imagen recien subida en Studio
+    tardara hasta 10 minutos en aparecer, y mientras tanto la URL vieja daba 404.
     """
 
     authentication_classes = ()
@@ -109,9 +121,4 @@ class PopularCoursesView(APIView):
             limit = DEFAULT_LIMIT
         limit = max(1, min(limit, MAX_LIMIT))
 
-        courses = cache.get(CACHE_KEY)
-        if courses is None:
-            courses = _build_popular_courses()
-            cache.set(CACHE_KEY, courses, CACHE_TIMEOUT)
-
-        return Response({'results': courses[:limit]})
+        return Response({'results': _build_popular_courses()[:limit]})
