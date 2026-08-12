@@ -1,0 +1,67 @@
+// Data exported globally for other scripts to use
+window.planData = [
+    { "sigla": "FIS100", "nombre_materia": "FÍSICA I", "ht": "4", "hp": "4", "cr": "6", "prerequisitos": "", "nivel": "1er. SEMESTRE" },
+    { "sigla": "INF110", "nombre_materia": "INTRO. A LA INFORMÁTICA", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "", "nivel": "1er. SEMESTRE" },
+    { "sigla": "INF119", "nombre_materia": "ESTRUCTURAS DISCRETAS", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "", "nivel": "1er. SEMESTRE" },
+    { "sigla": "LIN100", "nombre_materia": "INGLES TÉCNICO I", "ht": "3", "hp": "3", "cr": "4", "prerequisitos": "", "nivel": "1er. SEMESTRE" },
+    { "sigla": "MAT101", "nombre_materia": "CÁLCULO I", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "", "nivel": "1er. SEMESTRE" },
+    
+    { "sigla": "FIS102", "nombre_materia": "FÍSICA II", "ht": "4", "hp": "4", "cr": "6", "prerequisitos": "FIS100|", "nivel": "2do. SEMESTRE" },
+    { "sigla": "INF120", "nombre_materia": "PROGRAMACIÓN I", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF110|", "nivel": "2do. SEMESTRE" },
+    { "sigla": "LIN101", "nombre_materia": "INGLES TÉCNICO II", "ht": "3", "hp": "3", "cr": "4", "prerequisitos": "LIN100|", "nivel": "2do. SEMESTRE" },
+    { "sigla": "MAT102", "nombre_materia": "CÁLCULO II", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "MAT101|", "nivel": "2do. SEMESTRE" },
+    { "sigla": "MAT103", "nombre_materia": "ALGEBRA LINEAL", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF119|", "nivel": "2do. SEMESTRE" },
+    
+    { "sigla": "ADM100", "nombre_materia": "ADMINISTRACIÓN", "ht": "3", "hp": "3", "cr": "4", "prerequisitos": "", "nivel": "3er. SEMESTRE" },
+    { "sigla": "INF210", "nombre_materia": "PROGRAMACIÓN II", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "MAT103|INF120|", "nivel": "3er. SEMESTRE" },
+    { "sigla": "INF211", "nombre_materia": "ARQ. DE COMPUTADORAS", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF120|FIS102|", "nivel": "3er. SEMESTRE" },
+    { "sigla": "MAT207", "nombre_materia": "ECUACIONES DIFERENCIALES", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "MAT102|", "nivel": "3er. SEMESTRE" },
+    { "sigla": "FIS200", "nombre_materia": "FÍSICA III", "ht": "4", "hp": "4", "cr": "6", "prerequisitos": "FIS102|", "nivel": "3er. SEMESTRE" },
+
+    { "sigla": "ADM200", "nombre_materia": "CONTABILIDAD", "ht": "3", "hp": "2", "cr": "4", "prerequisitos": "ADM100|", "nivel": "4to. SEMESTRE" },
+    { "sigla": "INF220", "nombre_materia": "ESTRUCTURA DE DATOS I", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "MAT101|INF210|", "nivel": "4to. SEMESTRE" },
+    { "sigla": "INF221", "nombre_materia": "PROGRAMACIÓN ENSAMBLADOR", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF211|", "nivel": "4to. SEMESTRE" },
+    { "sigla": "MAT202", "nombre_materia": "PROBABILIDADES Y ESTADÍSTICAS I", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "MAT102|", "nivel": "4to. SEMESTRE" },
+    { "sigla": "MAT205", "nombre_materia": "MÉTODOS NUMÉRICOS", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "MAT207|", "nivel": "4to. SEMESTRE" },
+
+    { "sigla": "ADM330", "nombre_materia": "ORGANIZACIÓN Y MÉTODOS", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "ADM200|", "nivel": "5to. SEMESTRE" },
+    { "sigla": "ECO300", "nombre_materia": "ECONOMÍA PARA LA GESTIÓN", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "ADM200|", "nivel": "5to. SEMESTRE" },
+    { "sigla": "INF310", "nombre_materia": "ESTRUCTURA DE DATOS II", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF220|", "nivel": "5to. SEMESTRE" },
+    { "sigla": "INF312", "nombre_materia": "BASE DE DATOS I", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF220|", "nivel": "5to. SEMESTRE" },
+    { "sigla": "MAT302", "nombre_materia": "PROBABILIDADES Y ESTADÍSTICAS II", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "MAT202|", "nivel": "5to. SEMESTRE" },
+
+    { "sigla": "ADM320", "nombre_materia": "FINANZAS PARA LA EMPRESA", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "ADM330|", "nivel": "6to. SEMESTRE" },
+    { "sigla": "INF322", "nombre_materia": "BASE DE DATOS II", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF312|", "nivel": "6to. SEMESTRE" },
+    { "sigla": "INF323", "nombre_materia": "SISTEMAS OPERATIVOS I", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF310|", "nivel": "6to. SEMESTRE" },
+    { "sigla": "INF342", "nombre_materia": "SISTEMAS DE INFORMACIÓN I", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF312|", "nivel": "6to. SEMESTRE" },
+    { "sigla": "MAT329", "nombre_materia": "INVESTIGACIÓN OPERATIVA I", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "MAT302|", "nivel": "6to. SEMESTRE" },
+
+    { "sigla": "INF413", "nombre_materia": "SISTEMAS OPERATIVOS II", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF323|", "nivel": "7mo. SEMESTRE" },
+    { "sigla": "INF432", "nombre_materia": "SISTEMAS PARA EL SOP. A LA TOMA DE DEC.", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF342|INF322|", "nivel": "7mo. SEMESTRE" },
+    { "sigla": "MAT419", "nombre_materia": "INVESTIGACIÓN OPERATIVA II", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "MAT329|", "nivel": "7mo. SEMESTRE" },
+    { "sigla": "INF433", "nombre_materia": "REDES I", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF323|", "nivel": "7mo. SEMESTRE" },
+    { "sigla": "INF412", "nombre_materia": "SISTEMAS DE INFORMACIÓN II", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF342|INF322|", "nivel": "7mo. SEMESTRE" },
+
+    { "sigla": "ECO449", "nombre_materia": "PREPARACIÓN Y EVALUACIÓN DE PROYECTOS", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "MAT419|", "nivel": "8vo. SEMESTRE" },
+    { "sigla": "INF422", "nombre_materia": "INGENIERÍA DE SOFTWARE I", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF412|", "nivel": "8vo. SEMESTRE" },
+    { "sigla": "INF423", "nombre_materia": "REDES II", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF433|", "nivel": "8vo. SEMESTRE" },
+    { "sigla": "INF442", "nombre_materia": "SISTEMAS DE INFORMACIÓN GEOGRÁFICA", "ht": "3", "hp": "3", "cr": "4", "prerequisitos": "INF412|", "nivel": "8vo. SEMESTRE" },
+    { "sigla": "INF462", "nombre_materia": "AUDITORIA INFORMÁTICA", "ht": "3", "hp": "3", "cr": "4", "prerequisitos": "ADM320|INF412|", "nivel": "8vo. SEMESTRE" },
+
+    { "sigla": "INF511", "nombre_materia": "TALLER DE GRADO I", "ht": "2", "hp": "4", "cr": "5", "prerequisitos": "", "nivel": "9no. SEMESTRE" },
+    { "sigla": "INF512", "nombre_materia": "INGENIERÍA DE SOFTWARE II", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF423|INF422|INF442|", "nivel": "9no. SEMESTRE" },
+    { "sigla": "INF513", "nombre_materia": "TECNOLOGÍA WEB", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "ECO449|INF462|", "nivel": "9no. SEMESTRE" },
+    { "sigla": "INF552", "nombre_materia": "ARQUITECTURA DEL SOFTWARE", "ht": "3", "hp": "3", "cr": "4", "prerequisitos": "", "nivel": "9no. SEMESTRE" },
+
+    { "sigla": "GRL001", "nombre_materia": "MODALIDAD DE GRADUACIÓN", "ht": "4", "hp": "2", "cr": "5", "prerequisitos": "INF511|INF512|INF513|INF552|", "nivel": "MOD. GRADUACIÓN" },
+
+    // Electivas
+    { "sigla": "ELC001", "nombre_materia": "ADMI. DE RECURSOS HUMANOS (ELECTIVA)", "ht": "2", "hp": "2", "cr": "3", "prerequisitos": "", "nivel": "ELECTIVAS" },
+    { "sigla": "ELC002", "nombre_materia": "COSTOS Y PRESUPUESTOS (ELECTIVA)", "ht": "2", "hp": "2", "cr": "3", "prerequisitos": "", "nivel": "ELECTIVAS" },
+    { "sigla": "ELC003", "nombre_materia": "PRODUCCION Y MARKETING (ELECTIVA)", "ht": "2", "hp": "2", "cr": "3", "prerequisitos": "", "nivel": "ELECTIVAS" },
+    { "sigla": "ELC004", "nombre_materia": "REINGENIERÍA (ELECTIVA)", "ht": "2", "hp": "2", "cr": "3", "prerequisitos": "", "nivel": "ELECTIVAS" },
+    { "sigla": "ELC005", "nombre_materia": "INGENIERÍA DE LA CALIDAD (ELECTIVA)", "ht": "2", "hp": "2", "cr": "3", "prerequisitos": "", "nivel": "ELECTIVAS" },
+    { "sigla": "ELC006", "nombre_materia": "BENCHMARKING (ELECTIVA)", "ht": "2", "hp": "2", "cr": "3", "prerequisitos": "", "nivel": "ELECTIVAS" },
+    { "sigla": "ELC007", "nombre_materia": "INTRO. A LA MACROECONOMIA (ELECTIVA)", "ht": "2", "hp": "2", "cr": "3", "prerequisitos": "", "nivel": "ELECTIVAS" },
+    { "sigla": "ELC008", "nombre_materia": "LEGISLACION EN CS. DE COMP. (ELECTIVA)", "ht": "2", "hp": "2", "cr": "3", "prerequisitos": "", "nivel": "ELECTIVAS" }
+];

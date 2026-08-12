@@ -1,0 +1,277 @@
+:root {
+    --primary: #0A427C;
+    --primary-light: rgba(10, 66, 124, 0.1);
+    --secondary: #E32E3A;
+    --secondary-light: rgba(227, 46, 58, 0.1);
+    --success: #28a745;
+    --success-light: rgba(40, 167, 69, 0.1);
+    --bg-main: #f8fafc;
+    --text-main: #334155;
+    --border-color: #e2e8f0;
+    --disabled-color: #cbd5e1;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Outfit', sans-serif;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden; /* We scroll the main container horizontally */
+}
+
+.app-header {
+    background-color: #ffffff;
+    padding: 15px 30px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow);
+    z-index: 100;
+}
+
+.back-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: var(--primary);
+    font-weight: 600;
+    transition: color 0.3s;
+}
+
+.back-link:hover {
+    color: var(--secondary);
+}
+
+.header-titles {
+    text-align: center;
+}
+
+.header-titles h1 {
+    font-size: 1.4rem;
+    color: var(--primary);
+    margin: 0;
+}
+
+.header-titles p {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.legend {
+    display: flex;
+    gap: 15px;
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 0px;
+}
+
+.legend-color.prereq { background-color: var(--secondary); }
+.legend-color.selected { background-color: var(--primary); }
+.legend-color.postreq { background-color: var(--success); }
+
+/* Main Grid Container */
+.grid-container {
+    position: relative;
+    flex-grow: 1;
+    overflow-x: auto;
+    overflow-y: auto;
+    padding: 15px;
+    background-color: #ffffff;
+    margin: 10px;
+    border-radius: 0px;
+    box-shadow: var(--shadow);
+}
+
+#connectionsLayer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.semesters-wrapper {
+    display: flex;
+    gap: 15px;
+    min-width: min-content; /* Ensure it expands horizontally */
+    position: relative;
+    z-index: 20;
+}
+
+.semester-col {
+    width: 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+}
+
+.semester-header {
+    text-align: center;
+    padding-bottom: 10px;
+    margin-bottom: 5px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.semester-header .num {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--primary);
+    display: block;
+}
+
+.semester-header .text {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.subject-card {
+    background-color: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 0px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+}
+
+.subject-card.is-active,
+.subject-card.is-prereq,
+.subject-card.is-postreq {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.subject-card.dimmed {
+    opacity: 0.3;
+}
+
+/* Active Selected Subject */
+.subject-card.is-active {
+    border: 2px solid var(--primary);
+    border-left-width: 6px;
+    background-color: #ffffff;
+}
+.subject-card.is-active .sigla { color: var(--primary); }
+.subject-card.is-active .name { font-weight: 700; color: var(--text-main); }
+
+/* Prerequisite Subject */
+.subject-card.is-prereq {
+    border: 2px solid var(--secondary);
+    background-color: var(--secondary-light);
+}
+.subject-card.is-prereq .sigla { color: var(--secondary); }
+
+/* Postrequisite Subject */
+.subject-card.is-postreq {
+    border: 2px solid var(--success);
+    background-color: var(--success-light);
+}
+.subject-card.is-postreq .sigla { color: var(--success); }
+
+/* Base states */
+.subject-card .sigla {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-bottom: 2px;
+    transition: color 0.2s;
+}
+
+.subject-card .name {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #64748b;
+    line-height: 1.2;
+    transition: color 0.2s;
+}
+
+.subject-card:hover:not(.dimmed):not(.is-active) {
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+}
+
+.electiva-tag {
+    display: inline-block;
+    padding: 1px 4px;
+    background-color: #e2e8f0;
+    color: #475569;
+    font-size: 0.60rem;
+    border-radius: 0px;
+    margin-bottom: 2px;
+    font-weight: 600;
+}
+
+/* PDF Links Dropdown (Appears on active) */
+.subject-pdf-actions {
+    display: none;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-color);
+}
+.subject-card.is-active .subject-pdf-actions {
+    display: block;
+}
+
+.btn-pdf {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    background-color: var(--secondary);
+    color: #fff;
+    text-decoration: none;
+    padding: 4px 6px;
+    border-radius: 0px;
+    font-weight: 600;
+}
+.btn-pdf:hover { background-color: #c81f2a; }
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 0px;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 0px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
