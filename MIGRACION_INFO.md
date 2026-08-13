@@ -37,9 +37,17 @@
 | Fase | Estado |
 |---|---|
 | **Fase 0** — Rescatar lo no versionado | 🟡 Casi completa — faltan 2 rotaciones de credenciales |
-| **Fase 1** — Backup del servidor origen | 🔴 **No iniciada** |
+| **Fase 1** — Qué se lleva del origen | ✅ **Resuelta por decisión**: no se migran datos, solo configuración |
 | **Fase 2** — Preparar el servidor nuevo | 🟡 Hardware verificado; falta definir red y instalar Tutor |
-| **Fases 3-8** | ⬜ Sin empezar |
+| **Fases 3-8** | ⬜ Sin empezar (la Fase 5 ya no aplica) |
+
+> **Decisión de alcance (2026-08-12): el servidor nuevo arranca con base de datos limpia.**
+> El origen es una instancia de pruebas (7 usuarios reales, 0 certificados, 1 entrega) y el
+> contenido SCORM/H5P subido es material de prueba. No hay dumps, ni `tar` de 1.3 GB, ni
+> almacenamiento intermedio. Se transfieren **3 API keys**; el resto de la configuración ya
+> vive en el monorepo. Efecto lateral útil: desaparecen los problemas de estado atado al host
+> viejo (`django_site`, redirect URIs de OAuth2, `SiteTheme`) y de contraseñas de MySQL que
+> debían coincidir con el dump.
 
 ### Hecho
 
@@ -515,9 +523,17 @@ FICCT_JUDGE0_API_KEY
 | GitHub PAT (`ghp_…`) | URL del remote `origin` de `/root/openedx-ficct` + `/root/.git-credentials` | **Rotar.** No copiar. Usar deploy key SSH o `gh auth login` |
 | `secrets.GITHUB_TOKEN` | GitHub Actions | Automático, no requiere migración |
 
-**Estos valores NO están reproducidos en este informe por diseño.** Se transfieren copiando
-`config.yml` por canal seguro (`scp`) o reintroduciéndolos con
-`tutor config save --set CLAVE=valor` en el servidor nuevo.
+**Estos valores NO están reproducidos en este informe por diseño.**
+
+⚠️ **Con la decisión de instalar limpio (§0.1), solo 3 de esta lista hay que transferir:**
+`OPENROUTER_API_KEY`, `IAASSISTANT_OPENROUTER_API_KEY` y `FICCT_JUDGE0_API_KEY` — son claves
+de servicios de terceros, no las genera Tutor. Se setean con `tutor config save --set`.
+
+El resto (`OPENEDX_SECRET_KEY`, `JWT_RSA_PRIVATE_KEY`, contraseñas de MySQL, claves de
+Meilisearch, `CMS_OAUTH2_SECRET`, `ID`) **Tutor los genera solos** en el `config save` inicial:
+solo servían para dar continuidad a sesiones, tokens y datos que no se migran. La columna
+"consecuencia de regenerarla" de la tabla de arriba aplica únicamente a una migración **con**
+restauración de datos.
 
 ---
 
@@ -559,6 +575,10 @@ Esto simplifica la migración enormemente: se copia el directorio con la platafo
 | **TOTAL** | `~/.local/share/tutor/data` | | **~1.3 GB** |
 | Landing compilada | `/root/landing-deploy` | `landing:/srv/landing:ro` | **3.2 MB** |
 
+> ⚠️ **Nada de esto se migra.** Por decisión de alcance (§0.1) el servidor nuevo arranca
+> vacío; los tamaños de abajo describen el estado del origen, no una carga de trabajo de
+> transferencia.
+
 ### 7.2 Tamaño lógico de las bases
 
 | Base | Motor | Tamaño |
@@ -567,8 +587,8 @@ Esto simplifica la migración enormemente: se copia el directorio con la platafo
 | `mysql` (sistema) | MySQL 8.4 | 10.2 MB |
 | `openedx` | MongoDB 7.0 (WiredTiger) | **17.3 MB** en disco |
 
-> El grueso de los 833 MB de MySQL+Mongo en disco son binlogs, journals y preasignación,
-> no datos. Un dump lógico (`mysqldump` + `mongodump`) va a pesar **decenas de MB**, no cientos.
+> El grueso de los 833 MB de MySQL+Mongo en disco son binlogs, journals y preasignación, no
+> datos: el contenido real son ~47 MB entre las dos bases.
 
 ### 7.3 Estáticos
 
@@ -741,29 +761,33 @@ Leyenda: 🤖 automatizable · 🖐️ manual · ⚠️ punto de fallo típico
       endpoint `/api/ficct/avatar/ask/` (ver §4.4); antes, la nueva se volvería a publicar.
       Aprovechar para ponerle **límite de gasto** en OpenRouter: hoy no tiene (`limit: None`).
 
-### Fase 1 — Backup del servidor origen
+### Fase 1 — Qué se lleva del servidor origen
 
-> 🔴 **NO INICIADA.** Verificado el 2026-08-12: no existe ningún artefacto de backup en el
-> servidor (`/root/backup-tutor/` solo tiene un `config.yml` del 30/06). Ningún ítem de esta
-> fase está hecho.
+> ✅ **Decisión tomada (2026-08-12): NO se migran datos.** El servidor origen es una
+> instancia de pruebas — 7 usuarios reales, 0 certificados, 1 entrega — y los paquetes
+> SCORM/H5P subidos son material de prueba. El servidor nuevo arranca con base de datos
+> limpia. **No hay Fase 5 de restauración.**
 
-- [ ] 🤖 `tutor local stop` (para consistencia de los dumps a nivel de archivo).
-- [ ] 🤖 Dump lógico (preferido sobre copiar archivos crudos):
-      ```bash
-      tutor local start -d mysql mongodb
-      tutor local exec -T mysql mysqldump --all-databases -uroot -p"$(tutor config printvalue MYSQL_ROOT_PASSWORD)" > mysql-backup.sql
-      tutor local exec -T mongodb mongodump --archive --db=openedx > mongo-backup.archive
-      tutor local stop
-      ```
-- [ ] 🤖 `tar czf tutor-data.tgz -C ~/.local/share/tutor data` (media + lms/cms data; ~1.3 GB).
-- [ ] 🖐️ 🔐 **Copiar `~/.local/share/tutor/config.yml`** por canal seguro (contiene los 13 secretos de §5.3).
-- [ ] 🤖 `tar czf landing-deploy.tgz -C /root landing-deploy` (o rebuildear la landing desde su repo).
-- [ ] 🤖 `tutor local start -d` para restaurar producción mientras se prepara el server nuevo.
-- [ ] 🖐️ Subir los artefactos a un almacenamiento intermedio **no público** alcanzable desde
-      el server nuevo. Ojo: `mysql-backup.sql` contiene todos los datos de usuarios.
-- [ ] 🖐️ Verificar los backups **antes** de apagar nada del servidor viejo: que el `.sql`
-      no esté truncado (`tail -5 mysql-backup.sql` debe cerrar con `Dump completed`) y que
-      los `.tgz` listen (`tar tzf … | head`).
+Esto elimina los dumps, el `tar` de 1.3 GB y el almacenamiento intermedio. Lo único que
+viaja es configuración, y casi toda ya está en Git.
+
+| Qué | Cómo viaja |
+|---|---|
+| Plugins de Tutor, tema, MFEs, landing, `ficct-dashboard-api`, servicio de voz | `git clone` del monorepo |
+| Hosts, idioma, `PLATFORM_NAME`, lista de plugins, `OPENEDX_EXTRA_PIP_REQUIREMENTS` | Se re-declaran con `tutor config save --set` (Fase 3) |
+| **3 API keys de terceros** | Único traspaso manual — ver abajo |
+
+- [ ] 🖐️ 🔐 Copiar **solo estas tres** por canal seguro (no por chat ni email plano):
+      `IAASSISTANT_OPENROUTER_API_KEY`, `FICCT_JUDGE0_API_KEY` y, si no se rota antes,
+      `OPENROUTER_API_KEY`.
+- [ ] ⚪ No hace falta copiar `config.yml` entero. Los demás secretos de §5.3
+      (`OPENEDX_SECRET_KEY`, `JWT_RSA_PRIVATE_KEY`, contraseñas de MySQL, claves de
+      Meilisearch, `CMS_OAUTH2_SECRET`, `ID`) **los regenera Tutor solo**: solo servían para
+      dar continuidad a sesiones y datos que no se migran.
+- [ ] 🖐️ Anotar la URL de `AVATAR_TTS_API_URL` (el servicio en Modal sigue vivo y no depende
+      de este servidor).
+- [ ] 🖐️ El servidor viejo puede quedar encendido hasta validar el nuevo: al no restaurar
+      nada, los dos pueden convivir sin conflicto.
 
 ### Fase 2 — Preparar el servidor nuevo
 
@@ -844,38 +868,31 @@ Leyenda: 🤖 automatizable · 🖐️ manual · ⚠️ punto de fallo típico
       `github.com/open-craft/xblock-ai-evaluation` sigan accesibles (ambos sin pin de versión:
       un build nuevo puede traer código distinto al del server viejo).
 
-### Fase 5 — Restaurar datos
+### Fase 5 — (no aplica)
 
-- [ ] 🤖 `tar xzf tutor-data.tgz -C ~/.local/share/tutor` **o** restaurar los dumps lógicos:
-      ```bash
-      tutor local start -d mysql mongodb
-      tutor local exec -T mysql mysql -uroot -p"$(tutor config printvalue MYSQL_ROOT_PASSWORD)" < mysql-backup.sql
-      tutor local exec -T mongodb mongorestore --archive --drop < mongo-backup.archive
-      ```
-      ⚠️ `MYSQL_ROOT_PASSWORD` y `OPENEDX_MYSQL_PASSWORD` del `config.yml` nuevo **deben ser
-      los mismos** que los del dump, o MySQL rechazará las conexiones.
-- [ ] 🤖 `tar xzf landing-deploy.tgz -C /root` — o recompilar la landing con el contenedor de
-      Node y copiar el `dist/` a `/root/landing-deploy` (comando exacto en §7.5).
-- [ ] 🤖 Descartar `data/redis` — es caché, se regenera.
+Reemplazada por la inicialización limpia de la Fase 6. No hay dumps que restaurar ni
+`data/` que descomprimir: `tutor local do init` crea el esquema desde cero.
 
 ### Fase 6 — Arranque e inicialización
 
 - [ ] 🤖 `tutor local start -d`
 - [ ] 🤖 `tutor local do init` (migraciones + waffle flag de notificaciones).
 - [ ] 🤖 `tutor local do init --limit notifications_ficct` si el flag no quedó creado.
+- [ ] 🖐️ **Crear el superusuario** (la base arranca vacía):
+      `tutor local do createuser --staff --superuser <admin> <email>`
+- [ ] 🖐️ **Registrar el tema** en `/admin/theming/sitetheme/`: site = `<LMS_HOST>`,
+      theme dir = `ficct`. Sin esto Open edX no aplica el tema (ver §7.3).
+- [ ] 🖐️ Verificar que el `Site` de `/admin/sites/site/` tenga el dominio nuevo.
+- [ ] 🖐️ Habilitar los XBlocks en cada curso nuevo: *Studio → Advanced Settings → Advanced
+      Module List* → `["coding_ai_eval", "shortanswer_ai_eval"]` (+ scorm / h5p según se usen).
 - [ ] 🤖 Reindexar Meilisearch: `tutor local do reindex-courses` (⚠️ necesario si se descartó
       `data/meilisearch` o si cambió la master key).
 
 ### Fase 7 — Post-migración manual (lo que ningún script resuelve)
 
 - [ ] 🖐️ ⚠️ **DNS**: apuntar los registros `A` a la IP nueva (o dejar que `nip.io` lo resuelva solo).
-- [ ] 🖐️ ⚠️ **Actualizar el `Site` de Django** en `/admin/sites/site/` al dominio nuevo — si no,
-      los links de emails y redirects apuntarán al servidor viejo.
-- [ ] 🖐️ ⚠️ **Revisar apps OAuth2** en `/admin/oauth2_provider/application/`: las redirect URIs
-      de los MFEs (`authn`, `authoring`, …) llevan el host viejo.
-- [ ] 🖐️ Verificar el registro del tema en `/admin/theming/sitetheme/` (`ficct` ↔ site nuevo).
-- [ ] 🖐️ Confirmar `Advanced Module List` en un curso con XBlocks de IA
-      (`coding_ai_eval`, `shortanswer_ai_eval`).
+- [ ] ⚪ `Site` de Django, apps OAuth2 y `SiteTheme`: **al instalar limpio no arrastran el host
+      viejo**, se crean con los valores nuevos. Igual conviene verificarlos (Fase 6).
 - [ ] 🖐️ Si se pasa a HTTPS: cambiar los `http://` hardcodeados en `ficct_config.py` y
       `catalog_mfe.py`, `tutor config save`, rebuild del MFE.
 - [ ] 🖐️ **PENDIENTE — verificar en servidor origen**: si el correo saliente funciona con el
@@ -900,23 +917,28 @@ curl -s "http://<LMS_HOST>/api/ficct/popular-courses/?limit=3"           # API p
 docker exec tutor_local-mfe-1 sh -c "grep -rl 'AvatarTour' /openedx/dist/learning/ | head -3"
 ```
 
-- [ ] 🖐️ Login de un alumno, ver el catálogo, entrar a un curso, ver el avatar 3D.
-- [ ] 🖐️ Login en Studio, editar un curso, subir un archivo (verifica media + permisos).
-- [ ] 🖐️ Probar un XBlock `coding_ai_eval` (verifica Judge0).
-- [ ] 🖐️ Campana de notificaciones visible (requiere usuario con inscripción activa).
+> La plataforma arranca vacía, así que la verificación funcional empieza por **crear un curso
+> de prueba en Studio** e inscribir un usuario. Sirve de paso como validación end-to-end.
+
+- [ ] 🖐️ Crear un curso en Studio, publicarlo y subir un archivo (valida media y permisos).
+- [ ] 🖐️ Inscribirse con un usuario de prueba y verlo en el catálogo.
+- [ ] 🖐️ Entrar al curso y ver el avatar 3D; hacerle una pregunta (valida
+      `/api/ficct/avatar/ask/` + la voz de Modal).
+- [ ] 🖐️ Probar un XBlock `coding_ai_eval` (valida Judge0).
+- [ ] 🖐️ Campana de notificaciones visible (requiere inscripción activa).
 - [ ] 🖐️ Logout → debe caer en la landing (`www.<LMS_HOST>`).
 
 ### Qué se puede automatizar y qué no — resumen
 
 | 🤖 Automatizable (script único) | 🖐️ Requiere intervención manual |
 |---|---|
-| Instalar Docker + Tutor + plugins pip | Transferir `config.yml` / secretos |
+| Instalar Docker + Tutor + plugins pip | Transferir las 3 API keys de terceros |
 | Clonar el monorepo e instalar los 9 plugins | Rotar el PAT de GitHub y las API keys expuestas |
 | `tutor config save` con los hosts nuevos | Configurar DNS |
 | Pull/re-tag de la imagen MFE | Actualizar `Site` de Django y apps OAuth2 |
 | Build de la imagen `openedx` | Verificar el envío de correo |
-| Restaurar dumps y `data/` | Registrar el tema en el admin (si no vino en el dump) |
-| `tutor local start` + `do init` + reindex | Decidir dominio real vs `nip.io`, y HTTPS |
+| `tutor local start` + `do init` + reindex | Registrar el tema en el admin y crear el superusuario |
+| | Decidir dominio real vs `nip.io`, y HTTPS |
 | Smoke tests con `curl` | Pruebas funcionales de usuario |
 
 ---
