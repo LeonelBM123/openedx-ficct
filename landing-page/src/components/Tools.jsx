@@ -1,3 +1,5 @@
+import { platformLinks } from '../config';
+
 const Tools = () => {
     return (
         <section id="herramientas" className="tools-section bg-light">
@@ -6,7 +8,7 @@ const Tools = () => {
                 <p className="section-subtitle">Plataformas y recursos para la comunidad estudiantil y docente.</p>
                 
                 <div className="tools-grid">
-                    <a href="http://apps.167.172.142.82.nip.io/learner-dashboard/" rel="noopener noreferrer" className="tool-card reveal">
+                    <a href={platformLinks.dashboard} rel="noopener noreferrer" className="tool-card reveal">
                         <i className="ph ph-chalkboard-teacher"></i>
                         <span>Aula Virtual</span>
                     </a>

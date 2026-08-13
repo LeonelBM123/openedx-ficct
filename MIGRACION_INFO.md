@@ -719,18 +719,14 @@ Let's Encrypt ni certificados propios. Todas las URLs internas (`LMS_ROOT_URL`, 
      `LOGOUT_URL`, `DISCOVERY_API_BASE_URL`, TOS/privacy) y `catalog_mfe.py`
      (`CATALOG_MICROFRONTEND_URL`) → pasarlos a `https://`, si no habrá mixed content.
 
-⚠️ **El host también está hardcodeado en el fuente de la landing page**, que no pasa por
-Tutor y por lo tanto **no se actualiza con `tutor config save`**. Hay 3 enlaces con
-`http://apps.167.172.142.82.nip.io` embebido, y hay que editarlos a mano y **recompilar**
-la landing al cambiar de servidor:
-
-| Archivo (`landing-page/`) | Enlace |
-|---|---|
-| `src/components/Navbar.jsx:46` | `…/catalog/` — botón "Ver Cursos" |
-| `src/components/Navbar.jsx:47` | `…/authn/login` — botón "Iniciar Sesión" |
-| `src/components/Tools.jsx:9` | `…/learner-dashboard/` — tarjeta "Aula Virtual" |
-
-Si no se tocan, los botones principales de la landing seguirán apuntando al servidor viejo.
+✅ **La landing ya no necesita intervención.** Tenía 3 enlaces con el host escrito a mano
+(`Navbar.jsx`, `Tools.jsx`) que no pasan por Tutor y por lo tanto no se actualizaban con
+`tutor config save`. Ahora se derivan en runtime del host donde está servida
+(`landing-page/src/config.js`): landing en `www.X` → LMS en `X`, MFEs en `apps.X`. Al
+cambiar de servidor no hay que editar ni recompilar nada, y el protocolo sale de
+`window.location`, así que al activar HTTPS los enlaces pasan a `https://` solos. Para
+dominios que no sigan esa convención hay override por `VITE_LMS_BASE_URL` /
+`VITE_MFE_BASE_URL` — ver `landing-page/README.md`.
    - Actualizar el `Site` de Django y las redirect URIs de las apps OAuth2 en el admin.
 
 ---

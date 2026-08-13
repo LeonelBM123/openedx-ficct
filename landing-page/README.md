@@ -43,19 +43,35 @@ sirve los archivos nuevos en la siguiente request.
 
 `dist/` y `node_modules/` están en el `.gitignore` — no se versionan.
 
-## ⚠️ Al migrar de servidor
+## Enlaces a la plataforma
 
-Hay **3 enlaces con el host hardcodeado** que no pasan por Tutor y por lo tanto no se
-actualizan con `tutor config save`:
+Los botones que van al LMS ("Iniciar Sesión", "Ver Cursos", "Aula Virtual") **no llevan el
+host escrito a mano**: se derivan en runtime del host donde está servida la landing, en
+`src/config.js`.
 
-| Archivo | Enlace |
-|---|---|
-| `src/components/Navbar.jsx:46` | `…/catalog/` — botón "Ver Cursos" |
-| `src/components/Navbar.jsx:47` | `…/authn/login` — botón "Iniciar Sesión" |
-| `src/components/Tools.jsx:9` | `…/learner-dashboard/` — tarjeta "Aula Virtual" |
+```
+landing servida en   www.X   →   LMS en X   ·   MFEs en apps.X
+```
 
-Hay que editarlos a mano y recompilar, o los botones principales de la portada van a
-seguir apuntando al servidor viejo.
+Es la misma convención que definen `tutor-plugins/landing_page.py` (`FICCT_LANDING_HOST` =
+`www.{{ LMS_HOST }}`) y el default de `tutor-mfe` (`MFE_HOST` = `apps.{{ LMS_HOST }}`).
+
+Consecuencia práctica: **al cambiar de servidor no hay que tocar nada ni recompilar**. Y
+como el protocolo también sale de `window.location`, al activar HTTPS los enlaces pasan a
+`https://` solos en vez de quedar como *mixed content*.
+
+Si algún día los dominios dejan de seguir esa convención (por ejemplo, la landing en el
+apex y el LMS en `campus.…`), se fuerzan al construir:
+
+```bash
+docker run --rm -v "$PWD":/app -w /app \
+  -e VITE_LMS_BASE_URL=https://campus.ficct.uagrm.edu.bo \
+  -e VITE_MFE_BASE_URL=https://apps.ficct.uagrm.edu.bo \
+  node:20-alpine sh -c "npm ci && npm run build"
+```
+
+⚠️ En `npm run dev` la derivación da `apps.localhost:5173`, que no existe. Para probar los
+enlaces en desarrollo hay que usar el override de arriba.
 
 ## Desarrollo
 

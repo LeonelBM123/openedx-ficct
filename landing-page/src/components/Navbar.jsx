@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { HashLink } from 'react-router-hash-link';
 
+import { platformLinks } from '../config';
+
 const Navbar = () => {
     const [scrolled, setScrolled] = useState(false);
     const [menuActive, setMenuActive] = useState(false);
@@ -43,8 +45,8 @@ const Navbar = () => {
                     <HashLink smooth to="/#posgrado" className="nav-link" onClick={closeMenu}><i className="ph ph-certificate"></i> Posgrado</HashLink>
                     <HashLink smooth to="/#noticias" className="nav-link" onClick={closeMenu}><i className="ph ph-newspaper"></i> Noticias</HashLink>
                     <HashLink smooth to="/#herramientas" className="nav-link" onClick={closeMenu}><i className="ph ph-wrench"></i> Herramientas</HashLink>
-                    <a href="http://apps.167.172.142.82.nip.io/catalog/" rel="noopener noreferrer" className="nav-link" onClick={closeMenu}><i className="ph ph-graduation-cap"></i> Ver Cursos</a>
-                    <a href="http://apps.167.172.142.82.nip.io/authn/login" rel="noopener noreferrer" className="btn btn-cta" onClick={closeMenu}>Iniciar Sesión<i className="ph ph-arrow-right"></i></a>
+                    <a href={platformLinks.catalog} rel="noopener noreferrer" className="nav-link" onClick={closeMenu}><i className="ph ph-graduation-cap"></i> Ver Cursos</a>
+                    <a href={platformLinks.login} rel="noopener noreferrer" className="btn btn-cta" onClick={closeMenu}>Iniciar Sesión<i className="ph ph-arrow-right"></i></a>
                 </nav>
             </div>
         </header>
