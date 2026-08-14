@@ -48,7 +48,8 @@ RUN npm install '@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git' 
 
 COPY --from=admin-console-src / /openedx/app
 
-RUN make OPENEDX_ATLAS_PULL=true ATLAS_OPTIONS="--repository=openedx/openedx-translations --revision=release/ulmo.3 " pull_translations
+# admin-console tampoco tiene traducciones en release/ulmo.3, solo en main
+RUN make OPENEDX_ATLAS_PULL=true ATLAS_OPTIONS="--repository=openedx/openedx-translations --revision=main " pull_translations
 
 EXPOSE 2025
 
@@ -100,7 +101,10 @@ RUN npm install "@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git#$
 
 COPY --from=authn-src / /openedx/app
 
-RUN make OPENEDX_ATLAS_PULL=true ATLAS_OPTIONS="--repository=openedx/openedx-translations --revision=release/ulmo.3 " pull_translations
+# En release/ulmo.3 hay 35 claves de authn con es_419 vacio (entre ellas
+# start.learning / with.site.name, el banner del login), que en main ya estan
+# traducidas. main no pierde ninguna clave respecto a ulmo.3 para este paquete.
+RUN make OPENEDX_ATLAS_PULL=true ATLAS_OPTIONS="--repository=openedx/openedx-translations --revision=main " pull_translations
 
 EXPOSE 1999
 
@@ -616,7 +620,10 @@ RUN npm install "@edx/brand@git+https://github.com/LeonelBM123/brand-ficct.git#$
 
 COPY --from=catalog-src / /openedx/app
 
-RUN make OPENEDX_ATLAS_PULL=true ATLAS_OPTIONS="--repository=openedx/openedx-translations --revision=release/ulmo.3 " pull_translations
+# catalog se construye desde master (no existe en Ulmo), y sus traducciones solo
+# viven en la rama main de openedx-translations. Con release/ulmo.3 atlas no
+# encuentra translations/frontend-app-catalog y el MFE sale entero en inglés.
+RUN make OPENEDX_ATLAS_PULL=true ATLAS_OPTIONS="--repository=openedx/openedx-translations --revision=main " pull_translations
 
 EXPOSE 1998
 
