@@ -7,9 +7,10 @@ import {
   MailtoLink,
   Row,
 } from '@openedx/paragon';
-import { Add as AddIcon, Error, ManageAccounts } from '@openedx/paragon/icons';
+import { Add as AddIcon, Error } from '@openedx/paragon/icons';
+// import { ManageAccounts } from '@openedx/paragon/icons';  // FICCT: botón "Roles y permisos" — ver bloque comentado abajo
 import { useIntl } from '@edx/frontend-platform/i18n';
-import { getConfig } from '@edx/frontend-platform';
+// import { getConfig } from '@edx/frontend-platform';  // FICCT: botón "Roles y permisos" — ver bloque comentado abajo
 import { StudioFooterSlot } from '@edx/frontend-component-footer';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -48,7 +49,8 @@ const StudioHome = () => {
     librariesV2Enabled,
   } = useStudioHome();
 
-  const adminConsoleUrl = `${getConfig().ADMIN_CONSOLE_URL}/authz`;
+  // FICCT: botón "Roles y permisos" — ver bloque comentado abajo
+  // const adminConsoleUrl = `${getConfig().ADMIN_CONSOLE_URL}/authz`;
 
   const v1LibraryTab = librariesV1Enabled && location?.pathname.split('/').pop() === 'libraries-v1';
   const showV2LibraryURL = librariesV2Enabled && !v1LibraryTab;
@@ -74,20 +76,29 @@ const StudioHome = () => {
       );
     }
 
-    headerButtons.push(
-      <div className="border-right mr-3 pr-4 py-2">
-        <Button
-          as="a"
-          href={adminConsoleUrl}
-          variant="primary"
-          iconBefore={ManageAccounts}
-          size="sm"
-          target="_blank"
-        >
-          {intl.formatMessage(messages.addRolesPermissionsBtnText)}
-        </Button>
-      </div>,
-    );
+    // FICCT: botón "Roles y permisos" deshabilitado.
+    // Apunta a `${ADMIN_CONSOLE_URL}/authz`, ruta que NO existe en el MFE admin-console
+    // que buildeamos (release/ulmo.3, ver docker/mfe/Dockerfile): ahí el módulo authz solo
+    // registra /authz/libraries/:libraryId, y no hay ruta índice ni catch-all, así que la
+    // página queda en blanco sin error. Verawood (Tutor 22) sí trae la ruta /authz completa
+    // junto con openedx-authz 1.21.0; reactivar este bloque después de ese upgrade.
+    // Mientras tanto, la gestión de equipo de bibliotecas sigue accesible desde
+    // la propia biblioteca → "Manage Access".
+    //
+    // headerButtons.push(
+    //   <div className="border-right mr-3 pr-4 py-2">
+    //     <Button
+    //       as="a"
+    //       href={adminConsoleUrl}
+    //       variant="primary"
+    //       iconBefore={ManageAccounts}
+    //       size="sm"
+    //       target="_blank"
+    //     >
+    //       {intl.formatMessage(messages.addRolesPermissionsBtnText)}
+    //     </Button>
+    //   </div>,
+    // );
 
     if (hasAbilityToCreateNewCourse) {
       headerButtons.push(
