@@ -1,16 +1,19 @@
 @import url('https://api.fontshare.com/v2/css?f[]=switzer@100,200,300,400,500,600,700,800,900&display=swap');
 
 :root {
-    /* Color Palette */
-    --primary: #0A427C;
-    --primary-light: #16569e;
-    --primary-dark: #062f5a;
-    /* --secondary: #E32E3A; */
-    --secondary: #b01020;
-    /* --secondary-hover: #c92530; */
-    --secondary-hover: #dc3545;
-    --accent: #F0A23C;
-    --accent-hover: #d98d2e;
+    /* Color Palette — alineada con brand-ficct (paragon/_overrides.scss),
+       la misma paleta que usa la plataforma Open edX a la que enlaza esta landing. */
+    --primary: #1a3a6b;
+    --primary-light: #2a4d8f;
+    --primary-dark: #142d54;
+    --primary-darker: #0d1e38;
+    --secondary: #cc0000;
+    --secondary-hover: #990000;
+    /* El dorado solo tiene contraste suficiente como FONDO con texto oscuro
+       (#333 sobre acento = 7.75:1) o como TEXTO sobre --primary (6.92:1).
+       Nunca sobre blanco ni con texto blanco encima: da 1.63:1. */
+    --accent: #f5c518;
+    --accent-hover: #c9a100;
 
     --bg-light: #F5F5F5;
     --white: #FFFFFF;
@@ -23,7 +26,7 @@
     --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 10px 20px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 20px 40px rgba(10, 66, 124, 0.15);
+    --shadow-lg: 0 20px 40px rgba(26, 58, 107, 0.15);
 }
 
 * {
@@ -114,7 +117,7 @@ ul {
 .btn-primary:hover {
     background-color: var(--secondary-hover);
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(227, 46, 58, 0.3);
+    box-shadow: 0 10px 20px rgba(204, 0, 0, 0.3);
 }
 
 .btn-cta {
@@ -125,7 +128,7 @@ ul {
 
 .btn-cta:hover {
     background-color: var(--secondary-hover);
-    box-shadow: 0 8px 15px rgba(227, 46, 58, 0.3);
+    box-shadow: 0 8px 15px rgba(204, 0, 0, 0.3);
 }
 
 .btn-outline {
@@ -206,7 +209,7 @@ section {
 }
 
 .navbar.scrolled {
-    background-color: rgba(6, 47, 90, 0.97);
+    background-color: rgba(20, 45, 84, 0.97);
     backdrop-filter: blur(10px);
     box-shadow: var(--shadow-md);
 }
@@ -417,7 +420,7 @@ section {
 .about-banner-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(10, 66, 124, 0.85) 0%, rgba(0, 0, 0, 0.6) 100%);
+    background: linear-gradient(135deg, rgba(26, 58, 107, 0.85) 0%, rgba(0, 0, 0, 0.6) 100%);
     z-index: 1;
 }
 
@@ -813,7 +816,7 @@ section {
 }
 
 .program-card:hover .program-overlay {
-    background: linear-gradient(to bottom, rgba(6, 47, 90, 0.5) 0%, rgba(6, 47, 90, 0.92) 100%);
+    background: linear-gradient(to bottom, rgba(20, 45, 84, 0.5) 0%, rgba(20, 45, 84, 0.92) 100%);
 }
 
 .program-card:hover {
@@ -835,7 +838,7 @@ section {
 .program-icon-wrapper {
     width: 60px;
     height: 60px;
-    background-color: rgba(240, 162, 60, 0.8);
+    background-color: rgba(245, 197, 24, 0.8);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -946,7 +949,7 @@ section {
 }
 
 .master-tag {
-    background-color: rgba(10, 66, 124, 0.1);
+    background-color: rgba(26, 58, 107, 0.1);
     color: var(--primary);
     padding: 4px 12px;
     border-radius: 20px;
@@ -995,7 +998,7 @@ section {
 .news-card:hover {
     box-shadow: var(--shadow-md);
     transform: translateY(-5px);
-    border-color: rgba(10, 66, 124, 0.2);
+    border-color: rgba(26, 58, 107, 0.2);
 }
 
 .news-image-wrapper {
@@ -1032,8 +1035,17 @@ section {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
-.news-category.Académico {
+/* News.jsx genera la clase con .toLowerCase(), y los selectores de clase distinguen
+   mayúsculas: la regla anterior era `.Académico` y por eso nunca aplicaba.
+   Las 3 categorías que publica la UAGRM son Académico, Anuncio e Institucional;
+   esta última se queda con el azul de .news-category. */
+.news-category.académico {
     background-color: var(--accent);
+    color: var(--text-main);
+}
+
+.news-category.anuncio {
+    background-color: var(--secondary);
 }
 
 .news-content {
