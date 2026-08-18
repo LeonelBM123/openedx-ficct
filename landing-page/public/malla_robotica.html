@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malla Curricular - Ingeniería en Robótica - FICCT</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="malla_curricular.css">
+</head>
+<body>
+    <header class="app-header">
+        <a href="/" class="back-link">
+            <i class="ph ph-arrow-left"></i> Volver a FICCT
+        </a>
+        <div class="header-titles">
+            <h1>Malla Curricular Interactiva</h1>
+            <p>Ingeniería en Robótica (Plan 323-0)</p>
+        </div>
+        <div class="legend">
+            <span class="legend-item"><span class="legend-color prereq"></span> Pre-requisito</span>
+            <span class="legend-item"><span class="legend-color selected"></span> Seleccionada</span>
+            <span class="legend-item"><span class="legend-color postreq"></span> Desbloquea</span>
+        </div>
+    </header>
+
+    <main class="grid-container">
+        <!-- SVG container for bezier curves -->
+        <svg id="connectionsLayer"></svg>
+        
+        <!-- The columns wrapper -->
+        <div class="semesters-wrapper" id="semestersWrapper">
+            <!-- Semesters will be injected here via JS -->
+        </div>
+    </main>
+
+    <script src="plan_robotica.js"></script>
+    <script src="malla_curricular.js"></script>
+</body>
+</html>

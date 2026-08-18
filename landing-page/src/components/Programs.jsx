@@ -48,7 +48,7 @@ const Programs = () => {
                             <h3 className="program-title">Ing. en Redes y Telecom.</h3>
                             <div className="program-reveal">
                                 <p className="program-desc">Diseño, implementación y mantenimiento de redes de comunicación de alto rendimiento e infraestructura moderna.</p>
-                                <a href="#" className="program-link btn-link">Ver plan de estudios <i className="ph ph-arrow-right"></i></a>
+                                <a href="malla_redes.html" className="program-link btn-link">Ver plan de estudios <i className="ph ph-arrow-right"></i></a>
                             </div>
                         </div>
                     </div>
@@ -63,7 +63,7 @@ const Programs = () => {
                             <h3 className="program-title">Ingeniería en Robótica</h3>
                             <div className="program-reveal">
                                 <p className="program-desc">Desarrollo de sistemas robóticos avanzados, automatización industrial e inteligencia artificial integrada.</p>
-                                <a href="#" className="program-link btn-link">Ver plan de estudios <i className="ph ph-arrow-right"></i></a>
+                                <a href="malla_robotica.html" className="program-link btn-link">Ver plan de estudios <i className="ph ph-arrow-right"></i></a>
                             </div>
                         </div>
                     </div>
