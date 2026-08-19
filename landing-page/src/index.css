@@ -1418,6 +1418,25 @@ section {
     transform: translateY(0);
 }
 
+/* Paginado de noticias: "Ver más" suma de a 6 y "Ver menos" vuelve al estado inicial.
+   Los dos botones conviven, así que se centran y envuelven en pantalla chica. */
+.news-actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+}
+
+/* Contador dentro del botón: dice a cuántas se llega con el próximo clic. */
+.news-count {
+    margin-left: var(--space-2);
+    padding-left: var(--space-2);
+    border-left: 1px solid currentColor;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    opacity: 0.75;
+}
+
 /* ==========================================================================
    Responsive
 
