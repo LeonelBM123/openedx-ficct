@@ -13,6 +13,10 @@ hooks.Filters.ENV_PATCHES.add_items([
 MFE_CONFIG["LOGO_URL"] = "http://{{ LMS_HOST }}/static/ficct/images/logo.png"
 MFE_CONFIG["LOGO_WHITE_URL"] = "http://{{ LMS_HOST }}/static/ficct/images/logo-white.png"
 MFE_CONFIG["FAVICON_URL"] = "http://{{ LMS_HOST }}/static/ficct/images/favicon.ico"
+# Imagen de fondo del hero del catalog MFE. La sirve el contenedor `landing` (caddy) desde
+# /root/landing-deploy/assets/, asi que cambiar la foto no requiere reconstruir ningun MFE:
+# basta reemplazar el archivo, o apuntar esta variable a otro nombre y `tutor config save`.
+MFE_CONFIG["HOMEPAGE_BANNER_IMAGE_URL"] = "http://{{ FICCT_LANDING_HOST }}/assets/facultad.jpg"
 MFE_CONFIG["SUPPORT_EMAIL"] = "soporte@ficct.uagrm.edu.bo"
 MFE_CONFIG["TERMS_OF_SERVICE_URL"] = "http://{{ LMS_HOST }}/tos"
 MFE_CONFIG["PRIVACY_POLICY_URL"] = "http://{{ LMS_HOST }}/privacy"
