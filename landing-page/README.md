@@ -43,6 +43,57 @@ sirve los archivos nuevos en la siguiente request.
 
 `dist/` y `node_modules/` están en el `.gitignore` — no se versionan.
 
+## Noticias
+
+La sección de noticias consume `noticias.json`, servido desde el mismo origen que la
+landing. Lo genera `scripts/scrape_noticias.py` parseando `www.uagrm.edu.bo`, que no
+expone ninguna API: se probaron `/api/noticias`, `/rss`, `/feed`, `/rss.xml` y
+`/sitemap.xml` — todos 404 — y su HTML no hace llamadas AJAX. Tampoco se puede pedir
+desde el navegador porque el sitio no manda `Access-Control-Allow-Origin`.
+
+`public/noticias.json` está versionado como semilla, para que un build recién clonado
+tenga noticias. En cada servidor un cron lo regenera semanalmente sobre el directorio
+publicado.
+
+### Instalar el cron (una vez por servidor)
+
+```bash
+crontab -e
+```
+
+```cron
+0 6 * * 1 /usr/bin/python3 /home/edx/openedx-ficct/landing-page/scripts/scrape_noticias.py /home/edx/landing-deploy/noticias.json >> /home/edx/ficct-noticias.log 2>&1
+```
+
+Dos cosas a respetar, porque fallan en silencio:
+
+- **Rutas absolutas, nunca `~`.** Cron no corre un shell de login y el directorio de
+  trabajo no es el del repo. Ajustá `/home/edx` al home real del usuario que instala
+  el crontab.
+- **El log tiene que ir a un directorio donde ese usuario pueda escribir.** `/var/log/`
+  suele ser solo de root: si el cron corre como `edx`, la redirección falla y perdés
+  toda traza de los errores. El home del usuario es una opción segura.
+
+### Sembrar el archivo tras un deploy
+
+El deploy hace `rm -rf` del directorio publicado, así que se lleva el `noticias.json`
+que hubiera generado el cron. El `cp` lo repone con la copia semilla del repo, que
+puede estar vieja. Conviene regenerarlo:
+
+```bash
+python3 scripts/scrape_noticias.py --seed /home/edx/landing-deploy/noticias.json
+```
+
+### Comportamiento
+
+- Acumula: una noticia sigue en el JSON aunque salga de la portada de la UAGRM.
+- Recorta a 30 por fecha (`--max` lo cambia). Al ritmo de publicación de la facultad
+  (~2 por semana) son unos 3 meses de historial; lo que pasa ese tope **se borra**.
+- Marca `retirada: true` las que la UAGRM bajó de su sitio; quedan en el archivo pero
+  el componente no las muestra.
+- Ante fallo de red o cambio del HTML sale con código 1 **sin tocar** el JSON
+  existente, así que la landing sigue mostrando lo último que funcionó.
+
 ## Enlaces a la plataforma
 
 Los botones que van al LMS ("Iniciar Sesión", "Ver Cursos", "Aula Virtual") **no llevan el

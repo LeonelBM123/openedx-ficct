@@ -13,11 +13,17 @@ Por eso la descarga ocurre acá, en el servidor, y la landing consume un JSON es
 servido desde su mismo origen.
 
 Modo de uso:
-    scrape_noticias.py --seed          # primera vez: baja las 10 páginas (~109 noticias)
+    scrape_noticias.py --seed          # primera vez: pagina hasta llenar el tope
     scrape_noticias.py                 # semanal: baja solo la página 1 y hace merge
 
-El archivo se acumula: las noticias viejas no se borran aunque salgan de la portada
-de la UAGRM. Se recorta a MAX_NOTICIAS descartando las más antiguas.
+Ambos modos escriben con rutas absolutas: el destino se pasa como argumento y conviene
+que sea absoluto, porque desde cron el directorio de trabajo no es el del repo.
+
+El archivo acumula: una noticia sigue en el JSON aunque salga de la portada de la
+UAGRM. Pero el total se recorta a MAX_NOTICIAS ordenando por fecha, así que las más
+antiguas se descartan de forma permanente. Con el tope actual y el ritmo de
+publicación de la facultad (~2 por semana) eso equivale a unos 3 meses de historial;
+para conservar más, subir el tope con --max.
 """
 
 import argparse
