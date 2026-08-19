@@ -10,11 +10,21 @@ const Footer = () => {
                         <h2>FICCT</h2>
                     </div>
                     <p>Facultad de Ingeniería en Ciencias de la Computación y Telecomunicaciones de la UAGRM.</p>
+                    {/* Facebook e Instagram son las redes que tiene la facultad. Los iconos de
+                        Twitter y LinkedIn apuntaban a "#" y no llevaban a ningún lado, así que
+                        se quitaron. El icono no aporta texto, de modo que el nombre accesible
+                        va en aria-label: sin él un lector de pantalla anuncia solo "enlace". */}
                     <div className="social-links">
-                        <a href="#"><i className="ph-fill ph-facebook-logo"></i></a>
-                        <a href="#"><i className="ph-fill ph-twitter-logo"></i></a>
-                        <a href="#"><i className="ph-fill ph-instagram-logo"></i></a>
-                        <a href="#"><i className="ph-fill ph-linkedin-logo"></i></a>
+                        <a href="https://www.facebook.com/profile.php?id=61567216448008"
+                           target="_blank" rel="noreferrer"
+                           aria-label="Facebook de la FICCT">
+                            <i className="ph-fill ph-facebook-logo" aria-hidden="true"></i>
+                        </a>
+                        <a href="https://www.instagram.com/ficct.uagrm.oficial/"
+                           target="_blank" rel="noreferrer"
+                           aria-label="Instagram de la FICCT">
+                            <i className="ph-fill ph-instagram-logo" aria-hidden="true"></i>
+                        </a>
                     </div>
                 </div>
                 

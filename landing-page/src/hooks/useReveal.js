@@ -15,14 +15,17 @@ import { useEffect } from 'react';
  */
 export function useReveal(deps = []) {
     useEffect(() => {
-        // :not(.active) evita volver a observar lo que ya se reveló en un escaneo previo.
-        const elements = document.querySelectorAll('.reveal:not(.active)');
+        // Evita volver a observar lo que ya se reveló en un escaneo previo.
+        const elements = document.querySelectorAll('.reveal:not([data-revealed])');
         if (elements.length === 0) return undefined;
 
         const observer = new IntersectionObserver((entries, obs) => {
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
-                    entry.target.classList.add('active');
+                    // data-attribute y no classList: React reescribe className entero en
+                    // cada render y borraría la marca, dejando el elemento invisible para
+                    // siempre porque acá mismo dejamos de observarlo.
+                    entry.target.dataset.revealed = 'true';
                     obs.unobserve(entry.target);
                 }
             });
