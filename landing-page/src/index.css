@@ -1418,60 +1418,109 @@ section {
     transform: translateY(0);
 }
 
-/* Responsive */
+/* ==========================================================================
+   Responsive
+
+   Tres cortes: 1024px (tablet apaisada), 768px (tablet vertical y teléfono
+   apaisado) y 480px (teléfono). Cada uno reduce el número de columnas de las
+   grillas y baja la escala tipográfica y el aire vertical, que a tamaño de
+   escritorio resultan enormes en pantalla chica.
+   ========================================================================== */
+
 @media (max-width: 1024px) {
+    /* Las grillas de 3 pasan a 2; las de 2 a una sola columna. */
     .about-container {
         grid-template-columns: 1fr;
     }
 
-    .about-image {
-        transform: translate(0, 0);
-    }
-
-    .floating-badge {
-        left: 20px;
-        bottom: -20px;
-    }
-
-    .masters-grid {
+    .about-mvv-grid,
+    .about-pillars-grid,
+    .masters-grid,
+    .news-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 
     .footer-grid {
         grid-template-columns: 1fr 1fr;
     }
-}
 
-@media (max-width: 768px) {
+    .about-image {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    .floating-badge {
+        display: none;
+    }
+
+    /* El aire de 100px entre secciones es demasiado cuando el contenido se apila. */
+    section {
+        padding: var(--space-20) 0;
+    }
+
     .hero-title {
         font-size: var(--text-5xl);
     }
+}
 
+@media (max-width: 768px) {
+    /* Todo a una columna: a este ancho dos columnas dejan las tarjetas ilegibles. */
+    .programs-grid,
+    .masters-grid,
+    .news-grid,
+    .about-story-grid,
+    .about-mvv-grid,
+    .about-pillars-grid,
+    .footer-grid {
+        grid-template-columns: 1fr;
+    }
+
+    section {
+        padding: var(--space-16) 0;
+    }
+
+    .section-title {
+        font-size: var(--text-4xl);
+    }
+
+    .section-subtitle {
+        font-size: var(--text-base);
+        margin-bottom: var(--space-10);
+    }
+
+    .hero-title {
+        font-size: var(--text-4xl);
+    }
+
+    .hero-subtitle {
+        font-size: var(--text-base);
+    }
+
+    /* Los botones del hero se apilan y ocupan el ancho para ser tocables. */
     .hero-actions {
         flex-direction: column;
     }
 
+    .hero-actions .btn {
+        width: 100%;
+    }
+
+    .hero-stats {
+        gap: var(--space-6);
+    }
+
+    /* 450px de alto por tarjeta es muchísimo apiladas de a una. */
+    .program-card {
+        min-height: 340px;
+    }
+
+    .about-banner-title {
+        font-size: var(--text-4xl);
+    }
+
+    /* Navbar: el menú pasa a panel desplegable y aparece el botón hamburguesa. */
     .menu-toggle {
         display: block;
-    }
-
-    /* En la barra superior conviven logo, botón y hamburguesa. En un teléfono de 375px
-       eso desborda, así que el botón se compacta y suelta la flecha. */
-    .nav-container {
-        padding: 0 var(--space-4);
-    }
-
-    .nav-actions {
-        gap: var(--space-2);
-    }
-
-    .nav-actions .btn-cta {
-        padding: var(--space-2) var(--space-3);
-        font-size: var(--text-sm);
-    }
-
-    .nav-actions .btn-cta i {
-        display: none;
     }
 
     .nav-links {
@@ -1490,30 +1539,83 @@ section {
         left: 0;
     }
 
-    .programs-grid {
-        grid-template-columns: 1fr;
+    /* En la barra superior conviven logo, botón y hamburguesa. En un teléfono de
+       375px eso desborda, así que el botón se compacta y suelta la flecha. */
+    .nav-container {
+        padding: 0 var(--space-4);
     }
 
-    .masters-grid {
-        grid-template-columns: 1fr;
+    .nav-actions {
+        gap: var(--space-2);
     }
 
-    .footer-grid {
-        grid-template-columns: 1fr;
+    .nav-actions .btn-cta {
+        padding: var(--space-2) var(--space-3);
+        font-size: var(--text-sm);
+    }
+
+    .nav-actions .btn-cta i {
+        display: none;
     }
 }
 
-
-/* About Page responsive */
-@media (max-width: 768px) {
-
-    .about-story-grid,
-    .about-mvv-grid,
-    .about-pillars-grid {
-        grid-template-columns: 1fr;
+@media (max-width: 480px) {
+    /* Teléfono: se recorta el aire lateral y se baja un escalón más la tipografía. */
+    .container {
+        padding: 0 var(--space-4);
     }
 
-    .about-banner-title {
-        font-size: var(--text-4xl);
+    section {
+        padding: var(--space-12) 0;
+    }
+
+    .section-title {
+        font-size: var(--text-3xl);
+    }
+
+    .hero-title {
+        font-size: var(--text-3xl);
+    }
+
+    /* Las 4 métricas del hero en fila se comprimen hasta romperse; van de a dos. */
+    .hero-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-5);
+    }
+
+    .hero-stat-number {
+        font-size: var(--text-2xl);
+    }
+
+    /* Las tarjetas de herramientas tienen min-width 180px y max-width 200px:
+       sueltas ese corsé para ocupar el ancho disponible. */
+    .tool-card {
+        min-width: 0;
+        max-width: none;
+        width: 100%;
+    }
+
+    /* Imágenes de 200px de alto ocupan demasiado de una pantalla de teléfono. */
+    .master-image,
+    .news-image-wrapper {
+        height: 160px;
+    }
+
+    .program-card {
+        min-height: 300px;
+    }
+
+    .news-content,
+    .master-content {
+        padding: var(--space-5);
+    }
+
+    .nav-brand {
+        font-size: var(--text-xl);
+    }
+
+    .nav-logo {
+        height: 36px;
     }
 }
