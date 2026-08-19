@@ -50,4 +50,18 @@ XBLOCK_SETTINGS = {
 LOGIN_REDIRECT_WHITELIST.append("{{ FICCT_LANDING_HOST }}")
 """
     ),
+    # Fuerza español como idioma por defecto en los MFEs para visitantes que
+    # todavía no tienen preferencia guardada (frontend-platform solo mira la
+    # cookie o el idioma del navegador, no SITE_LANGUAGE). Si el visitante ya
+    # tiene la cookie seteada, Caddy no la toca: no limita ni fuerza nada
+    # para quien ya eligió otro idioma.
+    (
+        "caddyfile-mfe-proxy",
+        """
+@no_lang_cookie {
+    not header_regexp Cookie openedx-language-preference
+}
+header @no_lang_cookie Set-Cookie "openedx-language-preference=es-419; Path=/; Max-Age=31536000"
+"""
+    ),
 ])
