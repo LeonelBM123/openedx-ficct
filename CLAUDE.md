@@ -104,7 +104,7 @@ Los plugins de Tutor son archivos Python que inyectan código en archivos que Tu
 | `ficct_config.py` | MFE_CONFIG (logos, email, URLs) + Judge0 XBlock |
 | `notifications_ficct.py` | Activa el waffle flag `notifications.enable_notifications` (campana de notificaciones en todos los headers) |
 | `ficct_dashboard_api.py` | Instala el paquete `apps-custom/ficct-dashboard-api` en la imagen openedx (APIs propias bajo `/api/ficct/`) |
-| `avatar_tts.py` | Contenedor propio de voz del avatar (`services/avatar-tts`, imagen que se construye a mano en cada servidor) + vhost `tts.<LMS_HOST>` en Caddy. El token que autentica ese contenedor lo emite `/api/ficct/avatar/tts-token/`, definido junto al resto de settings del avatar en `avatar_asistente.py` |
+| `avatar_tts.py` | Contenedor propio de voz del avatar (`services/avatar-tts`, imagen que se construye a mano en cada servidor) + ruta `/avatar-tts/*` dentro del vhost del LMS en Caddy (no un subdominio propio, para no consumir otro DNS). El token que autentica ese contenedor lo emite `/api/ficct/avatar/tts-token/`, definido junto al resto de settings del avatar en `avatar_asistente.py` |
 
 ### Patches más usados
 

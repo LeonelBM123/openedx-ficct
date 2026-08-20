@@ -105,7 +105,7 @@ tutor config save --set AVATAR_ENABLED=true
 
 # Voz: contenedor propio (services/avatar-tts), URL pública pero protegida por token
 tutor config save --set AVATAR_TTS_SECRET=$(openssl rand -hex 32)
-tutor config save --set AVATAR_TTS_API_URL=http://tts.$(tutor config printvalue LMS_HOST)/synthesize
+tutor config save --set AVATAR_TTS_API_URL=http://$(tutor config printvalue LMS_HOST)/avatar-tts/synthesize
 
 # LLM para responder preguntas (OpenRouter). La key queda solo en los settings de
 # Django, nunca en MFE_CONFIG.

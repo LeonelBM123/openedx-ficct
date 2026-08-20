@@ -54,9 +54,11 @@ Detalles en `app.py` (`verify_token`):
 - Límite de longitud de texto (`MAX_TEXT_CHARS = 1000`), con o sin token — evita que una
   sola petición monopolice la CPU.
 
-El vhost de Caddy (`tts.<LMS_HOST>`) y el CORS acotado al origen del MFE
-(`AVATAR_TTS_CORS_ORIGINS`) se mantienen como defensa en profundidad sobre el token, no
-como la única barrera.
+El servicio no vive en un subdominio propio (`tts.<LMS_HOST>`) sino colgado como ruta
+(`/avatar-tts/*`) dentro del mismo vhost del LMS, vía Caddy (evita pedir un DNS más;
+ver el docstring de `avatar_tts.py`). El navegador igual lo ve como un origen distinto
+al del MFE, así que el CORS acotado al origen del MFE (`AVATAR_TTS_CORS_ORIGINS`) sigue
+haciendo falta como defensa en profundidad sobre el token, no como la única barrera.
 
 ## Caché en disco
 
@@ -126,14 +128,14 @@ docker build -t ficct-avatar-tts /root/openedx-ficct/services/avatar-tts
 tutor config save --set AVATAR_TTS_SECRET=$(openssl rand -hex 32)
 tutor plugins install /root/openedx-ficct/tutor-plugins/avatar_tts.py
 tutor plugins enable avatar_tts
-tutor config save --set AVATAR_TTS_API_URL=http://tts.$(tutor config printvalue LMS_HOST)/synthesize
+tutor config save --set AVATAR_TTS_API_URL=http://$(tutor config printvalue LMS_HOST)/avatar-tts/synthesize
 tutor local start -d
 ```
 
 El plugin agrega el servicio `avatar-tts` al compose (con el volumen de caché y el
-secreto) y un vhost `tts.<LMS_HOST>` en el Caddy de Tutor. Variables: `AVATAR_TTS_HOST`,
-`AVATAR_TTS_DOCKER_IMAGE`, `AVATAR_TTS_THREADS`, `AVATAR_TTS_RATE_PER_MIN`,
-`AVATAR_TTS_CACHE_MAX_ENTRIES`.
+secreto) y una ruta `/avatar-tts/*` dentro del vhost del LMS en el Caddy de Tutor (no un
+subdominio propio, para no depender de un DNS más). Variables: `AVATAR_TTS_DOCKER_IMAGE`,
+`AVATAR_TTS_THREADS`, `AVATAR_TTS_RATE_PER_MIN`, `AVATAR_TTS_CACHE_MAX_ENTRIES`.
 
 El endpoint del token (`GET /api/ficct/avatar/tts-token/`) vive en la imagen `openedx`
 (paquete `apps-custom/ficct-dashboard-api`), así que además hace falta:
