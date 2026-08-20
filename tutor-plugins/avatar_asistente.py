@@ -6,6 +6,11 @@ hooks.Filters.CONFIG_DEFAULTS.add_items([
     ("OPENROUTER_API_KEY", ""),
     ("OPENROUTER_MODEL", "openai/gpt-4o-mini"),
     ("AVATAR_OPENROUTER_THROTTLE_RATE", "20/min"),
+    # Secreto compartido con el contenedor de TTS (ver avatar_tts.py). El LMS lo usa
+    # para firmar tokens cortos que el navegador cambia por audio directo con ese
+    # contenedor, sin que el LMS proxee el audio (ver avatar_views.py).
+    ("AVATAR_TTS_SECRET", ""),
+    ("AVATAR_TTS_TOKEN_THROTTLE_RATE", "60/min"),
 ])
 
 hooks.Filters.ENV_PATCHES.add_items([
@@ -34,6 +39,8 @@ FICCT_AVATAR = {
     "OPENROUTER_MODEL": "{{ OPENROUTER_MODEL }}",
     "OPENROUTER_BASE_URL": "https://openrouter.ai/api/v1",
     "THROTTLE_RATE": "{{ AVATAR_OPENROUTER_THROTTLE_RATE }}",
+    "TTS_SECRET": "{{ AVATAR_TTS_SECRET }}",
+    "TTS_TOKEN_THROTTLE_RATE": "{{ AVATAR_TTS_TOKEN_THROTTLE_RATE }}",
 }
 """
     ),

@@ -1,26 +1,38 @@
 """
 Servicio de voz del avatar (TTS + visemas para lip sync).
 
-Es el mismo servicio que corre hoy en Modal (`modal/modal_api_v3.py`), sin los
-decoradores de Modal, para poder correrlo como contenedor propio dentro del stack de
-Tutor. Toda la logica -- VOICE_MAP, PHONEME_TO_VISEME, get_word_phonemes,
-build_visemes, align_visemes -- es identica: si cambia una, hay que cambiar la otra.
-
-Diferencia de fondo: en Modal corre sobre una GPU T4 y escala a cero a los 5 minutos
-(scaledown_window=300), o sea que muchas peticiones pagan un cold start. Aca corre en
-CPU pero el contenedor esta siempre caliente. Cual conviene depende del hardware y del
-patron de uso; se mide con el README.
+Kokoro sintetiza la voz y MMS_FA (torchaudio) hace *forced alignment* del audio real
+contra el texto, de donde salen los tiempos de cada visema (fonemas via espeak-ng).
 
 Contrato (el que consume mfes/frontend-app-learning/src/asistente/config/ttsService.js):
-    POST /synthesize  {text, voice}  ->  {audio_base64 (WAV), visemes[{viseme,start,duration}]}
+    POST /synthesize
+        headers: Authorization: Bearer <token>
+        body:    {text, voice}
+        ->       {audio_base64 (WAV), visemes[{viseme,start,duration}]}
+
+El token lo emite el LMS (GET /api/ficct/avatar/tts-token/, requiere sesion
+autenticada) y es un HMAC de vida corta: "<user_id>.<exp>.<sig>" firmado con
+AVATAR_TTS_SECRET, el mismo secreto que este proceso recibe por variable de entorno.
+El audio nunca pasa por el LMS -- solo el token, que cuesta milisegundos de emitir --
+asi que una sintesis de 5-10 s no compite por los workers de uwsgi.
+
+Las respuestas exitosas se cachean en disco por hash de (voz, texto): los pasos del
+tour son texto fijo, asi que a partir del segundo alumno salen en milisegundos.
 """
 import base64
+import hashlib
+import hmac
+import json
 import os
 import re
 import tempfile
+import threading
+import time
 import traceback
+from collections import deque
+from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -28,10 +40,8 @@ from pydantic import BaseModel
 
 web_app = FastAPI(title="Avatar TTS")
 
-# En Modal esto es ["*"]. Aca se restringe al origen del MFE, que es el unico que llama
-# de verdad. No es autenticacion (un curl se lo saltea), pero corta el abuso desde otras
-# paginas. Para autenticacion real habria que proxear el TTS por el LMS, igual que se
-# hizo con OpenRouter en /api/ficct/avatar/ask/.
+# Defensa en profundidad sobre el token: no es autenticacion (un curl con el token
+# correcto lo salta igual), pero corta peticiones directas desde otras paginas.
 _origins = os.environ.get("AVATAR_TTS_CORS_ORIGINS", "*")
 web_app.add_middleware(
     CORSMiddleware,
@@ -50,6 +60,10 @@ VOICE_MAP = {
 }
 DEFAULT_VOICE = "dora"
 
+# Mismo tope que MAX_QUESTION_CHARS en avatar_views.py: evita que una sola peticion
+# monopolice la CPU. Se aplica con o sin token.
+MAX_TEXT_CHARS = 1000
+
 
 class SynthesisRequest(BaseModel):
     text: str
@@ -67,7 +81,91 @@ class SynthesisResponse(BaseModel):
     visemes: list[Viseme]
 
 
-# --- 3. CARGA DE MODELOS ---
+# --- 3. AUTENTICACION (token firmado por el LMS) ---
+
+AVATAR_TTS_SECRET = os.environ.get("AVATAR_TTS_SECRET", "")
+
+# Tope duro de vigencia, aunque el token pida mas: si el secreto se filtrara algun dia,
+# esto acota la ventana en la que un token forjado sigue siendo valido.
+TOKEN_MAX_TTL_SECONDS = 600
+
+
+def _unauthorized(detail: str) -> HTTPException:
+    return HTTPException(
+        status_code=401,
+        detail=detail,
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+def verify_token(authorization: str | None = Header(None)) -> int:
+    """Devuelve el user_id del token si es valido. Falla cerrado: sin
+    AVATAR_TTS_SECRET configurado, /synthesize no funciona en vez de aceptar
+    cualquier peticion."""
+    if not AVATAR_TTS_SECRET:
+        raise HTTPException(
+            status_code=503,
+            detail="TTS no configurado (falta AVATAR_TTS_SECRET).",
+        )
+
+    if not authorization or not authorization.startswith("Bearer "):
+        raise _unauthorized("Falta el token.")
+
+    token = authorization[len("Bearer "):]
+    parts = token.split(".")
+    if len(parts) != 3:
+        raise _unauthorized("Token malformado.")
+
+    user_id_raw, exp_raw, sig = parts
+    try:
+        user_id = int(user_id_raw)
+        exp = int(exp_raw)
+    except ValueError:
+        raise _unauthorized("Token malformado.")
+
+    expected_sig = hmac.new(
+        AVATAR_TTS_SECRET.encode("utf-8"),
+        f"{user_id_raw}.{exp_raw}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    if not hmac.compare_digest(sig, expected_sig):
+        raise _unauthorized("Token invalido.")
+
+    now = int(time.time())
+    if exp < now:
+        raise _unauthorized("Token vencido.")
+    if exp - now > TOKEN_MAX_TTL_SECONDS:
+        raise _unauthorized("Token con vigencia excesiva.")
+
+    return user_id
+
+
+# --- 4. LIMITE DE TASA POR USUARIO ---
+
+# El token dura varios minutos y podria reusarse sin limite dentro de esa ventana.
+# Un solo contenedor, asi que un dict en memoria alcanza -- no hace falta Redis.
+RATE_PER_MIN = int(os.environ.get("AVATAR_TTS_RATE_PER_MIN", "30"))
+
+_rate_lock = threading.Lock()
+_rate_history: dict[int, deque] = {}
+
+
+def check_rate_limit(user_id: int) -> None:
+    now = time.monotonic()
+    window_start = now - 60
+    with _rate_lock:
+        history = _rate_history.setdefault(user_id, deque())
+        while history and history[0] < window_start:
+            history.popleft()
+        if len(history) >= RATE_PER_MIN:
+            raise HTTPException(
+                status_code=429,
+                detail="Demasiadas peticiones. Espera un momento.",
+            )
+        history.append(now)
+
+
+# --- 5. CARGA DE MODELOS ---
 
 kokoro_pipeline = None
 mms_model = None
@@ -79,8 +177,8 @@ def load_models():
 
     import torch
 
-    # Sin esto torch toma todos los cores y compite con uwsgi y Celery, que corren en
-    # el mismo host. 0 = sin limite.
+    # Tope de paralelismo de PyTorch mientras sintetiza -- no es una reserva de CPUs:
+    # en reposo el proceso no usa nada. 0 = sin limite.
     threads = int(os.environ.get("AVATAR_TTS_THREADS", "4"))
     if threads > 0:
         torch.set_num_threads(threads)
@@ -109,7 +207,7 @@ def _startup():
     load_models()
 
 
-# --- 4. TABLA FONEMA IPA -> VISEMA ---
+# --- 6. TABLA FONEMA IPA -> VISEMA ---
 
 PHONEME_TO_VISEME = {
     # Bilabiales -> B (labios juntos)
@@ -156,7 +254,7 @@ def get_word_phonemes(word: str) -> list[str]:
         return ['a']
 
 
-# --- 5. ALINEACION MMS_FA -> VISEMAS ---
+# --- 7. ALINEACION MMS_FA -> VISEMAS ---
 
 def build_visemes(word_spans, words: list[str], ratio: float) -> list[Viseme]:
     visemes = []
@@ -242,11 +340,66 @@ def align_visemes(wav_path: str, text: str) -> list[Viseme]:
     return build_visemes(word_spans, list(words_valid), ratio)
 
 
-# --- 6. ENDPOINTS ---
+# --- 8. CACHE EN DISCO (por hash de voz + texto) ---
+
+CACHE_DIR = Path(os.environ.get("AVATAR_TTS_CACHE_DIR", "/cache"))
+CACHE_MAX_ENTRIES = int(os.environ.get("AVATAR_TTS_CACHE_MAX_ENTRIES", "500"))
+
+_cache_prune_lock = threading.Lock()
+
+
+def _cache_key(voice_id: str, text: str) -> str:
+    return hashlib.sha256(f"{voice_id}\x00{text}".encode("utf-8")).hexdigest()
+
+
+def _cache_path(key: str) -> Path:
+    return CACHE_DIR / f"{key}.json"
+
+
+def _cache_read(key: str) -> SynthesisResponse | None:
+    try:
+        data = json.loads(_cache_path(key).read_text())
+        return SynthesisResponse(**data)
+    except FileNotFoundError:
+        return None
+    except Exception:
+        # Cache corrupto (escritura interrumpida, etc.): se ignora y se re-sintetiza.
+        return None
+
+
+def _cache_write(key: str, response: SynthesisResponse) -> None:
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    path = _cache_path(key)
+    # Sufijo unico por proceso+hilo: dos peticiones concurrentes del mismo texto no
+    # se pisan el archivo temporal.
+    tmp_path = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
+    tmp_path.write_text(response.model_dump_json())
+    os.replace(tmp_path, path)
+    _prune_cache()
+
+
+def _prune_cache() -> None:
+    with _cache_prune_lock:
+        entries = sorted(CACHE_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime)
+        excess = len(entries) - CACHE_MAX_ENTRIES
+        for path in entries[:max(excess, 0)]:
+            path.unlink(missing_ok=True)
+
+
+# --- 9. ENDPOINTS ---
 
 @web_app.post("/synthesize", response_model=SynthesisResponse)
-async def synthesize_speech(request: SynthesisRequest):
-    load_models()
+async def synthesize_speech(request: SynthesisRequest, user_id: int = Depends(verify_token)):
+    check_rate_limit(user_id)
+
+    text = (request.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="El texto esta vacio.")
+    if len(text) > MAX_TEXT_CHARS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Texto demasiado largo (maximo {MAX_TEXT_CHARS} caracteres).",
+        )
 
     voice_key = (request.voice or DEFAULT_VOICE).lower()
     voice_id = VOICE_MAP.get(voice_key)
@@ -256,7 +409,14 @@ async def synthesize_speech(request: SynthesisRequest):
             detail=f"Voz '{request.voice}' no válida. Opciones: {list(VOICE_MAP.keys())}",
         )
 
-    print(f"Sintetizando: '{request.text}' | voz: {voice_id}")
+    cache_key = _cache_key(voice_id, text)
+    cached = _cache_read(cache_key)
+    if cached is not None:
+        return cached
+
+    load_models()
+
+    print(f"Sintetizando: '{text}' | voz: {voice_id}")
     wav_path = None
 
     try:
@@ -264,7 +424,7 @@ async def synthesize_speech(request: SynthesisRequest):
         import soundfile as sf
 
         audio_chunks = []
-        for result in kokoro_pipeline(request.text, voice=voice_id, speed=1.0):
+        for result in kokoro_pipeline(text, voice=voice_id, speed=1.0):
             audio_chunks.append(result[2])
 
         if not audio_chunks:
@@ -277,13 +437,15 @@ async def synthesize_speech(request: SynthesisRequest):
         sf.write(wav_path, audio, 24000)
 
         # Forced alignment con MMS_FA → visemas basados en el audio real
-        visemes_list = align_visemes(wav_path, request.text)
+        visemes_list = align_visemes(wav_path, text)
 
         with open(wav_path, 'rb') as f:
             audio_base64 = base64.b64encode(f.read()).decode('utf-8')
 
         print(f">>> Listo | Visemas: {len(visemes_list)}")
-        return SynthesisResponse(audio_base64=audio_base64, visemes=visemes_list)
+        response = SynthesisResponse(audio_base64=audio_base64, visemes=visemes_list)
+        _cache_write(cache_key, response)
+        return response
 
     except Exception as e:
         traceback.print_exc()
@@ -296,7 +458,7 @@ async def synthesize_speech(request: SynthesisRequest):
 
 @web_app.get("/")
 def read_root():
-    return {"status": "Servicio de Avatar TTS v3 en linea", "voices": list(VOICE_MAP.keys())}
+    return {"status": "Servicio de Avatar TTS en linea", "voices": list(VOICE_MAP.keys())}
 
 
 @web_app.get("/voices")
@@ -306,6 +468,17 @@ def list_voices():
 
 @web_app.get("/health")
 def health():
-    """Para el healthcheck del contenedor: responde recien cuando los modelos cargaron."""
+    """Para el healthcheck del contenedor: responde recien cuando los modelos cargaron.
+    Sin auth a proposito -- Docker necesita poder pegarle sin token."""
     ready = kokoro_pipeline is not None and mms_model is not None
     return {"ready": ready}
+
+
+@web_app.get("/cache-stats")
+def cache_stats():
+    entries = list(CACHE_DIR.glob("*.json")) if CACHE_DIR.exists() else []
+    return {
+        "entries": len(entries),
+        "bytes": sum(p.stat().st_size for p in entries),
+        "max_entries": CACHE_MAX_ENTRIES,
+    }

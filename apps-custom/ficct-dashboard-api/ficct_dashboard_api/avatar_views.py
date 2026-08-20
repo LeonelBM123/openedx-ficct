@@ -1,5 +1,5 @@
 """
-Proxy del LLM del asistente avatar.
+Proxy del LLM y emisor de tokens de voz del asistente avatar.
 
 Antes el MFE `learning` llamaba a OpenRouter directamente desde el navegador con la
 API key tomada de `getConfig().OPENROUTER_API_KEY`. Esa key se publicaba en MFE_CONFIG,
@@ -9,8 +9,17 @@ y gastar con ella.
 Ahora la key vive solo en los settings de Django (`FICCT_AVATAR`, ver el plugin de Tutor
 `avatar_asistente.py`) y el MFE pregunta aca. Como el gasto lo paga el servidor, el
 endpoint exige usuario autenticado y limita la tasa por usuario.
+
+El servicio de voz (`services/avatar-tts`) sigue un patron distinto: el LMS NO proxea
+el audio, solo emite un token corto (ver AvatarTtsTokenView) que el navegador usa para
+hablar directo con el contenedor de TTS. Motivo: el LMS corre con solo 2 workers de
+uwsgi (UWSGI_WORKERS=2) y una sintesis tarda 5-10 s, asi que proxear el audio dejaria
+la plataforma sin workers para el resto de los alumnos durante cada frase del avatar.
 """
+import hashlib
+import hmac
 import logging
+import time
 
 import requests
 from django.conf import settings
@@ -33,6 +42,11 @@ REQUEST_TIMEOUT = 30
 DEFAULT_MODEL = 'openai/gpt-4o-mini'
 DEFAULT_BASE_URL = 'https://openrouter.ai/api/v1'
 DEFAULT_THROTTLE_RATE = '20/min'
+
+# El contenedor de TTS impone su propio tope duro (TOKEN_MAX_TTL_SECONDS en app.py) por
+# si este valor cambiara sin avisarle; 300s da margen de sobra para el tour mas largo.
+TTS_TOKEN_TTL_SECONDS = 300
+DEFAULT_TTS_TOKEN_THROTTLE_RATE = '60/min'
 
 # Vivia en AvatarTour.jsx, es decir que el cliente lo mandaba y por lo tanto podia
 # reemplazarlo. Del lado del servidor es fijo.
@@ -144,3 +158,55 @@ class AvatarAskView(APIView):
         respuesta = choices[0].get('message', {}).get('content', '') if choices else ''
 
         return Response({'respuesta': respuesta})
+
+
+class AvatarTtsTokenThrottle(UserRateThrottle):
+    """Limite por usuario autenticado, configurable desde Tutor. El token dura varios
+    minutos, asi que el MFE lo pide una vez y lo reusa -- este limite es una defensa
+    contra un cliente roto o malicioso pidiendo tokens en bucle, no el trafico normal."""
+
+    scope = 'ficct_avatar_tts_token'
+
+    def get_rate(self):
+        return _avatar_settings().get('TTS_TOKEN_THROTTLE_RATE') or DEFAULT_TTS_TOKEN_THROTTLE_RATE
+
+
+class AvatarTtsTokenView(APIView):
+    """
+    Emite un token de corta duracion para hablar directo con el servicio de voz
+    (`services/avatar-tts`), sin que el audio pase por el LMS.
+
+    **Ejemplo**
+        GET /api/ficct/avatar/tts-token/
+
+    **Respuesta**
+        {"token": "<user_id>.<exp>.<sig>", "expires_in": 300}
+
+    El token es HMAC de `request.user.id` + expiracion, firmado con el mismo secreto
+    que el contenedor de TTS recibe por variable de entorno (`AVATAR_TTS_SECRET`, ver
+    el plugin de Tutor `avatar_tts.py`). El contenedor lo valida el mismo, sin llamar
+    de vuelta al LMS -- por eso una peticion de sintesis no compite por los 2 workers
+    de uwsgi que tiene el LMS.
+
+    Es GET porque no muta nada del lado del servidor (a diferencia de AvatarAskView,
+    que si dispara una llamada facturable a OpenRouter).
+    """
+
+    permission_classes = (IsAuthenticated,)
+    throttle_classes = (AvatarTtsTokenThrottle,)
+
+    def get(self, request):
+        config = _avatar_settings()
+        secret = config.get('TTS_SECRET')
+        if not secret:
+            log.warning('FICCT_AVATAR["TTS_SECRET"] no esta configurada.')
+            return Response(
+                {'error': 'El modulo de voz no esta disponible.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        exp = int(time.time()) + TTS_TOKEN_TTL_SECONDS
+        payload = f'{request.user.id}.{exp}'
+        sig = hmac.new(secret.encode('utf-8'), payload.encode('utf-8'), hashlib.sha256).hexdigest()
+
+        return Response({'token': f'{payload}.{sig}', 'expires_in': TTS_TOKEN_TTL_SECONDS})

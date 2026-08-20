@@ -224,7 +224,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     setStatsVisible(!!step?.openStats);
   }, [currentStep, isTourActive, steps]);
 
-  // Reproduce texto con voz + lip-sync (síntesis en el servicio Modal).
+  // Reproduce texto con voz + lip-sync (síntesis en services/avatar-tts).
   // Lanza si el navegador bloquea el autoplay (audio.play() sin gesto previo).
   const speakText = useCallback(async (text) => {
     if (!text || !ttsEnabled) { return; }

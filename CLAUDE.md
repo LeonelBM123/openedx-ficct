@@ -104,6 +104,7 @@ Los plugins de Tutor son archivos Python que inyectan código en archivos que Tu
 | `ficct_config.py` | MFE_CONFIG (logos, email, URLs) + Judge0 XBlock |
 | `notifications_ficct.py` | Activa el waffle flag `notifications.enable_notifications` (campana de notificaciones en todos los headers) |
 | `ficct_dashboard_api.py` | Instala el paquete `apps-custom/ficct-dashboard-api` en la imagen openedx (APIs propias bajo `/api/ficct/`) |
+| `avatar_tts.py` | Contenedor propio de voz del avatar (`services/avatar-tts`, imagen que se construye a mano en cada servidor) + vhost `tts.<LMS_HOST>` en Caddy. El token que autentica ese contenedor lo emite `/api/ficct/avatar/tts-token/`, definido junto al resto de settings del avatar en `avatar_asistente.py` |
 
 ### Patches más usados
 
@@ -418,8 +419,15 @@ Las API keys se setean en el servidor directamente, nunca en el código:
 ```bash
 tutor config save \
   --set FICCT_JUDGE0_API_KEY=tu_key_aqui \
-  --set FICCT_OPENROUTER_API_KEY=tu_key_aqui
+  --set FICCT_OPENROUTER_API_KEY=tu_key_aqui \
+  --set AVATAR_TTS_SECRET=$(openssl rand -hex 32)
 ```
+
+`AVATAR_TTS_SECRET` no es una key de un servicio externo: es un secreto compartido que
+generamos nosotros, usado para firmar los tokens que autentican al contenedor de voz del
+avatar (ver `avatar_tts.py`). Debe tener el mismo valor en el LMS y en el contenedor
+`avatar-tts` — Tutor lo propaga solo, pero si se rota hay que regenerarlo con el mismo
+comando y reiniciar ambos.
 
 Quedan guardadas en `~/.local/share/tutor/config.yml` — fuera del repo Git.
 

@@ -2,7 +2,7 @@
 
 ## Descripción
 
-Asistente virtual 3D flotante integrado en el MFE `frontend-app-learning`. Aparece en la esquina inferior derecha de las páginas de cursos. Usa síntesis de voz (Azure Speech Services), animación lip sync, y un LLM (via OpenRouter) para responder preguntas de los estudiantes.
+Asistente virtual 3D flotante integrado en el MFE `frontend-app-learning`. Aparece en la esquina inferior derecha de las páginas de cursos. Usa síntesis de voz propia (Kokoro + MMS_FA, `services/avatar-tts`), animación lip sync, y un LLM (via OpenRouter) para responder preguntas de los estudiantes.
 
 ## Archivos del módulo
 
@@ -16,11 +16,12 @@ mfes/frontend-app-learning/src/asistente/
 ├── index.scss              ← Estilos (mínimos, mayoría es inline CSS)
 └── config/
     ├── ToursConfig.js         ← Scripts del tour por MFE
-    └── ttsService.js          ← Cliente del servicio de voz propio (Modal) + lip sync
+    └── ttsService.js          ← Cliente del servicio de voz propio (services/avatar-tts) + lip sync
 ```
 
 > `azureSpeechService.js`, `qaService.js` y `useTts.js` fueron eliminados: la voz pasó a
-> generarse en el servicio propio de Modal y las preguntas van al endpoint del LMS.
+> generarse en el servicio propio (`services/avatar-tts`) y las preguntas van al
+> endpoint del LMS.
 
 ## Assets 3D (en public/)
 
@@ -65,7 +66,7 @@ POST {LMS_BASE_URL}/api/ficct/avatar/ask/     ← IsAuthenticated + throttle por
    ↓ requests.post (key desde settings.FICCT_AVATAR)
 https://openrouter.ai/api/v1/chat/completions
    ↓ { respuesta }
-speakText() → AVATAR_TTS_API_URL (servicio propio en Modal) → audio + visemas
+speakText() → ver "Cómo se genera la voz" abajo
 ```
 
 Antes la key de OpenRouter se publicaba en `MFE_CONFIG`, que el LMS sirve **sin
@@ -73,14 +74,38 @@ autenticación** en `GET /api/mfe_config/v1`: era legible por cualquiera. Por es
 secreto puede volver a ese patch. El *system prompt* también vive en el servidor, para
 que el cliente no pueda reemplazarlo.
 
+## Cómo se genera la voz
+
+El navegador **tampoco proxea el audio por el LMS** (a diferencia de las preguntas al
+LLM): el LMS corre con solo 2 workers de uwsgi (`UWSGI_WORKERS=2`), y una síntesis tarda
+5-10 s, así que pasar el audio por ahí dejaría la plataforma sin workers para el resto
+de los alumnos en cada frase del avatar. En cambio, el LMS solo emite un token corto y
+el navegador habla directo con el contenedor de voz:
+
+```
+ttsService.getToken()
+   ↓ getAuthenticatedHttpClient().get()
+GET {LMS_BASE_URL}/api/ficct/avatar/tts-token/     ← IsAuthenticated + throttle
+   ↓ { token, expires_in }        (token cacheado en el módulo, se reusa ~5 min)
+ttsService.textToSpeech(texto, voz)
+   ↓ fetch con Authorization: Bearer <token>
+POST {AVATAR_TTS_API_URL}/synthesize               ← services/avatar-tts (contenedor propio)
+   ↓ Kokoro (síntesis) + MMS_FA (forced alignment) + cache en disco por (voz, texto)
+{ audio_base64, visemes }
+```
+
+Detalle completo del servicio, la autenticación por token y la caché en
+`services/avatar-tts/README.md`.
+
 ## Configuración requerida (Tutor)
 
 ```bash
 # Habilitar el avatar
 tutor config save --set AVATAR_ENABLED=true
 
-# Voz: servicio propio desplegado en Modal (URL pública, no es un secreto)
-tutor config save --set AVATAR_TTS_API_URL=https://<tu-app>.modal.run/synthesize
+# Voz: contenedor propio (services/avatar-tts), URL pública pero protegida por token
+tutor config save --set AVATAR_TTS_SECRET=$(openssl rand -hex 32)
+tutor config save --set AVATAR_TTS_API_URL=http://tts.$(tutor config printvalue LMS_HOST)/synthesize
 
 # LLM para responder preguntas (OpenRouter). La key queda solo en los settings de
 # Django, nunca en MFE_CONFIG.
@@ -94,8 +119,8 @@ tutor config save --set AVATAR_OPENROUTER_THROTTLE_RATE=20/min
 tutor local restart lms
 ```
 
-⚠️ Cambiar la key **no requiere rebuild de la imagen del MFE**: solo `tutor config save`
-y `tutor local restart lms`. Antes sí hacía falta, porque el valor viajaba al navegador.
+⚠️ Cambiar las keys **no requiere rebuild de la imagen del MFE**: solo `tutor config
+save` y `tutor local restart lms`. Ninguna de las dos viaja al navegador.
 
 ## Contexto que el LLM recibe por pregunta
 
@@ -125,14 +150,20 @@ Muestra: % de completitud, calificación general (% + letra + aprobado/no aproba
 
 ## Avatares disponibles
 
-| ID | Emoji | Voz Azure |
-|----|-------|-----------|
-| default | 🧑 | es-MX-JorgeNeural |
-| avatar1 | 🧑 | es-MX-JorgeNeural |
-| avatar2 | 🧑 | es-MX-JorgeNeural |
-| avatar3 | 🧑 | es-MX-JorgeNeural |
-| avatar4 | 👩 | es-MX-DaliaNeural |
-| avatar6 | 👩 | es-MX-DaliaNeural |
+Voz Kokoro por avatar (`AvatarSwitcher.jsx`), mapeada a la voz real del servicio en
+`VOICE_MAP` de `services/avatar-tts/app.py`:
+
+| ID | Emoji | Voz (`ttsService`) | Voz Kokoro |
+|----|-------|---------------------|------------|
+| default | 🧑 | alex | em_alex |
+| avatar1 | 🧑 | alex | em_alex |
+| avatar2 | 🧑 | alex | em_alex |
+| avatar3 | 🧑 | alex | em_alex |
+| avatar4 | 👩 | dora | ef_dora |
+| avatar6 | 👩 | dora | ef_dora |
+
+La voz `santa` (`em_santa`) existe en el servicio pero no está asignada a ningún avatar
+del switcher todavía.
 
 ## Verificar que el avatar está activo
 
@@ -144,13 +175,12 @@ curl -s "http://167.172.142.82.nip.io/api/mfe_config/v1?mfe=learning" | python3 
 docker exec tutor_local-mfe-1 sh -c "grep -rl 'AvatarTour' /openedx/dist/learning/ 2>/dev/null | head -3"
 ```
 
-## Flujo de síntesis de voz (Azure)
+## Flujo de reproducción del audio (lip sync)
 
 ```
 AvatarTour
-  ├── azureSpeech.textToSpeech(texto, voz)
-  │     ├── Azure Speech SDK → audio ArrayBuffer
-  │     └── visemas 0-21 → convertidos a letras A-H (ARKit)
+  ├── ttsService.textToSpeech(texto, voz)   ← ver "Cómo se genera la voz"
+  │     └── visemas A-H (ARKit) con start/duration ya calculados por MMS_FA
   ├── new Blob([audioData]) → URL.createObjectURL → Audio()
   ├── audio.play()
   └── Avatar.useFrame:
