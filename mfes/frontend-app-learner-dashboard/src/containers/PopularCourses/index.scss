@@ -27,26 +27,30 @@
   }
 }
 
-@media (--pgn-size-breakpoint-max-width-lg) {
-  .popular-courses .popular-courses-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (--pgn-size-breakpoint-max-width-md) {
+// Custom media de Paragon (--pgn-size-breakpoint-*) sin resolver: postcss-custom-media
+// no ve la definicion de App.scss al procesar este archivo por separado, y la regla queda
+// literal en el CSS final (nunca aplica en ningun navegador). Se usan valores resueltos
+// (max-width-lg = 1200px, confirmado en custom-media-breakpoints.css) en su lugar.
+@media (max-width: 1200px) {
   .popular-courses {
     .popular-courses-title {
       font-size: var(--pgn-typography-font-size-h3-base);
       margin: var(--pgn-spacing-spacer-2) 0;
     }
 
-    // En movil la fila se desplaza horizontalmente en vez de apilarse.
+    // Carrusel deslizable: cada tarjeta al 85% del ancho, con scroll-snap
+    // para que el deslizamiento "enganche" tarjeta por tarjeta.
     .popular-courses-list {
-      grid-auto-flow: column;
-      grid-auto-columns: 70%;
+      display: flex;
       grid-template-columns: none;
       overflow-x: auto;
+      scroll-snap-type: x mandatory;
       padding-bottom: var(--pgn-spacing-spacer-2);
+    }
+
+    .popular-course-card {
+      flex: 0 0 85%;
+      scroll-snap-align: start;
     }
   }
 }
