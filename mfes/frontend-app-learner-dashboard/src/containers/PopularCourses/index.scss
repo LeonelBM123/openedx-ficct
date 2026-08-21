@@ -15,9 +15,14 @@
 
   .popular-course-card {
     height: 100%;
+    overflow: hidden;
 
     .popular-course-card-title {
       color: var(--pgn-color-black);
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 }
