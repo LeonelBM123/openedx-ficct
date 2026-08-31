@@ -9,7 +9,7 @@ COMPREHENSIVE_THEME_DIRS = ["/openedx/themes"]
 DEFAULT_SITE_THEME = "ficct"
 LOGO_URL = "/static/ficct/images/logo.png"
 LOGO_WHITE_URL = "/static/ficct/images/logo-white.png"
-LOGO_URL_PNG = "http://{{ LMS_HOST }}/static/ficct/images/logo.png"
+LOGO_URL_PNG = "https://{{ LMS_HOST }}/static/ficct/images/logo.png"
 FAVICON_PATH = "ficct/images/favicon.ico"
 """
     ),

@@ -23,14 +23,14 @@ ENABLE_CATALOG_MICROFRONTEND = True
     (
         "openedx-lms-production-settings",
         """
-CATALOG_MICROFRONTEND_URL = "http://{{ MFE_HOST }}/catalog"
+CATALOG_MICROFRONTEND_URL = "https://{{ MFE_HOST }}/catalog"
 """
     ),
     # URL para desarrollo (tutor dev) - con puerto
     (
         "openedx-lms-development-settings",
         """
-CATALOG_MICROFRONTEND_URL = "http://{{ LMS_HOST }}:{{ get_mfe('catalog').port }}/catalog"
+CATALOG_MICROFRONTEND_URL = "https://{{ LMS_HOST }}:{{ get_mfe('catalog').port }}/catalog"
 """
     ),
 ])

@@ -10,18 +10,18 @@ hooks.Filters.ENV_PATCHES.add_items([
     (
         "mfe-lms-production-settings",
         """
-MFE_CONFIG["LOGO_URL"] = "http://{{ LMS_HOST }}/static/ficct/images/logo.png"
-MFE_CONFIG["LOGO_WHITE_URL"] = "http://{{ LMS_HOST }}/static/ficct/images/logo-white.png"
-MFE_CONFIG["FAVICON_URL"] = "http://{{ LMS_HOST }}/static/ficct/images/favicon.ico"
+MFE_CONFIG["LOGO_URL"] = "https://{{ LMS_HOST }}/static/ficct/images/logo.png"
+MFE_CONFIG["LOGO_WHITE_URL"] = "https://{{ LMS_HOST }}/static/ficct/images/logo-white.png"
+MFE_CONFIG["FAVICON_URL"] = "https://{{ LMS_HOST }}/static/ficct/images/favicon.ico"
 # Imagen de fondo del hero del catalog MFE. La sirve el contenedor `landing` (caddy) desde
 # /root/landing-deploy/assets/, asi que cambiar la foto no requiere reconstruir ningun MFE:
 # basta reemplazar el archivo, o apuntar esta variable a otro nombre y `tutor config save`.
-MFE_CONFIG["HOMEPAGE_BANNER_IMAGE_URL"] = "http://{{ FICCT_LANDING_HOST }}/assets/facultad.jpg"
+MFE_CONFIG["HOMEPAGE_BANNER_IMAGE_URL"] = "https://{{ FICCT_LANDING_HOST }}/assets/facultad.jpg"
 MFE_CONFIG["SUPPORT_EMAIL"] = "soporte@ficct.uagrm.edu.bo"
-MFE_CONFIG["TERMS_OF_SERVICE_URL"] = "http://{{ LMS_HOST }}/tos"
-MFE_CONFIG["PRIVACY_POLICY_URL"] = "http://{{ LMS_HOST }}/privacy"
+MFE_CONFIG["TERMS_OF_SERVICE_URL"] = "https://{{ LMS_HOST }}/tos"
+MFE_CONFIG["PRIVACY_POLICY_URL"] = "https://{{ LMS_HOST }}/privacy"
 MFE_CONFIG["ENABLE_ACCESSIBILITY_PAGE"] = False
-MFE_CONFIG["DISCOVERY_API_BASE_URL"] = "http://discovery.{{ LMS_HOST }}"
+MFE_CONFIG["DISCOVERY_API_BASE_URL"] = "https://discovery.{{ LMS_HOST }}"
 MFE_CONFIG["LANGUAGE_PREFERENCE_COOKIE_NAME"] = "openedx-language-preference"
 MFE_CONFIG["DEFAULT_COURSE_LANGUAGE"] = "es-419"
 MFE_CONFIG["SITE_LANGUAGE"] = "es-419"
@@ -29,7 +29,7 @@ MFE_CONFIG["SITE_LANGUAGE"] = "es-419"
 # sin agregar redirect_url propio. Lo horneamos aquí para que el logout termine en la
 # landing page en vez de caer al destino por defecto de Django ("/", que a su vez
 # redirige al catalog MFE por ENABLE_CATALOG_MICROFRONTEND=True en catalog_mfe.py).
-MFE_CONFIG["LOGOUT_URL"] = "http://{{ LMS_HOST }}/logout?redirect_url=http%3A%2F%2F{{ FICCT_LANDING_HOST }}%2F"
+MFE_CONFIG["LOGOUT_URL"] = "https://{{ LMS_HOST }}/logout?redirect_url=https%3A%2F%2F{{ FICCT_LANDING_HOST }}%2F"
 """
     ),
     # Configuración del XBlock de AI Evaluation (Judge0)
