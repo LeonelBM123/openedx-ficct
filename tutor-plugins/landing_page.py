@@ -28,4 +28,24 @@ landing:
 }
 """
     ),
+    # Redirige a la landing (www.) a quien visita la raíz del LMS sin sesión
+    # iniciada. Sin esto, Open edX redirige la raíz al catalog MFE en cuanto
+    # ENABLE_CATALOG_MICROFRONTEND=True (ver catalog_mfe.py) -- ese redirect
+    # nativo ocurre ANTES de que Open edX evalúe cualquier opción de "marketing
+    # site" (branding/views.py:index), así que no se puede resolver por
+    # settings de Django mientras el catalog MFE siga activo. `redir` se
+    # ejecuta antes que `handle`/`reverse_proxy` en Caddy por defecto, así que
+    # esto gana con seguridad sin importar el orden textual. Quien ya inició
+    # sesión (cookie edxloggedin=true, ver EDXMKTG_LOGGED_IN_COOKIE_NAME) sigue
+    # yendo al LMS normal, sin cambios.
+    (
+        "caddyfile-lms",
+        """
+@landing_anon_root {
+    path /
+    not header_regexp Cookie edxloggedin=true
+}
+redir @landing_anon_root {% if ENABLE_HTTPS %}https{% else %}http{% endif %}://{{ FICCT_LANDING_HOST }}/
+"""
+    ),
 ])
