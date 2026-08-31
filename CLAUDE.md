@@ -30,6 +30,17 @@ Plataforma de aprendizaje virtual de la **FICCT-UAGRM** (Facultad de Ingeniería
 | Monorepo servidor | /root/openedx-ficct/ |
 | Monorepo PC | C:\Users\PC\openedx-ficct\ |
 
+### Dominios y vhosts (Caddy)
+
+| Subdominio | Destino | Definido en |
+|------------|---------|-------------|
+| `<LMS_HOST>` (raíz) | `lms:8000`. Anónimos son redirigidos a `www.<LMS_HOST>` (landing); con sesión iniciada (`edxloggedin=true`) va al LMS normal | `landing_page.py` (redirect) + Tutor core (LMS) |
+| `studio.<LMS_HOST>` | `cms:8000` | Tutor core (CMS_HOST) |
+| `apps.<LMS_HOST>` | `mfe:8002` | `mfe` (plugin oficial de Tutor) |
+| `www.<LMS_HOST>` | `landing:80` (sitio estático) | `landing_page.py` (`FICCT_LANDING_HOST`) |
+| `meilisearch.<LMS_HOST>` | `meilisearch:7700` | **Tutor/Indigo, nativo** — no redeclarar en un plugin propio (ver Gotchas de Caddy) |
+| `superset.<LMS_HOST>` | Placeholder ("aún no instalado") | `extra_domains.py` |
+
 ---
 
 ## Estructura del Monorepo
@@ -68,7 +79,8 @@ openedx-ficct/
 │   ├── catalog_mfe.py               ← Registra MFE catalog
 │   ├── ficct_theme.py               ← Comprehensive Theme Django legacy
 │   ├── ficct_config.py              ← MFE_CONFIG + Judge0 + logos
-│   └── extra_domains.py             ← Vhosts Caddy extra (meilisearch, superset)
+│   ├── landing_page.py              ← Contenedor + vhost www. de la landing, redirect raíz→landing
+│   └── extra_domains.py             ← Vhost Caddy extra (superset)
 ├── apps-custom/                     ← Django apps custom instaladas en la imagen openedx
 │   └── ficct-dashboard-api/         ← Plugin app LMS: /api/ficct/popular-courses/
 ├── docs/                            ← Guías y documentación
@@ -106,7 +118,8 @@ Los plugins de Tutor son archivos Python que inyectan código en archivos que Tu
 | `notifications_ficct.py` | Activa el waffle flag `notifications.enable_notifications` (campana de notificaciones en todos los headers) |
 | `ficct_dashboard_api.py` | Instala el paquete `apps-custom/ficct-dashboard-api` en la imagen openedx (APIs propias bajo `/api/ficct/`) |
 | `avatar_tts.py` | Contenedor propio de voz del avatar (`services/avatar-tts`, imagen que se construye a mano en cada servidor) + ruta `/avatar-tts/*` dentro del vhost del LMS en Caddy (no un subdominio propio, para no consumir otro DNS). El token que autentica ese contenedor lo emite `/api/ficct/avatar/tts-token/`, definido junto al resto de settings del avatar en `avatar_asistente.py` |
-| `extra_domains.py` | Agrega vhosts propios al Caddyfile global (patch `caddyfile`, no `caddyfile-mfe-proxy`) para subdominios que no son un MFE ni el LMS: `meilisearch.{{ LMS_HOST base }}` (reverse proxy al contenedor `meilisearch:7700`, para acceder a su panel/API directo) y `superset.{{ LMS_HOST base }}` (placeholder — responde un mensaje fijo hasta que se instale Superset) |
+| `landing_page.py` | Contenedor `landing` (caddy sirviendo estáticos del build Vite/React de `landing-page/`) + vhost `www.{{ LMS_HOST }}` para él + redirect en el vhost del LMS: anónimos que visitan la raíz van a la landing, con sesión iniciada van al LMS normal (ver Dominios y vhosts arriba) |
+| `extra_domains.py` | Agrega al Caddyfile global (patch `caddyfile`) el vhost `superset.{{ LMS_HOST base }}` (placeholder — responde un mensaje fijo hasta que se instale Superset). **No** declara `meilisearch` — ese vhost ya lo genera nativamente Tutor/Indigo (ver Gotchas de Caddy) |
 
 ### Patches más usados
 
@@ -134,9 +147,26 @@ tutor plugins install /root/openedx-ficct/tutor-plugins/ficct_config.py
 # 3. Regenerar entorno
 tutor config save
 
-# 4. Reiniciar servicio afectado
+# 4. Reiniciar el servicio que corresponda al patch tocado (ver tabla abajo)
 tutor local restart lms
 ```
+
+⚠️ **El restart correcto depende del patch, no siempre es `lms`:**
+
+| Patch tocado | Restart |
+|--------------|---------|
+| `openedx-*`, `mfe-lms-*` (settings Django/MFE_CONFIG) | `tutor local restart lms` (+ `cms` si el patch también aplica ahí) |
+| `caddyfile`, `caddyfile-lms`, `caddyfile-mfe-proxy` (Caddy) | `tutor local restart caddy` |
+| `local-docker-compose-services` que agrega un contenedor nuevo | `tutor local start -d` |
+
+### ⚠️ Gotchas de Caddy
+
+- **No redeclarar un vhost que Tutor ya genera nativamente.** El release Indigo ya define su propio vhost para `meilisearch.<LMS_HOST>`. Si un plugin propio lo vuelve a declarar (como hacía `extra_domains.py` hasta que se corrigió), Caddy falla al arrancar con `ambiguous site definition` y el contenedor queda en loop de reinicio — **tumba el sitio completo**, no solo el subdominio duplicado. Antes de agregar un vhost nuevo, revisar si ya existe en el Caddyfile generado (`~/.local/share/tutor/env/apps/caddy/Caddyfile`).
+- **Validar el Caddyfile generado antes de reiniciar Caddy**, sin tocar el contenedor que ya está corriendo:
+  ```bash
+  docker exec tutor_local-caddy-1 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+  ```
+  Si responde `Valid configuration`, el `tutor local restart caddy` es seguro. Si falla, se corrige el plugin ANTES de reiniciar — así se evita el corte de servicio que causó justamente el problema anterior.
 
 ---
 
@@ -272,21 +302,75 @@ XBLOCK_SETTINGS = {
 ])
 ```
 
+### `landing_page.py`
+
+Sirve el sitio estático de la landing (build Vite/React del directorio `landing-page/` del monorepo, desplegado a mano en `FICCT_LANDING_DEPLOY_PATH` del servidor) en su propio contenedor Caddy, montado en `www.{{ LMS_HOST }}`. Además, redirige la raíz del LMS a esa landing para visitantes anónimos — sin esto, Open edX redirige la raíz al catalog MFE en cuanto `ENABLE_CATALOG_MICROFRONTEND=True` (`catalog_mfe.py`), y ese redirect nativo (`lms/djangoapps/branding/views.py:index`) ocurre ANTES de que Open edX evalúe cualquier opción de "marketing site", así que no se puede resolver por settings de Django mientras el catalog MFE siga activo.
+
+```python
+from tutor import hooks
+
+hooks.Filters.CONFIG_DEFAULTS.add_items([
+    ("FICCT_LANDING_HOST", "www.{{ LMS_HOST }}"),
+    ("FICCT_LANDING_DEPLOY_PATH", "/root/landing-deploy"),
+])
+
+hooks.Filters.ENV_PATCHES.add_items([
+    # Servidor estático liviano para el dist/ de la landing page (Vite/React SPA).
+    (
+        "local-docker-compose-services",
+        """
+landing:
+    image: docker.io/caddy:2.7.4
+    restart: unless-stopped
+    volumes:
+        - {{ FICCT_LANDING_DEPLOY_PATH }}:/srv/landing:ro
+    command: ['sh', '-c', 'printf "%s\\n" ":80 {" "    root * /srv/landing" "    encode gzip" "    try_files {path} /index.html" "    file_server" "}" > /etc/caddy/Caddyfile && exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile']
+"""
+    ),
+    # Vhost en el Caddy frontal de Tutor para el subdominio de la landing.
+    (
+        "caddyfile",
+        """
+{{ FICCT_LANDING_HOST }}{$default_site_port} {
+    import proxy "landing:80"
+}
+"""
+    ),
+    # Redirige la raíz del LMS a la landing para quien no tiene sesión iniciada.
+    # `redir` se ejecuta antes que `handle`/`reverse_proxy` en Caddy por
+    # defecto, así que gana con seguridad sin importar el orden textual.
+    (
+        "caddyfile-lms",
+        """
+@landing_anon_root {
+    path /
+    not header_regexp Cookie edxloggedin=true
+}
+redir @landing_anon_root {% if ENABLE_HTTPS %}https{% else %}http{% endif %}://{{ FICCT_LANDING_HOST }}/
+"""
+    ),
+])
+```
+
+⚠️ **La landing no es solo `index.html` + `assets/`** — es un mini-sitio con varias páginas propias (`malla_curricular.html`, `plan_informatica.js`, `noticias.json`, etc.), con rutas relativas al dominio actual. Por eso el redirect de la raíz apunta a `www.` en vez de servir la landing "transparente" en el mismo dominio: hacerlo transparente exigiría listar cada ruta propia de la landing en el Caddyfile, y esa lista quedaría desactualizada cada vez que la landing agregue una página nueva.
+
+⚠️ **`edxloggedin`** es la cookie que Open edX expone específicamente para que sitios de marketing externos sepan si el visitante está logueado (`settings.EDXMKTG_LOGGED_IN_COOKIE_NAME`, valor `"true"` cuando hay sesión). Se usa aquí en vez de la cookie de sesión real porque su dominio (`SHARED_COOKIE_DOMAIN`) es legible desde Caddy sin tocar Django.
+
 ### `extra_domains.py`
 
-Agrega vhosts al Caddyfile global (patch `caddyfile`) para subdominios que no pasan por el LMS ni por un MFE. Solo lo usan `meilisearch` y `superset` — el resto de subdominios de la plataforma (LMS, MFEs, discovery, landing) ya tienen su propio vhost generado por Tutor o por sus plugins respectivos.
+Agrega vhosts al Caddyfile global (patch `caddyfile`) para subdominios que no pasan por el LMS ni por un MFE, y que **no** genera ya otro plugin o el propio Tutor. Hoy solo agrega `superset`.
 
 ```python
 from tutor import hooks
 
 hooks.Filters.ENV_PATCHES.add_items([
+    # El vhost de meilisearch ya lo define nativamente el propio Tutor/Indigo
+    # (aparece por separado en el Caddyfile generado). Declararlo aquí también
+    # produce "ambiguous site definition" y Caddy no arranca -- por eso este
+    # plugin solo debe agregar el de superset, que no lo provee nadie más.
     (
         "caddyfile",
         """
-meilisearch.aulavirtual.ficct.uagrm.edu.bo {
-    reverse_proxy meilisearch:7700
-}
-
 superset.aulavirtual.ficct.uagrm.edu.bo {
     respond "Superset aun no esta instalado en esta plataforma" 200
 }
@@ -296,6 +380,8 @@ superset.aulavirtual.ficct.uagrm.edu.bo {
 ```
 
 ⚠️ El bloque de `superset` es un placeholder: cuando se instale Superset de verdad, hay que reemplazar el `respond` por un `reverse_proxy` al contenedor correspondiente.
+
+⚠️ **No agregar aquí un vhost `meilisearch.<LMS_HOST>`** — ver "Gotchas de Caddy" más arriba. Este plugin tumbó el sitio completo una vez por esto (ambos vhosts coexistieron sin error en el repo, pero Caddy se negó a arrancar la primera vez que se reinició tras el `tutor config save` que incluía el duplicado).
 
 ### `notifications_ficct.py`
 
