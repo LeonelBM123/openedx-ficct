@@ -8,7 +8,7 @@ import { ArrowForward } from '@openedx/paragon/icons';
 
 import { useInitializeLearnerHome, useCourseCreatorStatus, useRequestCourseCreator } from 'data/hooks';
 import moreCoursesSVG from 'assets/more-courses-sidewidget.svg';
-import { baseAppUrl } from 'data/services/lms/urls';
+import { baseAppUrl, studioHomeUrl } from 'data/services/lms/urls';
 
 import { findCoursesWidgetClicked } from './track';
 import messages from './messages';
@@ -26,9 +26,23 @@ export const LookingForChallengeWidget = () => {
   const requestCourseCreator = useRequestCourseCreator();
 
   const renderInstructorAction = () => {
-    // Sin dato (cargando/error/CORS) o ya es creator: no mostrar nada.
-    if (!creatorStatus || creatorStatus === 'granted') {
+    // Sin dato (cargando/error/CORS): no mostrar nada.
+    if (!creatorStatus) {
       return null;
+    }
+    // Ya tiene el rol de course creator: link a Studio (crear/gestionar cursos).
+    if (creatorStatus === 'granted') {
+      return (
+        <h5 className="mt-2">
+          <Hyperlink
+            variant="brand"
+            destination={studioHomeUrl()}
+            className="d-flex align-items-center"
+          >
+            {formatMessage(messages.goToStudioButton, { arrow: arrowIcon })}
+          </Hyperlink>
+        </h5>
+      );
     }
     // Solicitud en curso o ya rechazada: solo mostramos el estado, sin re-solicitar.
     if (creatorStatus === 'pending' || creatorStatus === 'denied') {

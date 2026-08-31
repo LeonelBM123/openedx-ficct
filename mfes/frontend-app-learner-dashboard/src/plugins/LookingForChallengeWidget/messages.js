@@ -21,6 +21,11 @@ const messages = defineMessages({
     defaultMessage: 'Tu solicitud para ser instructor está pendiente de aprobación.',
     description: 'Status text shown when the instructor (course creator) request is pending or denied',
   },
+  goToStudioButton: {
+    id: 'WidgetSidebar.goToStudioButton',
+    defaultMessage: 'Ir a Studio {arrow}',
+    description: 'Link for a learner who already has course creator access to go to Studio',
+  },
 });
 
 export default messages;

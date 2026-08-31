@@ -46,6 +46,8 @@ const getStudioBaseUrl = () => getConfig().STUDIO_BASE_URL;
 // termina en un error de CORS.
 const requestCourseCreator = () => `${getStudioBaseUrl()}/api/ficct/request-course-creator/`;
 const courseCreatorStatus = () => `${getStudioBaseUrl()}/api/contentstore/v1/home`;
+// Studio Home: lista los cursos del usuario, o el botón de crear uno nuevo si aún no tiene.
+export const studioHomeUrl = () => `${getStudioBaseUrl()}/home/`;
 
 export default StrictDict({
   getApiUrl,
@@ -62,5 +64,6 @@ export default StrictDict({
   popularCourses,
   programsUrl,
   requestCourseCreator,
+  studioHomeUrl,
   updateEmailSettings,
 });

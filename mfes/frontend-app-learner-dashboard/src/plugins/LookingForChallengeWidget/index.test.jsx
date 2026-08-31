@@ -53,10 +53,12 @@ describe('LookingForChallengeWidget', () => {
       expect(button).toHaveClass('become-instructor-link');
       expect(button).toHaveClass('brand-link');
     });
-    it('hides the instructor action when the user is already a creator', () => {
+    it('shows a go-to-studio link when the user is already a creator', () => {
       useCourseCreatorStatus.mockReturnValue({ data: 'granted' });
       render(<IntlProvider locale="en"><LookingForChallengeWidget /></IntlProvider>);
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
+      const link = screen.getByRole('link', { name: /Ir a Studio/ });
+      expect(link).toBeInTheDocument();
     });
     it('shows the pending state without a button', () => {
       useCourseCreatorStatus.mockReturnValue({ data: 'pending' });
