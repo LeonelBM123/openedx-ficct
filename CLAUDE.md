@@ -67,7 +67,8 @@ openedx-ficct/
 │   ├── brand_ficct.py               ← Instala brand npm en MFEs
 │   ├── catalog_mfe.py               ← Registra MFE catalog
 │   ├── ficct_theme.py               ← Comprehensive Theme Django legacy
-│   └── ficct_config.py              ← MFE_CONFIG + Judge0 + logos
+│   ├── ficct_config.py              ← MFE_CONFIG + Judge0 + logos
+│   └── extra_domains.py             ← Vhosts Caddy extra (meilisearch, superset)
 ├── apps-custom/                     ← Django apps custom instaladas en la imagen openedx
 │   └── ficct-dashboard-api/         ← Plugin app LMS: /api/ficct/popular-courses/
 ├── docs/                            ← Guías y documentación
@@ -105,6 +106,7 @@ Los plugins de Tutor son archivos Python que inyectan código en archivos que Tu
 | `notifications_ficct.py` | Activa el waffle flag `notifications.enable_notifications` (campana de notificaciones en todos los headers) |
 | `ficct_dashboard_api.py` | Instala el paquete `apps-custom/ficct-dashboard-api` en la imagen openedx (APIs propias bajo `/api/ficct/`) |
 | `avatar_tts.py` | Contenedor propio de voz del avatar (`services/avatar-tts`, imagen que se construye a mano en cada servidor) + ruta `/avatar-tts/*` dentro del vhost del LMS en Caddy (no un subdominio propio, para no consumir otro DNS). El token que autentica ese contenedor lo emite `/api/ficct/avatar/tts-token/`, definido junto al resto de settings del avatar en `avatar_asistente.py` |
+| `extra_domains.py` | Agrega vhosts propios al Caddyfile global (patch `caddyfile`, no `caddyfile-mfe-proxy`) para subdominios que no son un MFE ni el LMS: `meilisearch.{{ LMS_HOST base }}` (reverse proxy al contenedor `meilisearch:7700`, para acceder a su panel/API directo) y `superset.{{ LMS_HOST base }}` (placeholder — responde un mensaje fijo hasta que se instale Superset) |
 
 ### Patches más usados
 
@@ -269,6 +271,31 @@ XBLOCK_SETTINGS = {
     ),
 ])
 ```
+
+### `extra_domains.py`
+
+Agrega vhosts al Caddyfile global (patch `caddyfile`) para subdominios que no pasan por el LMS ni por un MFE. Solo lo usan `meilisearch` y `superset` — el resto de subdominios de la plataforma (LMS, MFEs, discovery, landing) ya tienen su propio vhost generado por Tutor o por sus plugins respectivos.
+
+```python
+from tutor import hooks
+
+hooks.Filters.ENV_PATCHES.add_items([
+    (
+        "caddyfile",
+        """
+meilisearch.aulavirtual.ficct.uagrm.edu.bo {
+    reverse_proxy meilisearch:7700
+}
+
+superset.aulavirtual.ficct.uagrm.edu.bo {
+    respond "Superset aun no esta instalado en esta plataforma" 200
+}
+"""
+    ),
+])
+```
+
+⚠️ El bloque de `superset` es un placeholder: cuando se instale Superset de verdad, hay que reemplazar el `respond` por un `reverse_proxy` al contenedor correspondiente.
 
 ### `notifications_ficct.py`
 
@@ -583,6 +610,7 @@ tutor plugins install /root/openedx-ficct/tutor-plugins/ficct_theme.py
 tutor plugins install /root/openedx-ficct/tutor-plugins/ficct_config.py
 tutor plugins install /root/openedx-ficct/tutor-plugins/notifications_ficct.py
 tutor plugins install /root/openedx-ficct/tutor-plugins/ficct_dashboard_api.py
+tutor plugins install /root/openedx-ficct/tutor-plugins/extra_domains.py
 tutor config save
 tutor local do init --limit notifications_ficct
 ```
