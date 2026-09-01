@@ -28,10 +28,26 @@ async function setConfig () {
     if (process.env.APP_ID == 'authn') {
     }
     if (process.env.APP_ID == 'authoring') {
+      const { getConfig } = await import('@edx/frontend-platform');
+
       addPlugins(config, 'org.openedx.frontend.layout.studio_footer_logo.v1', [
         {
+          // Reemplaza el logo "Powered by Open edX" por el de la facultad,
+          // enlazando al learner-dashboard en vez de a openedx.org.
           op: PLUGIN_OPERATIONS.Hide,
           widgetId: 'default_contents',
+        },
+        {
+          op: PLUGIN_OPERATIONS.Insert,
+          widget: {
+            id: 'ficct_footer_logo',
+            type: DIRECT_PLUGIN,
+            RenderWidget: () => (
+              <a href={`https://${getConfig().BASE_URL}/learner-dashboard/`} className="float-right">
+                <img src={getConfig().LOGO_URL} alt="FICCT" width="120" />
+              </a>
+            ),
+          },
         },
       ]);
     }
