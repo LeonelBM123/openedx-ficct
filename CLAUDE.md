@@ -778,3 +778,11 @@ C:\Users\PC\openedx-ficct\
 - **Tema en DB** — debe estar registrado en `/admin/theming/sitetheme/` una sola vez
 - **brand-ficct usa SCSS** — pendiente migrar a Design Tokens en futura release
 
+---
+
+## Pendientes
+
+- **Contenido real de Términos de Servicio / Política de Privacidad**: `MFE_CONFIG["TERMS_OF_SERVICE_URL"]`/`PRIVACY_POLICY_URL` (`ficct_config.py`) ya apuntan a `/tos` y `/privacy` del LMS, pero esas páginas hoy muestran el placeholder por defecto de Open edX ("Esta página fue dejada en blanco intencionalmente..."). Falta definir el contenido real. Dos vías evaluadas:
+  - **Plantillas propias en el tema FICCT** (recomendado): agregar `themes/ficct/lms/templates/static_templates/tos.html` y `privacy.html` con el texto real. Mismo flujo que actualizar logos: `tutor images build openedx` + `tutor local stop && tutor local start -d`. Queda versionado en el mismo tema, mismo dominio del LMS.
+  - **Páginas externas**: cambiar esas dos URLs en `ficct_config.py` para que apunten a páginas HTML en la landing (`www.`) u otro sitio institucional. Más rápido de aplicar (no requiere rebuild de la imagen `openedx`), pero el contenido queda fuera del LMS.
+
