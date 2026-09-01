@@ -28,6 +28,12 @@ async function setConfig () {
     if (process.env.APP_ID == 'authn') {
     }
     if (process.env.APP_ID == 'authoring') {
+      addPlugins(config, 'org.openedx.frontend.layout.studio_footer_logo.v1', [
+        {
+          op: PLUGIN_OPERATIONS.Hide,
+          widgetId: 'default_contents',
+        },
+      ]);
     }
     if (process.env.APP_ID == 'account') {
     }
