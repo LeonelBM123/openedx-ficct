@@ -16,7 +16,8 @@ mfes/frontend-app-learning/src/asistente/
 ├── index.scss              ← Estilos (mínimos, mayoría es inline CSS)
 └── config/
     ├── ToursConfig.js         ← Scripts del tour por MFE
-    └── ttsService.js          ← Cliente del servicio de voz propio (services/avatar-tts) + lip sync
+    ├── ttsService.js          ← Cliente del servicio de voz propio (services/avatar-tts) + lip sync
+    └── llmService.js          ← Cliente del gateway del LLM local (services/avatar-llm-gateway), modo AVATAR_LLM_PROVIDER=local
 ```
 
 > `azureSpeechService.js`, `qaService.js` y `useTts.js` fueron eliminados: la voz pasó a
@@ -55,9 +56,12 @@ if (process.env.APP_ID == 'learning') {
 
 ## Cómo se responden las preguntas
 
-El navegador **no habla con OpenRouter**. El MFE hace `POST /api/ficct/avatar/ask/`
-(paquete `apps-custom/ficct-dashboard-api`, módulo `avatar_views.py`) y el LMS hace la
-llamada al LLM.
+Depende de `getConfig().AVATAR_LLM_PROVIDER` (publicado en `MFE_CONFIG`, ver
+`avatar_asistente.py`):
+
+**Modo `openrouter` (default)** — el navegador **no habla con OpenRouter**. El MFE
+hace `POST /api/ficct/avatar/ask/` (paquete `apps-custom/ficct-dashboard-api`, módulo
+`avatar_views.py`) y el LMS hace la llamada al LLM:
 
 ```
 TourUI → AvatarTour.handleAskQuestion()
@@ -73,6 +77,10 @@ Antes la key de OpenRouter se publicaba en `MFE_CONFIG`, que el LMS sirve **sin
 autenticación** en `GET /api/mfe_config/v1`: era legible por cualquiera. Por eso ningún
 secreto puede volver a ese patch. El *system prompt* también vive en el servidor, para
 que el cliente no pueda reemplazarlo.
+
+**Modo `local`** — igual que la voz (ver abajo), el LMS **no proxea la inferencia**:
+solo emite un token corto y el navegador habla directo con un contenedor propio (ver
+la sección "LLM local" más abajo).
 
 ## Cómo se genera la voz
 
@@ -121,6 +129,94 @@ tutor local restart lms
 
 ⚠️ Cambiar las keys **no requiere rebuild de la imagen del MFE**: solo `tutor config
 save` y `tutor local restart lms`. Ninguna de las dos viaja al navegador.
+
+### LLM local (Ollama) como alternativa a OpenRouter
+
+`AVATAR_LLM_PROVIDER` (`openrouter` por defecto, o `local`) elige qué backend responde
+las preguntas del avatar y se publica en `MFE_CONFIG` para que el propio MFE decida a
+qué endpoint llamar (ver `AvatarTour.handleAskQuestion`).
+
+A diferencia del primer diseño de este modo, el `local` **no proxea la inferencia por
+el LMS**: sigue exactamente el mismo patrón que ya usa la voz del avatar (ver "Cómo se
+genera la voz" arriba). El LMS solo emite un token corto
+(`GET /api/ficct/avatar/llm-token/`, `AvatarLlmTokenView`) y el navegador habla directo
+con un contenedor propio, `services/avatar-llm-gateway`, que valida el token, arma el
+prompt con el `SYSTEM_PROMPT` fijo del servidor, y llama a Ollama:
+
+```
+llmService.getToken()
+   ↓ getAuthenticatedHttpClient().get()
+GET {LMS_BASE_URL}/api/ficct/avatar/llm-token/     ← IsAuthenticated + throttle
+   ↓ { token, expires_in }        (token cacheado en el módulo, se reusa ~5 min)
+llmService.askQuestion(pregunta, contexto)
+   ↓ fetch con Authorization: Bearer <token>
+POST {AVATAR_LLM_API_URL}                           ← services/avatar-llm-gateway (contenedor propio)
+   ↓ arma SYSTEM_PROMPT + messages, requests.post interno
+http://avatar-llm:11434/v1/chat/completions         ← Ollama (solo red interna de docker)
+   ↓ { respuesta }
+```
+
+Por qué este diseño y no un proxy simple en el LMS: el LMS corre con solo **2 workers
+de uwsgi** (`UWSGI_WORKERS=2`), y una inferencia en CPU sin GPU (el droplet actual no
+tiene GPU) puede tardar 10-60+ segundos — muy por encima de los 1-3 s típicos de
+OpenRouter. Proxear esa espera por Django dejaría la plataforma sin workers libres para
+el resto de los alumnos durante cada pregunta al avatar. Con el token, esa espera ocurre
+entera dentro de `avatar-llm-gateway` (un proceso aislado): si se satura con preguntas
+concurrentes, las respuestas del avatar se vuelven lentas, pero el resto de la
+plataforma sigue funcionando con normalidad. Detalle completo en
+`services/avatar-llm-gateway/README.md`.
+
+```bash
+# 1. Construir el gateway en el servidor (imagen no publicada, igual que avatar-tts)
+docker build -t ficct-avatar-llm-gateway /root/openedx-ficct/services/avatar-llm-gateway
+
+# 2. Instalar y habilitar el plugin (agrega los contenedores avatar-llm + avatar-llm-gateway)
+tutor plugins install /root/openedx-ficct/tutor-plugins/avatar_llm_local.py
+tutor plugins enable avatar_llm_local
+
+# 3. Secreto compartido LMS <-> gateway, y URL pública del gateway
+tutor config save --set AVATAR_LLM_SECRET=$(openssl rand -hex 32)
+tutor config save --set AVATAR_LLM_API_URL=http://$(tutor config printvalue LMS_HOST)/avatar-llm/ask
+
+# 4. Levantar los contenedores nuevos
+tutor local start -d
+
+# 5. Descargar el modelo (una sola vez; en cada `tutor local do init` posterior
+#    no vuelve a descargar la capa ya bajada)
+tutor local do init --limit avatar_llm_local
+
+# 6. Activar el modo local (requiere reiniciar tambien el mfe, ver mas abajo)
+tutor config save --set AVATAR_LLM_PROVIDER=local
+tutor local restart lms mfe
+```
+
+⚠️ **Este modo sí requiere una imagen nueva del MFE** (a diferencia de solo cambiar
+las keys de OpenRouter): `AvatarTour.jsx` y `llmService.js` cambiaron. Ver `CLAUDE.md`,
+sección "Cambios en los MFEs (avatar, código React)", para el flujo de build vía
+GitHub Actions antes del paso 6.
+
+**Volver a OpenRouter** en cualquier momento, sin rebuild:
+```bash
+tutor config save --set AVATAR_LLM_PROVIDER=openrouter
+tutor local restart lms mfe
+```
+
+**Probar el modelo local directamente** (sin pasar por el navegador ni por Django):
+```bash
+docker exec -it $(docker ps -qf "name=avatar-llm-gateway") curl -sf localhost:80/health
+docker exec -it $(docker ps -qf "name=avatar-llm") ollama run qwen3:4b "Hola, responde en una frase"
+```
+
+Variables de este modo:
+
+| Variable | Dónde se define | Default | Uso |
+|----------|------------------|---------|-----|
+| `AVATAR_LLM_PROVIDER` | `avatar_asistente.py` | `openrouter` | `openrouter` o `local`; se publica en `MFE_CONFIG` |
+| `AVATAR_LLM_API_URL` | `avatar_asistente.py` | `""` | URL pública del gateway (no secreta); se publica en `MFE_CONFIG` |
+| `AVATAR_LLM_SECRET` | `avatar_asistente.py` | `""` | Secreto HMAC compartido entre el LMS y `avatar-llm-gateway`; nunca sale del servidor |
+| `AVATAR_LOCAL_LLM_MODEL` | `avatar_llm_local.py` | `qwen3:4b` | Tag de Ollama; cambiarlo requiere `ollama pull` del nuevo tag (`tutor local do init --limit avatar_llm_local`) |
+| `AVATAR_LOCAL_LLM_TIMEOUT` | `avatar_llm_local.py` | `60` (segundos) | Timeout del gateway esperando a Ollama — ya no afecta a uwsgi, así que puede ser generoso |
+| `AVATAR_LLM_RATE_PER_MIN` | `avatar_llm_local.py` | `5` | Límite de preguntas por usuario por minuto en el gateway (más estricto que TTS: cada pregunta es cara en CPU) |
 
 ## Contexto que el LLM recibe por pregunta
 

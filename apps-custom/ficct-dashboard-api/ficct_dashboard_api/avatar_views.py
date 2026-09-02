@@ -48,6 +48,11 @@ DEFAULT_THROTTLE_RATE = '20/min'
 TTS_TOKEN_TTL_SECONDS = 300
 DEFAULT_TTS_TOKEN_THROTTLE_RATE = '60/min'
 
+# Mismo esquema de token que TTS, pero para el gateway del LLM local
+# (services/avatar-llm-gateway, ver AvatarLlmTokenView mas abajo).
+LLM_TOKEN_TTL_SECONDS = 300
+DEFAULT_LLM_TOKEN_THROTTLE_RATE = '60/min'
+
 # Vivia en AvatarTour.jsx, es decir que el cliente lo mandaba y por lo tanto podia
 # reemplazarlo. Del lado del servidor es fijo.
 SYSTEM_PROMPT = (
@@ -210,3 +215,54 @@ class AvatarTtsTokenView(APIView):
         sig = hmac.new(secret.encode('utf-8'), payload.encode('utf-8'), hashlib.sha256).hexdigest()
 
         return Response({'token': f'{payload}.{sig}', 'expires_in': TTS_TOKEN_TTL_SECONDS})
+
+
+class AvatarLlmTokenThrottle(UserRateThrottle):
+    """Limite por usuario autenticado, configurable desde Tutor. Mismo espiritu que
+    AvatarTtsTokenThrottle: el token dura varios minutos y se reusa, este limite es
+    defensa contra un cliente pidiendo tokens en bucle, no el trafico normal."""
+
+    scope = 'ficct_avatar_llm_token'
+
+    def get_rate(self):
+        return _avatar_settings().get('LLM_TOKEN_THROTTLE_RATE') or DEFAULT_LLM_TOKEN_THROTTLE_RATE
+
+
+class AvatarLlmTokenView(APIView):
+    """
+    Emite un token de corta duracion para hablar directo con el gateway del LLM local
+    (`services/avatar-llm-gateway`), sin que la inferencia pase por el LMS. Mismo
+    mecanismo que AvatarTtsTokenView (HMAC de `request.user.id` + expiracion), pero
+    firmado con un secreto propio (`AVATAR_LLM_SECRET`) para poder rotarlo sin afectar
+    el token de voz.
+
+    Solo tiene sentido cuando `FICCT_AVATAR["LLM_PROVIDER"] == "local"`, pero no se
+    valida eso aca: si el operador no configuro `AVATAR_LLM_SECRET`, el gateway
+    tampoco puede validar el token igual, asi que alcanza con fallar cerrado por falta
+    de secreto. El MFE simplemente no llama a este endpoint en modo "openrouter".
+
+    **Ejemplo**
+        GET /api/ficct/avatar/llm-token/
+
+    **Respuesta**
+        {"token": "<user_id>.<exp>.<sig>", "expires_in": 300}
+    """
+
+    permission_classes = (IsAuthenticated,)
+    throttle_classes = (AvatarLlmTokenThrottle,)
+
+    def get(self, request):
+        config = _avatar_settings()
+        secret = config.get('LLM_SECRET')
+        if not secret:
+            log.warning('FICCT_AVATAR["LLM_SECRET"] no esta configurada.')
+            return Response(
+                {'error': 'El modulo de preguntas locales no esta disponible.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        exp = int(time.time()) + LLM_TOKEN_TTL_SECONDS
+        payload = f'{request.user.id}.{exp}'
+        sig = hmac.new(secret.encode('utf-8'), payload.encode('utf-8'), hashlib.sha256).hexdigest()
+
+        return Response({'token': f'{payload}.{sig}', 'expires_in': LLM_TOKEN_TTL_SECONDS})

@@ -14,6 +14,7 @@ import StatsPanel from './StatsPanel';
 import { AVATAR_LIST } from './AvatarSwitcher';
 import { portalTours } from './config/ToursConfig';
 import { textToSpeech } from './config/ttsService';
+import { askQuestion as askLocalQuestion } from './config/llmService';
 import { useContextId } from '../data/hooks';
 import { getProgressTabData, getDatesTabData, getOutlineTabData } from '../course-home/data/api';
 import { useModel } from '../generic/model-store';
@@ -397,15 +398,24 @@ const AvatarTour = ({ tourName = 'learning' }) => {
 
     try {
       const contexto = buildLLMContext();
+      let answer;
 
-      // El LLM se consulta desde el LMS (apps-custom/ficct-dashboard-api), no desde
-      // aca: la key de OpenRouter se publicaba en MFE_CONFIG, que es un endpoint
-      // publico. El system prompt tambien vive del lado del servidor.
-      const { data } = await getAuthenticatedHttpClient().post(
-        `${getConfig().LMS_BASE_URL}/api/ficct/avatar/ask/`,
-        { pregunta: q, contexto: contexto || undefined },
-      );
-      const answer = data.respuesta || '';
+      if (getConfig().AVATAR_LLM_PROVIDER === 'local') {
+        // El LLM local corre fuera del LMS (ver llmService.js /
+        // services/avatar-llm-gateway): el navegador habla directo con ese
+        // contenedor con un token corto, igual que ya hace con la voz, para no
+        // bloquear los workers de uwsgi del LMS durante la inferencia.
+        answer = await askLocalQuestion(q, contexto || '');
+      } else {
+        // El LLM se consulta desde el LMS (apps-custom/ficct-dashboard-api), no desde
+        // aca: la key de OpenRouter se publicaba en MFE_CONFIG, que es un endpoint
+        // publico. El system prompt tambien vive del lado del servidor.
+        const { data } = await getAuthenticatedHttpClient().post(
+          `${getConfig().LMS_BASE_URL}/api/ficct/avatar/ask/`,
+          { pregunta: q, contexto: contexto || undefined },
+        );
+        answer = data.respuesta || '';
+      }
 
       setAiResponse(answer);
       setIsThinking(false);
