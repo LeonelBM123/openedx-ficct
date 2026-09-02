@@ -88,6 +88,14 @@ async function setConfig () {
           },
         },
       ]);
+
+      // Oculta el link "Ayuda" del header (usa SUPPORT_URL, que no está configurado en este proyecto).
+      addPlugins(config, 'org.openedx.frontend.layout.header_learning_help.v1', [
+        {
+          op: PLUGIN_OPERATIONS.Hide,
+          widgetId: 'default_contents',
+        },
+      ]);
     }
     if (process.env.APP_ID == 'ora-grading') {
     }
