@@ -181,9 +181,10 @@ tutor config save --set AVATAR_LLM_API_URL=http://$(tutor config printvalue LMS_
 # 4. Levantar los contenedores nuevos
 tutor local start -d
 
-# 5. Descargar el modelo (una sola vez; en cada `tutor local do init` posterior
-#    no vuelve a descargar la capa ya bajada)
-tutor local do init --limit avatar_llm_local
+# 5. Descargar el modelo (una sola vez; idempotente, persiste en el volumen).
+#    `tutor local do init` no sirve aca: Tutor 21 solo corre esos jobs contra un
+#    servicio "<nombre>-job" explicito, que este plugin no define.
+docker exec tutor_local-avatar-llm-1 ollama pull qwen3:4b
 
 # 6. Activar el modo local (requiere reiniciar tambien el mfe, ver mas abajo)
 tutor config save --set AVATAR_LLM_PROVIDER=local
@@ -214,7 +215,7 @@ Variables de este modo:
 | `AVATAR_LLM_PROVIDER` | `avatar_asistente.py` | `openrouter` | `openrouter` o `local`; se publica en `MFE_CONFIG` |
 | `AVATAR_LLM_API_URL` | `avatar_asistente.py` | `""` | URL pública del gateway (no secreta); se publica en `MFE_CONFIG` |
 | `AVATAR_LLM_SECRET` | `avatar_asistente.py` | `""` | Secreto HMAC compartido entre el LMS y `avatar-llm-gateway`; nunca sale del servidor |
-| `AVATAR_LOCAL_LLM_MODEL` | `avatar_llm_local.py` | `qwen3:4b` | Tag de Ollama; cambiarlo requiere `ollama pull` del nuevo tag (`tutor local do init --limit avatar_llm_local`) |
+| `AVATAR_LOCAL_LLM_MODEL` | `avatar_llm_local.py` | `qwen3:4b` | Tag de Ollama; cambiarlo requiere `docker exec tutor_local-avatar-llm-1 ollama pull <tag-nuevo>` |
 | `AVATAR_LOCAL_LLM_TIMEOUT` | `avatar_llm_local.py` | `60` (segundos) | Timeout del gateway esperando a Ollama — ya no afecta a uwsgi, así que puede ser generoso |
 | `AVATAR_LLM_RATE_PER_MIN` | `avatar_llm_local.py` | `5` | Límite de preguntas por usuario por minuto en el gateway (más estricto que TTS: cada pregunta es cara en CPU) |
 

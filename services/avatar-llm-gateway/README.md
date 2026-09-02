@@ -121,7 +121,7 @@ tutor plugins install /root/openedx-ficct/tutor-plugins/avatar_llm_local.py
 tutor plugins enable avatar_llm_local
 tutor config save --set AVATAR_LLM_API_URL=http://$(tutor config printvalue LMS_HOST)/avatar-llm/ask
 tutor local start -d
-tutor local do init --limit avatar_llm_local   # baja el modelo (AVATAR_LOCAL_LLM_MODEL)
+docker exec tutor_local-avatar-llm-1 ollama pull qwen3:4b   # baja el modelo (AVATAR_LOCAL_LLM_MODEL)
 tutor config save --set AVATAR_LLM_PROVIDER=local
 tutor local restart lms mfe
 ```
@@ -130,6 +130,12 @@ El plugin agrega los servicios `avatar-llm` (Ollama) y `avatar-llm-gateway` al
 compose, y una ruta `/avatar-llm/*` dentro del vhost del LMS en el Caddy de Tutor.
 Variables: `AVATAR_LLM_GATEWAY_DOCKER_IMAGE`, `AVATAR_LOCAL_LLM_MODEL`,
 `AVATAR_LOCAL_LLM_TIMEOUT`, `AVATAR_LLM_RATE_PER_MIN`.
+
+⚠️ `tutor local do init` **no** baja el modelo automáticamente: Tutor 21 solo corre
+esos jobs contra un servicio `<nombre>-job` explícito, que este plugin no define (ver
+el comentario en `avatar_llm_local.py`). El `docker exec ... ollama pull` de arriba es
+el paso real — es idempotente y el modelo persiste en el volumen aunque se recreen los
+contenedores, así que solo hay que repetirlo si cambia `AVATAR_LOCAL_LLM_MODEL`.
 
 El endpoint del token (`GET /api/ficct/avatar/llm-token/`) vive en la imagen `openedx`
 (paquete `apps-custom/ficct-dashboard-api`), así que además hace falta:

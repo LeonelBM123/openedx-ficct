@@ -24,7 +24,7 @@ Activar con:
     tutor config save --set AVATAR_LLM_SECRET=$(openssl rand -hex 32)
     tutor config save --set AVATAR_LLM_API_URL=http://$(tutor config printvalue LMS_HOST)/avatar-llm/ask
     tutor local start -d
-    tutor local do init --limit avatar_llm_local    # baja el modelo (una sola vez)
+    docker exec tutor_local-avatar-llm-1 ollama pull qwen3:4b   # baja el modelo (una sola vez)
     tutor config save --set AVATAR_LLM_PROVIDER=local
     tutor local restart lms mfe
 
@@ -99,16 +99,16 @@ handle @avatar_llm {
     ),
 ])
 
-# Descarga el modelo configurado. Idempotente: si la capa ya existe, `ollama pull` no
-# vuelve a bajarla, asi que correrlo de nuevo en cada `tutor local do init` no hace
-# nada. Verificar en el servidor si Tutor 21 acepta "avatar-llm" como target directo;
-# si no, alternativa: disparar el pull vía HTTP desde "lms" contra la API de Ollama
-# (POST http://avatar-llm:11434/api/pull).
-hooks.Filters.CLI_DO_INIT_TASKS.add_item(
-    (
-        "avatar-llm",
-        """
-ollama pull {{ AVATAR_LOCAL_LLM_MODEL }}
-"""
-    )
-)
+# NOTA: se intento automatizar la descarga del modelo con CLI_DO_INIT_TASKS (mismo
+# patron que notifications_ficct.py), pero Tutor 21 solo corre esos jobs contra un
+# servicio "<nombre>-job" explicito en docker-compose.jobs.yml (falla con "no such
+# service: avatar-llm-job" si no existe). Definir ese servicio job implicaria manejar
+# el arranque del servidor de Ollama solo para el pull, sin ganar nada frente a
+# correrlo una vez a mano tras el primer `tutor local start -d`:
+#
+#     docker exec tutor_local-avatar-llm-1 ollama pull {{ AVATAR_LOCAL_LLM_MODEL }}
+#
+# Es idempotente (si la capa ya existe, no vuelve a bajarla) y persiste en el volumen
+# ../../data/avatar-llm-ollama, asi que sobrevive a restarts/recreaciones del
+# contenedor. Solo hace falta repetirlo si se cambia AVATAR_LOCAL_LLM_MODEL a un tag
+# nuevo.
