@@ -166,6 +166,16 @@ concurrentes, las respuestas del avatar se vuelven lentas, pero el resto de la
 plataforma sigue funcionando con normalidad. Detalle completo en
 `services/avatar-llm-gateway/README.md`.
 
+⚠️ **Por qué `gemma3:4b` y no `qwen3:4b`**: se probó primero Qwen3, pero es un modelo
+"thinking" que por defecto gasta varios cientos de tokens en un razonamiento interno
+oculto (campo `reasoning`, separado de `content`) antes de escribir la respuesta. Con
+`MAX_TOKENS=300` (el mismo valor que usa OpenRouter) el modelo se quedaba sin
+presupuesto a mitad de pensar y `content` salía **vacío** — ni `"think": false` (via
+`/v1/chat/completions` o `/api/chat`) ni el truco `/no_think` en el mensaje lograron
+desactivarlo en esta versión de Ollama. `gemma3:4b` no tiene ese modo: responde directo
+y completo. Medido en este servidor (sin carga concurrente): **5-16 segundos por
+pregunta simple**, dentro de lo esperado y sin respuestas vacías.
+
 ```bash
 # 1. Construir el gateway en el servidor (imagen no publicada, igual que avatar-tts)
 docker build -t ficct-avatar-llm-gateway /root/openedx-ficct/services/avatar-llm-gateway
@@ -184,7 +194,7 @@ tutor local start -d
 # 5. Descargar el modelo (una sola vez; idempotente, persiste en el volumen).
 #    `tutor local do init` no sirve aca: Tutor 21 solo corre esos jobs contra un
 #    servicio "<nombre>-job" explicito, que este plugin no define.
-docker exec tutor_local-avatar-llm-1 ollama pull qwen3:4b
+docker exec tutor_local-avatar-llm-1 ollama pull gemma3:4b
 
 # 6. Activar el modo local (requiere reiniciar tambien el mfe, ver mas abajo)
 tutor config save --set AVATAR_LLM_PROVIDER=local
@@ -205,7 +215,7 @@ tutor local restart lms mfe
 **Probar el modelo local directamente** (sin pasar por el navegador ni por Django):
 ```bash
 docker exec -it $(docker ps -qf "name=avatar-llm-gateway") curl -sf localhost:80/health
-docker exec -it $(docker ps -qf "name=avatar-llm") ollama run qwen3:4b "Hola, responde en una frase"
+docker exec -it $(docker ps -qf "name=avatar-llm") ollama run gemma3:4b "Hola, responde en una frase"
 ```
 
 Variables de este modo:
@@ -215,8 +225,8 @@ Variables de este modo:
 | `AVATAR_LLM_PROVIDER` | `avatar_asistente.py` | `openrouter` | `openrouter` o `local`; se publica en `MFE_CONFIG` |
 | `AVATAR_LLM_API_URL` | `avatar_asistente.py` | `""` | URL pública del gateway (no secreta); se publica en `MFE_CONFIG` |
 | `AVATAR_LLM_SECRET` | `avatar_asistente.py` | `""` | Secreto HMAC compartido entre el LMS y `avatar-llm-gateway`; nunca sale del servidor |
-| `AVATAR_LOCAL_LLM_MODEL` | `avatar_llm_local.py` | `qwen3:4b` | Tag de Ollama; cambiarlo requiere `docker exec tutor_local-avatar-llm-1 ollama pull <tag-nuevo>` |
-| `AVATAR_LOCAL_LLM_TIMEOUT` | `avatar_llm_local.py` | `60` (segundos) | Timeout del gateway esperando a Ollama — ya no afecta a uwsgi, así que puede ser generoso |
+| `AVATAR_LOCAL_LLM_MODEL` | `avatar_llm_local.py` | `gemma3:4b` | Tag de Ollama; cambiarlo requiere `docker exec tutor_local-avatar-llm-1 ollama pull <tag-nuevo>` |
+| `AVATAR_LOCAL_LLM_TIMEOUT` | `avatar_llm_local.py` | `60` (segundos) | Timeout del gateway esperando a Ollama — ya no afecta a uwsgi. `gemma3:4b` mide 5-16s por pregunta simple en este servidor |
 | `AVATAR_LLM_RATE_PER_MIN` | `avatar_llm_local.py` | `5` | Límite de preguntas por usuario por minuto en el gateway (más estricto que TTS: cada pregunta es cara en CPU) |
 
 ## Contexto que el LLM recibe por pregunta

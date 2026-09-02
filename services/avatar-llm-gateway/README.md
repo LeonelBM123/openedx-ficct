@@ -121,7 +121,7 @@ tutor plugins install /root/openedx-ficct/tutor-plugins/avatar_llm_local.py
 tutor plugins enable avatar_llm_local
 tutor config save --set AVATAR_LLM_API_URL=http://$(tutor config printvalue LMS_HOST)/avatar-llm/ask
 tutor local start -d
-docker exec tutor_local-avatar-llm-1 ollama pull qwen3:4b   # baja el modelo (AVATAR_LOCAL_LLM_MODEL)
+docker exec tutor_local-avatar-llm-1 ollama pull gemma3:4b   # baja el modelo (AVATAR_LOCAL_LLM_MODEL)
 tutor config save --set AVATAR_LLM_PROVIDER=local
 tutor local restart lms mfe
 ```

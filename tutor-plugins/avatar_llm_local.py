@@ -35,9 +35,15 @@ from tutor import hooks
 
 hooks.Filters.CONFIG_DEFAULTS.add_items([
     ("AVATAR_LLM_GATEWAY_DOCKER_IMAGE", "ficct-avatar-llm-gateway:latest"),
-    ("AVATAR_LOCAL_LLM_MODEL", "qwen3:4b"),
-    # Timeout del gateway esperando a Ollama. Mucho mayor que cualquier timeout del
-    # lado del LMS porque esta espera ya no ocurre en un worker de uwsgi.
+    # Se probo primero qwen3:4b: es un modelo "thinking" que gasta la mayoria de su
+    # presupuesto de tokens en razonamiento oculto antes de responder, y en esta
+    # version de Ollama no se pudo desactivar ese modo -- con preguntas simples a
+    # veces devolvia la respuesta vacia. gemma3:4b no tiene ese modo: responde directo
+    # en 5-16s medidos en este servidor.
+    ("AVATAR_LOCAL_LLM_MODEL", "gemma3:4b"),
+    # Timeout del gateway esperando a Ollama. Mayor que el de OpenRouter (30s) porque
+    # esta espera ya no ocurre en un worker de uwsgi, pero no hace falta ser extremo:
+    # gemma3:4b responde en 5-16s en este servidor.
     ("AVATAR_LOCAL_LLM_TIMEOUT", "60"),
     # Mas estricto que AVATAR_TTS_RATE_PER_MIN (30/min): cada pregunta es mucho mas
     # cara en CPU que una sintesis de voz.

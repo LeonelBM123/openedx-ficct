@@ -55,6 +55,13 @@ web_app.add_middleware(
 # una sola peticion monopolice la CPU. Se aplican con o sin token.
 MAX_QUESTION_CHARS = 1000
 MAX_CONTEXT_CHARS = 8000
+
+# Mismo valor que MAX_TOKENS en avatar_views.py (OpenRouter). Se probo primero
+# qwen3:4b, pero es un modelo hibrido "thinking" que gasta la mayoria del presupuesto
+# de tokens en un razonamiento interno oculto antes de responder -- con 300 tokens el
+# "content" salia vacio, y ni "think": false ni el truco "/no_think" lograron
+# desactivarlo en esta version de Ollama. Se cambio a gemma3:4b (sin ese modo), que
+# responde directo: 5-16s medidos en este servidor, sin desperdiciar tokens.
 MAX_TOKENS = 300
 
 # Copia exacta de SYSTEM_PROMPT en avatar_views.py. Vivia en AvatarTour.jsx (el
