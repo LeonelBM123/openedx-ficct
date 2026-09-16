@@ -5,12 +5,13 @@ import { useIntl } from '@edx/frontend-platform/i18n';
 
 import PopularCourseCard from './PopularCourseCard';
 import CarouselArrowButton from './CarouselArrowButton';
-import { useCarouselDrag, useCarouselScrollState } from './hooks';
+import { useCarouselDrag, useCarouselScrollState, useCarouselAutoplay } from './hooks';
 import messages from './messages';
 
 /**
  * Track deslizable de PopularCourses: arrastre con mouse/touch (Pointer
- * Events), scroll-snap nativo, botones prev/next y flechas de teclado.
+ * Events), scroll-snap nativo, botones prev/next, flechas de teclado y
+ * auto-scroll lento que se pausa mientras el usuario interactua.
  */
 export const PopularCoursesTrack = ({ courses }) => {
   const { formatMessage } = useIntl();
@@ -20,6 +21,9 @@ export const PopularCoursesTrack = ({ courses }) => {
     trackRef,
     courses.length,
   );
+  const { pauseAutoplay, resumeAutoplay, pauseAutoplayForNav } = useCarouselAutoplay(trackRef, {
+    enabled: canScrollPrev || canScrollNext,
+  });
 
   // Si el gesto que acaba de terminar fue un arrastre (supero el umbral),
   // el click del link "Ver curso"/titulo dispararia una navegacion no
@@ -43,8 +47,34 @@ export const PopularCoursesTrack = ({ courses }) => {
     }
   }, [scrollByPage]);
 
+  const onPointerDown = useCallback((event) => {
+    pauseAutoplay('drag');
+    dragHandlers.onPointerDown(event);
+  }, [pauseAutoplay, dragHandlers]);
+
+  const onPointerUp = useCallback((event) => {
+    dragHandlers.onPointerUp(event);
+    resumeAutoplay('drag');
+  }, [dragHandlers, resumeAutoplay]);
+
+  const onPrevClick = useCallback(() => {
+    pauseAutoplayForNav();
+    scrollByPage(-1);
+  }, [pauseAutoplayForNav, scrollByPage]);
+
+  const onNextClick = useCallback(() => {
+    pauseAutoplayForNav();
+    scrollByPage(1);
+  }, [pauseAutoplayForNav, scrollByPage]);
+
   return (
-    <div className="popular-courses-carousel">
+    <div
+      className="popular-courses-carousel"
+      onMouseEnter={() => pauseAutoplay('hover')}
+      onMouseLeave={() => resumeAutoplay('hover')}
+      onFocus={() => pauseAutoplay('focus')}
+      onBlur={() => resumeAutoplay('focus')}
+    >
       <div
         ref={trackRef}
         className="popular-courses-list"
@@ -54,6 +84,9 @@ export const PopularCoursesTrack = ({ courses }) => {
         onKeyDown={onTrackKeyDown}
         onClickCapture={onTrackClickCapture}
         {...dragHandlers}
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
       >
         {courses.map((course) => (
           <PopularCourseCard key={course.course_id} course={course} />
@@ -62,13 +95,13 @@ export const PopularCoursesTrack = ({ courses }) => {
       <div className="popular-courses-arrows">
         <CarouselArrowButton
           direction="prev"
-          onClick={() => scrollByPage(-1)}
+          onClick={onPrevClick}
           disabled={!canScrollPrev}
           label={formatMessage(messages.prevButtonLabel)}
         />
         <CarouselArrowButton
           direction="next"
-          onClick={() => scrollByPage(1)}
+          onClick={onNextClick}
           disabled={!canScrollNext}
           label={formatMessage(messages.nextButtonLabel)}
         />

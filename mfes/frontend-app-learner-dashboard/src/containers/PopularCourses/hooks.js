@@ -2,7 +2,13 @@ import {
   useCallback, useEffect, useRef, useState,
 } from 'react';
 
-const DRAG_THRESHOLD_PX = 5;
+const DRAG_THRESHOLD_PX = 8;
+const AUTOPLAY_SPEED_PX_PER_SEC = 40;
+const AUTOPLAY_NAV_PAUSE_FALLBACK_MS = 1000;
+
+const isInteractiveTarget = (target) => (
+  !!target && typeof target.closest === 'function' && target.closest('a, button') !== null
+);
 
 /**
  * Arrastre con mouse/touch/pen sobre un contenedor con overflow-x scroll.
@@ -20,6 +26,13 @@ export const useCarouselDrag = (trackRef) => {
   const onPointerDown = useCallback((event) => {
     const track = trackRef.current;
     if (!track) { return; }
+    // Un click sobre el titulo o el boton "Ver curso" no debe iniciar el
+    // tracking de arrastre: si lo hiciera, el jitter normal de un click
+    // humano (casi nunca es un pixel perfecto) supera el umbral de abajo y
+    // el click queda marcado como "arrastre", bloqueando la navegacion casi
+    // siempre. Se deja pasar el gesto sin interferencia para que el
+    // navegador maneje el click nativamente.
+    if (isInteractiveTarget(event.target)) { return; }
     stateRef.current = {
       isDown: true,
       startX: event.clientX,
@@ -43,6 +56,14 @@ export const useCarouselDrag = (trackRef) => {
     const track = trackRef.current;
     stateRef.current.isDown = false;
     if (track) { track.releasePointerCapture(event.pointerId); }
+    // El click sintetico (si lo hay) de esta misma interaccion se despacha
+    // de forma sincronica justo despues de pointerup, asi que todavia ve
+    // didDragRef=true a tiempo para bloquearlo cuando corresponde. Este
+    // reset diferido evita que la bandera quede "pegada" en true cuando el
+    // release ocurre fuera de un <a>/<button> (ahi nunca llega un click que
+    // la resetee) y termine bloqueando un click limpio no relacionado mas
+    // adelante.
+    setTimeout(() => { didDragRef.current = false; }, 0);
   }, [trackRef]);
 
   return {
@@ -98,4 +119,114 @@ export const useCarouselScrollState = (trackRef, itemCount) => {
   }, [trackRef]);
 
   return { canScrollPrev, canScrollNext, scrollByPage };
+};
+
+/**
+ * Auto-scroll lento y continuo del carrusel, en rebote (ping-pong) entre los
+ * bordes. Se pausa mientras el usuario interactua (hover, foco por teclado,
+ * arrastre, click en flechas) y reanuda al terminar. No usa estado de React:
+ * escribe scrollLeft directamente via rAF, igual de imperativo que el drag.
+ */
+export const useCarouselAutoplay = (trackRef, { enabled }) => {
+  const directionRef = useRef(1);
+  const rafIdRef = useRef(null);
+  const lastTsRef = useRef(null);
+  const pauseReasonsRef = useRef(new Set());
+  const navFallbackTimeoutRef = useRef(null);
+
+  const stopLoop = useCallback(() => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    lastTsRef.current = null;
+  }, []);
+
+  const tick = useCallback((ts) => {
+    const track = trackRef.current;
+    if (!track || pauseReasonsRef.current.size > 0) {
+      rafIdRef.current = null;
+      lastTsRef.current = null;
+      return;
+    }
+    if (lastTsRef.current !== null) {
+      const deltaSec = (ts - lastTsRef.current) / 1000;
+      const maxScrollLeft = track.scrollWidth - track.clientWidth;
+      if (maxScrollLeft > 0) {
+        let next = track.scrollLeft + directionRef.current * AUTOPLAY_SPEED_PX_PER_SEC * deltaSec;
+        if (next >= maxScrollLeft) {
+          next = maxScrollLeft;
+          directionRef.current = -1;
+        } else if (next <= 0) {
+          next = 0;
+          directionRef.current = 1;
+        }
+        // scrollLeft directo hereda `scroll-behavior: smooth` del CSS
+        // (index.scss): en un loop de rAF dispararia una animacion nativa
+        // nueva cada ~16ms peleando consigo misma (jank). scrollTo con
+        // behavior:'instant' explicito ignora el CSS solo para esta
+        // llamada puntual.
+        track.scrollTo({ left: next, behavior: 'instant' });
+      }
+    }
+    lastTsRef.current = ts;
+    rafIdRef.current = requestAnimationFrame(tick);
+  }, [trackRef]);
+
+  const startLoop = useCallback(() => {
+    if (rafIdRef.current === null) {
+      rafIdRef.current = requestAnimationFrame(tick);
+    }
+  }, [tick]);
+
+  const pauseAutoplay = useCallback((reason) => {
+    pauseReasonsRef.current.add(reason);
+    stopLoop();
+  }, [stopLoop]);
+
+  const resumeAutoplay = useCallback((reason) => {
+    pauseReasonsRef.current.delete(reason);
+    if (enabled && pauseReasonsRef.current.size === 0) {
+      startLoop();
+    }
+  }, [enabled, startLoop]);
+
+  const pauseAutoplayForNav = useCallback(() => {
+    pauseAutoplay('nav');
+    const track = trackRef.current;
+    if (track && 'onscrollend' in window) {
+      const onScrollEnd = () => {
+        track.removeEventListener('scrollend', onScrollEnd);
+        resumeAutoplay('nav');
+      };
+      track.addEventListener('scrollend', onScrollEnd);
+    }
+    // Red de seguridad: si 'scrollend' no soporta o el click no movio nada
+    // (deberia ser imposible, el boton se deshabilita en los bordes), no
+    // deja el autoplay pausado para siempre.
+    clearTimeout(navFallbackTimeoutRef.current);
+    navFallbackTimeoutRef.current = setTimeout(
+      () => resumeAutoplay('nav'),
+      AUTOPLAY_NAV_PAUSE_FALLBACK_MS,
+    );
+  }, [pauseAutoplay, resumeAutoplay, trackRef]);
+
+  useEffect(() => {
+    const prefersReducedMotion = typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      pauseReasonsRef.current.add('reduced-motion');
+    } else if (enabled) {
+      startLoop();
+    }
+    if (!enabled) {
+      stopLoop();
+    }
+    return () => {
+      stopLoop();
+      clearTimeout(navFallbackTimeoutRef.current);
+    };
+  }, [enabled, startLoop, stopLoop]);
+
+  return { pauseAutoplay, resumeAutoplay, pauseAutoplayForNav };
 };
