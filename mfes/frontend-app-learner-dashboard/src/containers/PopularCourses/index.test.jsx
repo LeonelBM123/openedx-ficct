@@ -67,4 +67,18 @@ describe('PopularCourses', () => {
     renderComponent({ popular: [], isError: true });
     expect(screen.queryByTestId('PopularCourses')).not.toBeInTheDocument();
   });
+
+  it('does not truncate the list to 4 courses', () => {
+    const popular = Array.from(
+      { length: 6 },
+      (_, i) => popularCourse(`course-v1:c${i}`, `Curso ${i}`, i),
+    );
+    renderComponent({ popular });
+    popular.forEach(({ title }) => expect(screen.getByText(title)).toBeInTheDocument());
+  });
+
+  it('requests up to 12 popular courses', () => {
+    renderComponent({ popular: [popularCourse('course-v1:a', 'Base de Datos', 5)] });
+    expect(usePopularCourses).toHaveBeenCalledWith(12);
+  });
 });

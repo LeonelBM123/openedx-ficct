@@ -7,13 +7,52 @@
     margin: var(--pgn-spacing-spacer-3) 0;
   }
 
+  .popular-courses-carousel {
+    display: flex;
+    align-items: center;
+    gap: var(--pgn-spacing-spacer-2);
+  }
+
   .popular-courses-list {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    display: flex;
     gap: var(--pgn-spacing-spacer-3);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    padding-bottom: var(--pgn-spacing-spacer-2);
+    touch-action: pan-y; // deja el eje X libre para el drag propio, Y para scroll de pagina
+    cursor: grab;
+    user-select: none; // evita seleccionar texto de las tarjetas mientras se arrastra
+
+    // Oculta la barra nativa: los botones + drag + teclado ya cubren el
+    // control, y una barra fina debajo de las tarjetas se ve como ruido.
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    &::-webkit-scrollbar { display: none; }
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  .popular-courses-arrows {
+    display: flex;
+    gap: var(--pgn-spacing-spacer-1);
+    flex: 0 0 auto;
+  }
+
+  .popular-courses-arrow:focus-visible {
+    // Los tokens de foco globales de Paragon estan neutralizados en
+    // brand-ficct/paragon/_overrides.scss; este outline no depende de ellos.
+    outline: 2px solid var(--pgn-color-primary-base);
+    outline-offset: 2px;
   }
 
   .popular-course-card {
+    // Exactamente 4 visibles en desktop (ancho > 1200px).
+    flex: 0 0 calc((100% - 3 * var(--pgn-spacing-spacer-3)) / 4);
+    max-width: calc((100% - 3 * var(--pgn-spacing-spacer-3)) / 4);
+    scroll-snap-align: start;
     height: 100%;
     overflow: hidden;
 
@@ -38,18 +77,31 @@
       margin: var(--pgn-spacing-spacer-2) 0;
     }
 
-    // Carrusel deslizable: cada tarjeta al 85% del ancho, con scroll-snap
-    // para que el deslizamiento "enganche" tarjeta por tarjeta.
-    .popular-courses-list {
-      display: flex;
-      grid-template-columns: none;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      padding-bottom: var(--pgn-spacing-spacer-2);
+    // En mobile las flechas ocupan espacio valioso al lado de tarjetas
+    // angostas; el swipe tactil + scroll-snap ya cubren el gesto principal.
+    // Se ocultan visualmente pero NO se desmontan (accesibles por teclado
+    // via Tab para quien usa teclado externo en un dispositivo movil).
+    .popular-courses-arrows {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+
+      &:focus-within {
+        position: static;
+        width: auto;
+        height: auto;
+        clip: auto;
+      }
     }
 
     .popular-course-card {
+      // Carrusel deslizable: cada tarjeta al 85% del ancho, con scroll-snap
+      // para que el deslizamiento "enganche" tarjeta por tarjeta.
       flex: 0 0 85%;
+      max-width: 85%;
       scroll-snap-align: start;
     }
   }

@@ -21,6 +21,16 @@ const messages = defineMessages({
     description: 'Texto alternativo de la imagen del curso',
     defaultMessage: 'Imagen del curso',
   },
+  prevButtonLabel: {
+    id: 'learner-dash.popularCourses.prevButtonLabel',
+    description: 'Boton para retroceder en el carrusel de cursos mas demandados',
+    defaultMessage: 'Cursos anteriores',
+  },
+  nextButtonLabel: {
+    id: 'learner-dash.popularCourses.nextButtonLabel',
+    description: 'Boton para avanzar en el carrusel de cursos mas demandados',
+    defaultMessage: 'Más cursos',
+  },
 });
 
 export default messages;

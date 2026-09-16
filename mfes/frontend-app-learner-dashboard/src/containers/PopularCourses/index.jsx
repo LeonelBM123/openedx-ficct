@@ -5,15 +5,18 @@ import { Container } from '@openedx/paragon';
 
 import { usePopularCourses, useInitializeLearnerHome } from 'data/hooks';
 
-import PopularCourseCard from './PopularCourseCard';
+import PopularCoursesTrack from './PopularCoursesTrack';
 import messages from './messages';
 import './index.scss';
 
-const MAX_VISIBLE = 4;
+// El carrusel necesita mas de 4 tarjetas para tener sentido deslizar.
+// 12 sigue dentro de MAX_LIMIT=20 del backend (ver PopularCoursesView), no
+// requiere rebuild de la imagen openedx.
+const POPULAR_COURSES_LIMIT = 12;
 
 /**
- * Cursos mas demandados de la plataforma (por inscritos activos), en una franja
- * a todo el ancho arriba de "Mis cursos".
+ * Cursos mas demandados de la plataforma (por inscritos activos), en un
+ * carrusel deslizable a todo el ancho arriba de "Mis cursos".
  *
  * Los datos vienen de /api/ficct/popular-courses/ (apps-custom/ficct-dashboard-api).
  * Si el endpoint no responde, la seccion no se renderiza y el dashboard queda
@@ -21,7 +24,7 @@ const MAX_VISIBLE = 4;
  */
 export const PopularCourses = () => {
   const { formatMessage } = useIntl();
-  const { data: popularCourses, isError } = usePopularCourses();
+  const { data: popularCourses, isError } = usePopularCourses(POPULAR_COURSES_LIMIT);
   const { data: learnerHomeData } = useInitializeLearnerHome();
 
   const visibleCourses = useMemo(() => {
@@ -30,9 +33,7 @@ export const PopularCourses = () => {
         .map((course) => course?.courseRun?.courseId)
         .filter(Boolean),
     );
-    return (popularCourses || [])
-      .filter((course) => !enrolledIds.has(course.course_id))
-      .slice(0, MAX_VISIBLE);
+    return (popularCourses || []).filter((course) => !enrolledIds.has(course.course_id));
   }, [popularCourses, learnerHomeData]);
 
   if (isError || visibleCourses.length === 0) {
@@ -42,11 +43,7 @@ export const PopularCourses = () => {
   return (
     <Container fluid size="xl" className="popular-courses" data-testid="PopularCourses">
       <h2 className="popular-courses-title">{formatMessage(messages.sectionTitle)}</h2>
-      <div className="popular-courses-list">
-        {visibleCourses.map((course) => (
-          <PopularCourseCard key={course.course_id} course={course} />
-        ))}
-      </div>
+      <PopularCoursesTrack courses={visibleCourses} />
     </Container>
   );
 };
