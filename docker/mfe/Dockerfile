@@ -2,19 +2,28 @@
 # https://hub.docker.com/_/node/tags
 FROM docker.io/node:24.11.0-bullseye-slim AS base
 
-RUN apt update \
-  && apt install -y git \
-    # required for cwebp-bin
-    gcc libgl1 libxi6 make \
-    # required for gifsicle, mozjpeg, and optipng (on arm)
-    autoconf libtool pkg-config zlib1g-dev \
-    # required for node-sass (on arm)
-    python g++ \
-    # required for image-webpack-loader (on arm)
-    libpng-dev \
-    # required for building node-canvas (on arm, for authoring)
-    # https://www.npmjs.com/package/canvas
-    libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+# git: checkouts de los MFEs mas abajo
+# gcc libgl1 libxi6 make: cwebp-bin
+# autoconf libtool pkg-config zlib1g-dev: gifsicle, mozjpeg y optipng (en arm)
+# python g++: node-sass (en arm)
+# libpng-dev: image-webpack-loader (en arm)
+# libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev: node-canvas
+#   (en arm, para authoring) - https://www.npmjs.com/package/canvas
+#
+# El LTS de Debian 11 (bullseye) termino el 31-ago-2026: deb.debian.org sigue
+# sirviendo el indice de bullseye-security, pero los .deb que ese indice
+# referencia ya no estan en el pool en vivo (404 en paquetes al azar, no se
+# arregla reintentando). La propia imagen de Node ya trae comentada una
+# alternativa a snapshot.debian.org (mirror inmutable, fijado en el tiempo,
+# con indice y pool siempre consistentes entre si) -- se activa esa en vez de
+# depender de que deb.debian.org siga sirviendo bullseye-security.
+RUN sed -i \
+      -e 's|^deb http://deb\.debian\.org|# deb http://deb.debian.org|' \
+      -e 's|^# deb http://snapshot\.debian\.org|deb http://snapshot.debian.org|' \
+      /etc/apt/sources.list \
+  && apt -o Acquire::Check-Valid-Until=false update \
+  && apt install -y git gcc libgl1 libxi6 make autoconf libtool pkg-config zlib1g-dev \
+       python g++ libpng-dev libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
 
 RUN mkdir -p /openedx/app /openedx/env
 WORKDIR /openedx/app
