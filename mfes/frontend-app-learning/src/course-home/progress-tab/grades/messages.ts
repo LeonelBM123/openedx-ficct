@@ -218,14 +218,21 @@ const messages = defineMessages({
     defaultMessage: 'Weighted grade',
     description: 'Weighed grade is calculated by (weight %) * (grade score) ',
   },
+  // Los ids originales de estos dos mensajes (progress.weightedGradeSummary y
+  // progress.weightedGradeSummaryTooltip) tienen traducciones es_419 rotas en
+  // Transifex -- la corta trae pegado el texto largo del tooltip (sin values, por
+  // eso se veía con las llaves literales) y el catálogo cargado en runtime le gana
+  // a cualquier override local que se le quiera poner encima a esos mismos ids. Se
+  // usan ids propios en su lugar: al no existir en Transifex, siempre caen a este
+  // defaultMessage, que ya está en español.
   weightedGradeSummary: {
-    id: 'progress.weightedGradeSummary',
-    defaultMessage: 'Your current weighted grade summary',
+    id: 'progress.ficct.weightedGradeSummary',
+    defaultMessage: 'Tu resumen de calificación ponderada actual',
     description: 'It the text precede the sum of weighted grades of all the assignment',
   },
   weightedGradeSummaryTooltip: {
-    id: 'progress.weightedGradeSummaryTooltip',
-    defaultMessage: 'Your raw weighted grade summary is {rawGrade} and rounds to {roundedGrade}.',
+    id: 'progress.ficct.weightedGradeSummaryTooltip',
+    defaultMessage: 'Tu resumen de calificación ponderada bruta es {rawGrade} y se redondea a {roundedGrade}.',
     description: 'Tooltip content that explains the rounding of the summary versus individual assignments',
   },
   practiceScoreInfoText: {
