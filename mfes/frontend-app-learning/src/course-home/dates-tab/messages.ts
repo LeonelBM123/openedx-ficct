@@ -36,6 +36,21 @@ const messages = defineMessages({
     defaultMessage: 'Verified only',
     description: 'Shown as label for assignments which learner has no access to.',
   },
+  calendarPreviousMonthAltText: {
+    id: 'progress.ficct.dates.calendar.previousMonth',
+    defaultMessage: 'Mes anterior',
+    description: 'Alt text for the button that moves the calendar to the previous month',
+  },
+  calendarNextMonthAltText: {
+    id: 'progress.ficct.dates.calendar.nextMonth',
+    defaultMessage: 'Mes siguiente',
+    description: 'Alt text for the button that moves the calendar to the next month',
+  },
+  calendarDayEventsAltText: {
+    id: 'progress.ficct.dates.calendar.dayEvents',
+    defaultMessage: '{count, plural, one {# fecha este día} other {# fechas este día}}',
+    description: 'Accessible text announcing how many course dates fall on a given calendar day',
+  },
 });
 
 export default messages;

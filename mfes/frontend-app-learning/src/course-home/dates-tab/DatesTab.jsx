@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { sendTrackEvent } from '@edx/frontend-platform/analytics';
 import { useIntl } from '@edx/frontend-platform/i18n';
 
+import MonthCalendar from './calendar/MonthCalendar';
 import messages from './messages';
 import Timeline from './timeline/Timeline';
 
@@ -55,7 +56,16 @@ const DatesTab = () => {
           <UpgradeToShiftDatesAlert logUpgradeLinkClick={logUpgradeLinkClick} model="dates" />
         </>
       )}
-      <Timeline />
+      <div className="row w-100 m-0">
+        <div className="col-12 col-md-7 p-0">
+          <Timeline />
+        </div>
+        {courseDateBlocks.length > 0 && (
+          <div className="col-12 col-md-5 p-0 pl-md-4 mt-4">
+            <MonthCalendar courseDateBlocks={courseDateBlocks} />
+          </div>
+        )}
+      </div>
     </>
   );
 };
