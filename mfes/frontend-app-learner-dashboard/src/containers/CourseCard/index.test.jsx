@@ -2,11 +2,6 @@ import { render, screen } from '@testing-library/react';
 import { IntlProvider } from '@edx/frontend-platform/i18n';
 
 import CourseCard from '.';
-import hooks from './hooks';
-
-jest.mock('./hooks', () => ({
-  useIsCollapsed: jest.fn(),
-}));
 
 const namesMockComponents = [
   'CourseCardBanners',
@@ -29,20 +24,13 @@ jest.mock('./components/CourseCardTitle', () => jest.fn(() => <div>CourseCardTit
 const cardId = 'test-card-id';
 
 describe('CourseCard component', () => {
-  it('collapsed', () => {
-    hooks.useIsCollapsed.mockReturnValueOnce(true);
+  // REVERT-MIS-CURSOS: los tests 'collapsed' / 'not collapsed' dependian del layout horizontal (useIsCollapsed).
+  it('always renders the compact vertical layout', () => {
     render(<IntlProvider locale="en"><CourseCard cardId={cardId} /></IntlProvider>);
     const cardImage = screen.getByText('CourseCardImage');
     expect(cardImage.parentElement).not.toHaveClass('d-flex');
   });
-  it('not collapsed', () => {
-    hooks.useIsCollapsed.mockReturnValueOnce(false);
-    render(<IntlProvider locale="en"><CourseCard cardId={cardId} /></IntlProvider>);
-    const cardImage = screen.getByText('CourseCardImage');
-    expect(cardImage.parentElement).toHaveClass('d-flex');
-  });
   it('renders courseCard child components', () => {
-    hooks.useIsCollapsed.mockReturnValueOnce(false);
     render(<IntlProvider locale="en"><CourseCard cardId={cardId} /></IntlProvider>);
     namesMockComponents.map((courseCardName) => {
       const courseCardComponent = screen.getByText(courseCardName);

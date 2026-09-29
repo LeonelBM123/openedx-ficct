@@ -36,7 +36,7 @@ export const CourseCardProgress = ({ cardId }) => {
   if (isPending) {
     // Placeholder de la misma altura para que la tarjeta no salte al cargar.
     return (
-      <Card.Section className="pt-0 pb-3">
+      <Card.Section className="pt-0 pb-2">
         <div className="course-card-progress-placeholder" data-testid="CourseCardProgressLoading" />
       </Card.Section>
     );
@@ -54,7 +54,7 @@ export const CourseCardProgress = ({ cardId }) => {
   const isComplete = percent === 100;
 
   return (
-    <Card.Section className="pt-0 pb-3">
+    <Card.Section className="pt-0 pb-2">
       <div
         className={classNames('course-card-progress', { 'is-complete': isComplete })}
         data-testid="CourseCardProgress"

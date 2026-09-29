@@ -38,3 +38,12 @@
     margin: var(--pgn-spacing-spacer-2) 0;
   }
 }
+
+// Grilla compacta de "Mis cursos". Con sidebar caben 2 por fila; sin sidebar, 3 o 4.
+// (Original: pila vertical, ver REVERT-MIS-CURSOS en CourseList/index.jsx.)
+.course-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--pgn-spacing-spacer-3);
+  align-items: stretch;
+}

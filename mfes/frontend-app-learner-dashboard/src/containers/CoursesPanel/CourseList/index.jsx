@@ -22,6 +22,7 @@ export const CourseList = ({ courseListData }) => {
           <ActiveCourseFilters />
         </div>
       )}
+      {/* REVERT-MIS-CURSOS (original: pila vertical)
       <div className="d-flex flex-column flex-grow-1">
         {visibleList.map(({ cardId }) => (
           <CourseCard key={cardId} cardId={cardId} />
@@ -31,6 +32,23 @@ export const CourseList = ({ courseListData }) => {
             variant={isCollapsed ? 'reduced' : 'secondary'}
             paginationLabel="Course List"
             className="mx-auto mb-2"
+            pageCount={numPages}
+            onPageSelect={setPageNumber}
+          />
+        )}
+      </div>
+      */}
+      <div className="d-flex flex-column flex-grow-1">
+        <div className="course-list-grid">
+          {visibleList.map(({ cardId }) => (
+            <CourseCard key={cardId} cardId={cardId} />
+          ))}
+        </div>
+        {numPages > 1 && (
+          <Pagination
+            variant={isCollapsed ? 'reduced' : 'secondary'}
+            paginationLabel="Course List"
+            className="mx-auto mt-4 mb-2"
             pageCount={numPages}
             onPageSelect={setPageNumber}
           />

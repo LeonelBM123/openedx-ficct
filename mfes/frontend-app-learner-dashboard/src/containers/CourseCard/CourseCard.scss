@@ -1,17 +1,56 @@
 .course-card {
   .card {
-    .pgn__card-wrapper-image-cap.vertical {
-      display: flex;
-      min-height: var(--pgn-size-card-image-vertical-max-height);
+    // REVERT-MIS-CURSOS (original):
+    // .pgn__card-wrapper-image-cap.vertical { display: flex; min-height: var(--pgn-size-card-image-vertical-max-height); }
+    // .pgn__card-image-cap { border-bottom-left-radius: 0 !important; }
+    // .pgn__card-header-content { margin-top: 1.5rem; }
+    // .pgn__card-footer .pgn__action-row { align-self: flex-end; white-space: nowrap; }
+    overflow: hidden;
+    transition: box-shadow .2s ease, transform .2s ease;
+
+    &:hover {
+      box-shadow: var(--pgn-elevation-box-shadow-level-2, 0 4px 12px rgba(0, 0, 0, .12));
+      transform: translateY(-2px);
+    }
+
+    .pgn__card-wrapper-image-cap {
+      display: block;
+      width: 100%;
+      position: relative;
+      aspect-ratio: 16 / 9;
+      max-height: 9rem;
+      overflow: hidden !important;
     }
     .pgn__card-image-cap {
-      border-bottom-left-radius: 0 !important;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 0 !important;
+    }
+    .course-card-body {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+    }
+    .pgn__card-header {
+      padding-bottom: var(--pgn-spacing-spacer-1);
+    }
+    .pgn__card-header-title-sm,
+    .pgn__card-header-title-md {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    [data-testid="CourseCardDetails"] {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--pgn-color-gray-700);
     }
     .overflow-visible {
       overflow: visible;
-    }
-    .pgn__card-header-content {
-      margin-top: 1.5rem;
     }
     .pgn__card-footer {
       flex-wrap: nowrap;
@@ -21,8 +60,12 @@
       }
 
       .pgn__action-row {
-        align-self: flex-end;
+        align-self: stretch;
         white-space: nowrap;
+
+        .btn {
+          width: 100%;
+        }
       }
     }
 

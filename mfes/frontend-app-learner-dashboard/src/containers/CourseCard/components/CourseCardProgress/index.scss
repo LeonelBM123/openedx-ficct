@@ -1,5 +1,5 @@
 .course-card-progress {
-  max-width: 24rem;
+  // REVERT-MIS-CURSOS: max-width: 24rem;
 
   .course-card-progress-header {
     display: flex;
@@ -22,7 +22,7 @@
 
   // Pill: se redondean tanto el riel como el relleno.
   .progress {
-    height: .625rem;
+    height: .5rem; // REVERT-MIS-CURSOS: .625rem
     border-radius: var(--pgn-size-border-radius-lg);
     background-color: var(--pgn-color-gray-200);
   }
@@ -58,5 +58,5 @@
 
 // Misma altura que la cabecera + la barra, para que la tarjeta no salte mientras carga.
 .course-card-progress-placeholder {
-  height: 2rem;
+  height: 1.75rem; // REVERT-MIS-CURSOS: 2rem
 }

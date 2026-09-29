@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import { Card } from '@openedx/paragon';
 
-import { useIsCollapsed } from './hooks';
+// REVERT-MIS-CURSOS: import { useIsCollapsed } from './hooks';
 import CourseCardBanners from './components/CourseCardBanners';
 import CourseCardImage from './components/CourseCardImage';
 import CourseCardMenu from './components/CourseCardMenu';
@@ -14,6 +14,8 @@ import CourseCardTitle from './components/CourseCardTitle';
 
 import './CourseCard.scss';
 
+/* REVERT-MIS-CURSOS (original: card horizontal). Para revertir: descomentar este bloque,
+   borrar la version compacta de abajo y restaurar `useIsCollapsed` (import de ./hooks).
 export const CourseCard = ({
   cardId,
 }) => {
@@ -45,6 +47,35 @@ export const CourseCard = ({
     </div>
   );
 };
+*/
+
+export const CourseCard = ({
+  cardId,
+}) => (
+  <div className="course-card" id={cardId} data-testid="CourseCard">
+    <Card orientation="vertical" className="h-100">
+      <CourseCardImage cardId={cardId} orientation="vertical" />
+      <Card.Body className="course-card-body">
+        <Card.Header
+          size="sm"
+          title={<CourseCardTitle cardId={cardId} />}
+          actions={<CourseCardMenu cardId={cardId} />}
+        />
+        <Card.Section className="pt-0 pb-2">
+          <CourseCardDetails cardId={cardId} />
+        </Card.Section>
+        <div className="mt-auto">
+          <CourseCardProgress cardId={cardId} />
+          <Card.Footer orientation="vertical">
+            <CourseCardActions cardId={cardId} />
+          </Card.Footer>
+        </div>
+      </Card.Body>
+      <CourseCardBanners cardId={cardId} />
+    </Card>
+  </div>
+);
+
 CourseCard.propTypes = {
   cardId: PropTypes.string.isRequired,
 };
