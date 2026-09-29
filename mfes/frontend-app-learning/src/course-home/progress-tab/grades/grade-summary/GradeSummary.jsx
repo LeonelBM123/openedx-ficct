@@ -25,6 +25,7 @@ const GradeSummary = () => {
       <GradeSummaryHeader allOfSomeAssignmentTypeIsLocked={allOfSomeAssignmentTypeIsLocked} />
       <AssignmentWeightBar assignmentTypeGradeSummary={assignmentTypeGradeSummary} />
       <GradeSummaryTable setAllOfSomeAssignmentTypeIsLocked={setAllOfSomeAssignmentTypeIsLocked} />
+      <hr className="my-4 border-light-500" />
     </section>
   );
 };

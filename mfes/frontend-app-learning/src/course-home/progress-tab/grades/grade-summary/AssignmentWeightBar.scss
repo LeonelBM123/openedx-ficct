@@ -8,6 +8,15 @@
   th, td {
     white-space: normal;
     word-break: break-word;
+    padding: 0.85rem 1rem;
+  }
+
+  thead th {
+    background: var(--pgn-color-light-100);
+  }
+
+  tbody tr:hover {
+    background: var(--pgn-color-light-100);
   }
 }
 
