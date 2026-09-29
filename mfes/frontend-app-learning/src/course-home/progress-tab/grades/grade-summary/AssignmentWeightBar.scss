@@ -1,0 +1,32 @@
+// Igual que detailed-grades: esta tabla la renderiza <DataTable.Table/> de Paragon, sin forma
+// de inyectar "role" propios en sus <td>/<tr>, así que en vez de un layout de tarjeta con
+// "display: block" (que rompe los roles ARIA implícitos de tabla) solo se evita el scroll
+// horizontal dejando que el contenido haga wrap.
+.grade-summary-table .pgn__data-table {
+  table-layout: auto;
+
+  th, td {
+    white-space: normal;
+    word-break: break-word;
+  }
+}
+
+.assignment-weight-bar {
+  &__track {
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--pgn-color-light-300);
+  }
+
+  &__segment {
+    height: 100%;
+  }
+
+  &__legend-swatch {
+    display: inline-block;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 2px;
+  }
+}

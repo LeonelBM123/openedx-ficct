@@ -248,6 +248,46 @@ const messages = defineMessages({
     defaultMessage: 'The lowest {numDroppable, plural, one{# {assignmentType} score is} other{# {assignmentType} scores are}} dropped.',
     description: 'Footnote text stating how many assignments are dropped',
   },
+  problemScoreChipLabel: {
+    id: 'progress.detailedGrades.problemScore.chip.label',
+    defaultMessage: 'P{index}',
+    description: 'Short label on a problem score chip; P stands for "Problema" (problem) in Spanish',
+  },
+  problemScoreChipTooltip: {
+    id: 'progress.detailedGrades.problemScore.chip.tooltip',
+    defaultMessage: 'Problema {index} de {count} — {subsectionTitle}: {earned}/{possible} ({status})',
+    description: 'Full tooltip text for a problem score chip, showing the subsection name and status',
+  },
+  problemScoreStatusNotAttempted: {
+    id: 'progress.detailedGrades.problemScore.status.notAttempted',
+    defaultMessage: 'Sin intentar',
+    description: 'Problem score chip status: the learner has not attempted this problem (score is 0)',
+  },
+  problemScoreStatusLow: {
+    id: 'progress.detailedGrades.problemScore.status.low',
+    defaultMessage: 'Puntaje bajo',
+    description: 'Problem score chip status: the learner scored below half the possible points',
+  },
+  problemScoreStatusPartial: {
+    id: 'progress.detailedGrades.problemScore.status.partial',
+    defaultMessage: 'Puntaje parcial',
+    description: 'Problem score chip status: the learner scored between half and most of the possible points',
+  },
+  problemScoreStatusPassed: {
+    id: 'progress.detailedGrades.problemScore.status.passed',
+    defaultMessage: 'Aprobado',
+    description: 'Problem score chip status: the learner scored most of the possible points',
+  },
+  assignmentWeightBarTitle: {
+    id: 'progress.gradeSummary.weightBar.title',
+    defaultMessage: 'Peso por tipo de evaluación',
+    description: 'Title for the stacked bar showing the weight of each assignment type in the final grade',
+  },
+  assignmentWeightBarAltText: {
+    id: 'progress.gradeSummary.weightBar.altText',
+    defaultMessage: 'Distribución del peso de la calificación final: {summary}',
+    description: 'Accessible label summarizing the assignment weight stacked bar for screen readers',
+  },
 });
 
 export default messages;

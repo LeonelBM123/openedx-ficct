@@ -111,7 +111,7 @@ const GradeSummaryTable = ({ setAllOfSomeAssignmentTypeIsLocked }) => {
   const getCell = (locked, value) => <span className={locked ? 'greyed-out' : ''}>{value}</span>;
 
   return (
-    <>
+    <div className="grade-summary-table">
       <ul className="micro mb-3 pl-3 text-gray-700">
         <li>
           <b>{intl.formatMessage(messages.hiddenScoreLabel)}: </b>
@@ -162,7 +162,7 @@ const GradeSummaryTable = ({ setAllOfSomeAssignmentTypeIsLocked }) => {
       {footnotes && (
         <DroppableAssignmentFootnote footnotes={footnotes} />
       )}
-    </>
+    </div>
   );
 };
 

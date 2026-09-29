@@ -28,11 +28,13 @@ const ProgressSummary = () => {
   // the progress of the learner a staff member is looking at. In that case we only show the total,
   // which does come from the progress endpoint and is scoped to that learner.
   const viewingOtherStudentsProgressPage = !!(targetUserId && targetUserId !== userId);
-  const sections = useProgressSummary(courseId, viewingOtherStudentsProgressPage);
+  const outline = useProgressSummary(courseId, viewingOtherStudentsProgressPage);
 
-  if (sections === null) {
+  if (outline === null) {
     return null;
   }
+
+  const { sections, sequences, units } = outline;
 
   const sectionsWithProgress = sections
     .filter((section) => section.completionStat && section.completionStat.total > 0)
@@ -61,7 +63,12 @@ const ProgressSummary = () => {
     <section className="text-dark-700 my-4 p-4 rounded raised-card" data-testid="progress-summary">
       <ProgressSummaryHeader />
       {sectionsWithProgress.length ? (
-        <ProgressSummaryTable sections={sectionsWithProgress} total={total} />
+        <ProgressSummaryTable
+          sections={sectionsWithProgress}
+          sequences={sequences}
+          units={units}
+          total={total}
+        />
       ) : (
         <div className="border-top border-primary bg-light-200 p-3">
           <ProgressTotalRow completed={total.completed} total={total.total} percent={total.percent} />

@@ -43,6 +43,46 @@ const messages = defineMessages({
     defaultMessage: '{completed} / {total}',
     description: 'Number of completed units out of the total units of a section',
   },
+  statusNotStarted: {
+    id: 'progress.progressSummary.status.notStarted',
+    defaultMessage: 'No iniciado',
+    description: 'Badge shown for a course section the learner has not started yet',
+  },
+  statusInProgress: {
+    id: 'progress.progressSummary.status.inProgress',
+    defaultMessage: 'En progreso',
+    description: 'Badge shown for a course section the learner has partially completed',
+  },
+  statusCompleted: {
+    id: 'progress.progressSummary.status.completed',
+    defaultMessage: 'Completado',
+    description: 'Badge shown for a course section the learner has fully completed',
+  },
+  expandSectionAltText: {
+    id: 'progress.progressSummary.section.expand.alt',
+    defaultMessage: 'Ver las unidades de {sectionTitle}',
+    description: 'Alt text for the button that expands a section row to list its units',
+  },
+  collapseSectionAltText: {
+    id: 'progress.progressSummary.section.collapse.alt',
+    defaultMessage: 'Ocultar las unidades de {sectionTitle}',
+    description: 'Alt text for the button that collapses an expanded section row',
+  },
+  sectionUnitsHeading: {
+    id: 'progress.progressSummary.section.units.heading',
+    defaultMessage: 'Unidades',
+    description: 'Heading for the list of units shown when a section row is expanded',
+  },
+  unitCompletedAltText: {
+    id: 'progress.progressSummary.unit.completed.alt',
+    defaultMessage: 'Completada',
+    description: 'Accessible text marking a unit as completed in the expanded section row',
+  },
+  unitIncompleteAltText: {
+    id: 'progress.progressSummary.unit.incomplete.alt',
+    defaultMessage: 'Sin completar',
+    description: 'Accessible text marking a unit as not completed in the expanded section row',
+  },
 });
 
 export default messages;

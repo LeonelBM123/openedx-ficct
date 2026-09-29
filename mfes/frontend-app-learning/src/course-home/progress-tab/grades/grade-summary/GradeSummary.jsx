@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useContextId } from '../../../../data/hooks';
 import { useModel } from '../../../../generic/model-store';
 
+import AssignmentWeightBar from './AssignmentWeightBar';
 import GradeSummaryHeader from './GradeSummaryHeader';
 import GradeSummaryTable from './GradeSummaryTable';
 
@@ -22,6 +23,7 @@ const GradeSummary = () => {
   return (
     <section className="text-dark-700 mb-4">
       <GradeSummaryHeader allOfSomeAssignmentTypeIsLocked={allOfSomeAssignmentTypeIsLocked} />
+      <AssignmentWeightBar assignmentTypeGradeSummary={assignmentTypeGradeSummary} />
       <GradeSummaryTable setAllOfSomeAssignmentTypeIsLocked={setAllOfSomeAssignmentTypeIsLocked} />
     </section>
   );

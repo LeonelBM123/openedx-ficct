@@ -1,0 +1,38 @@
+// Evita el scroll horizontal innecesario en pantallas chicas: deja que el nombre de la
+// subsección haga wrap en vez de forzar un ancho mínimo de columna.
+//
+// Nota: esta tabla la renderiza <DataTable.Table/> de Paragon, que no expone forma de
+// inyectar atributos "role" propios en sus <td>/<tr> internos. Por eso, a diferencia de
+// la tabla de "Resumen de progreso" (reescrita a mano en ProgressSummaryTable.jsx), acá NO
+// se transforma a layout de tarjeta con "display: block" en móvil -- eso le quitaría los
+// roles ARIA implícitos de tabla a lectores de pantalla sin forma de reponerlos. Se prioriza
+// mantener la tabla semánticamente correcta sobre el layout de tarjeta.
+.detailed-grades-table .pgn__data-table {
+  table-layout: auto;
+
+  th, td {
+    white-space: normal;
+    word-break: break-word;
+  }
+}
+
+.problem-score-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.problem-score-chip {
+  border-radius: 1rem;
+  padding: 0.15rem 0.6rem;
+  cursor: default;
+
+  &__icon {
+    height: 0.9rem;
+    width: 0.9rem;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--pgn-color-primary-500);
+    outline-offset: 2px;
+  }
+}

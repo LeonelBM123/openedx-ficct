@@ -36,7 +36,7 @@ const DetailedGradesTable = () => {
       }));
 
       return (
-        <div className="my-3" key={`${chapter.displayName}-grades-table`}>
+        <div className="my-3 detailed-grades-table" key={`${chapter.displayName}-grades-table`}>
           <DataTable
             data={detailedGradesData}
             itemCount={detailedGradesData.length}

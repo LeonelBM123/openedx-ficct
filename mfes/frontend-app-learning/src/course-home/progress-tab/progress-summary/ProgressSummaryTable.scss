@@ -1,0 +1,105 @@
+.progress-summary-table {
+  border-collapse: collapse;
+
+  &__cell {
+    padding: 0.75rem 1rem;
+  }
+
+  &__head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--pgn-color-white);
+    box-shadow: inset 0 -1px 0 var(--pgn-color-light-300);
+  }
+
+  &__row {
+    border-bottom: 1px solid var(--pgn-color-light-300);
+
+    &:hover {
+      background: var(--pgn-color-light-100);
+    }
+  }
+
+  &__expanded-row {
+    background: var(--pgn-color-light-100);
+    border-bottom: 1px solid var(--pgn-color-light-300);
+  }
+
+  &__bar {
+    max-width: 140px;
+  }
+
+  &__progress-cell {
+    min-width: 200px;
+  }
+
+  &__unit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  &__unit-item {
+    display: flex;
+    align-items: center;
+  }
+
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--pgn-color-primary-500);
+    outline-offset: 2px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .progress-summary-table {
+    // No se usa "display: none" a propósito -- eso saca el <thead> del árbol de
+    // accesibilidad en la mayoría de navegadores, aun con roles ARIA explícitos.
+    // Se esconde visualmente con la técnica estándar "sr-only" (mismo resultado
+    // que la utilidad Bootstrap del mismo nombre) sin quitarlo para lectores de
+    // pantalla.
+    &__head {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+      box-shadow: none;
+    }
+
+    &__row,
+    &__expanded-row {
+      display: block;
+      border: 1px solid var(--pgn-color-light-300);
+      border-radius: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    &__cell {
+      display: block;
+      text-align: left !important;
+      padding: 0.5rem 1rem;
+    }
+
+    &__progress-cell,
+    td[data-label] {
+      &::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--pgn-color-gray-700);
+        margin-bottom: 0.25rem;
+      }
+    }
+
+    &__bar {
+      max-width: none;
+    }
+  }
+}
