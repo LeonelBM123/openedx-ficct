@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import {
-  Badge, Icon, IconButton, ProgressBar,
+  Badge, Icon, IconButton,
 } from '@openedx/paragon';
 import {
   ArrowDropDown, ArrowDropUp, CheckCircle, WatchFilled,
@@ -32,12 +32,6 @@ const getStatus = (percent) => {
 const STATUS_BADGE_VARIANT = {
   [STATUS.NOT_STARTED]: 'light',
   [STATUS.IN_PROGRESS]: 'info',
-  [STATUS.COMPLETED]: 'success',
-};
-
-const STATUS_BAR_VARIANT = {
-  [STATUS.NOT_STARTED]: 'dark',
-  [STATUS.IN_PROGRESS]: 'dark',
   [STATUS.COMPLETED]: 'success',
 };
 
@@ -139,16 +133,22 @@ const ProgressSummaryRow = ({
           data-label={intl.formatMessage(messages.progressPercent)}
         >
           <div className="d-flex align-items-center justify-content-end">
-            {/* El "% completado" ya se muestra en el <span> de al lado como texto visible;
-                no se pasa `label` porque ProgressBar lo dibuja como una burbuja flotante sobre
-                la barra, pensada para barras de ancho completo, no para esta versión compacta
-                dentro de una celda. La barra sigue siendo un progressbar accesible por sí sola
-                (aria-valuenow/min/max los pone el propio componente). */}
-            <ProgressBar
-              now={section.percent}
-              variant={STATUS_BAR_VARIANT[status]}
+            {/* Barra propia en vez de <ProgressBar/> de Paragon: sus variantes ("dark",
+                "success"...) no mapean de forma confiable a los colores de marca en este
+                theme (se veía roja incluso al 100%). Con un div propio controlamos el color
+                exacto por token de marca y el radio de los bordes. */}
+            <div
               className="progress-summary-table__bar flex-grow-1 mr-2"
-            />
+              role="progressbar"
+              aria-valuenow={section.percent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className={`progress-summary-table__bar-fill progress-summary-table__bar-fill--${status}`}
+                style={{ width: `${section.percent}%` }}
+              />
+            </div>
             <span className="small font-weight-bold">{section.percent}%</span>
           </div>
         </td>
