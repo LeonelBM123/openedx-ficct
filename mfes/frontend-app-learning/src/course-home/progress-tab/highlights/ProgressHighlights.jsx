@@ -8,7 +8,6 @@ import ContinueCard from './ContinueCard';
 import KpiRow from './KpiRow';
 import MilestoneBadges from './MilestoneBadges';
 import ProjectedGrade from './ProjectedGrade';
-import UpcomingDates from './UpcomingDates';
 import useProgressHighlightsData from './useProgressHighlightsData';
 
 const getPercent = (completed, total) => (total > 0 ? Math.round((completed / total) * 100) : 0);
@@ -65,9 +64,6 @@ const ProgressHighlights = () => {
           <MilestoneBadges percentComplete={percentComplete} />
         </div>
       </div>
-      {!viewingOtherStudentsProgressPage && courseDateBlocks.length > 0 && (
-        <UpcomingDates courseDateBlocks={courseDateBlocks} />
-      )}
     </div>
   );
 };

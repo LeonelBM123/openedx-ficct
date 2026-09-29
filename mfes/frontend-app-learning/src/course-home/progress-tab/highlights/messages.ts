@@ -56,16 +56,6 @@ const messages = defineMessages({
     defaultMessage: 'Te faltan {gap} puntos porcentuales para llegar al {passingGrade}% necesario para aprobar (llevas {currentGrade}%).',
     description: 'Projected grade message shown when the learner is not currently passing',
   },
-  upcomingDatesTitle: {
-    id: 'progress.ficct.highlights.upcomingDates.title',
-    defaultMessage: 'Próximas fechas',
-    description: 'Title of the upcoming dates mini timeline',
-  },
-  upcomingDatesEmpty: {
-    id: 'progress.ficct.highlights.upcomingDates.empty',
-    defaultMessage: 'No hay fechas próximas por ahora.',
-    description: 'Shown when there are no upcoming dates to list',
-  },
   milestonesTitle: {
     id: 'progress.ficct.highlights.milestones.title',
     defaultMessage: 'Hitos de avance',
