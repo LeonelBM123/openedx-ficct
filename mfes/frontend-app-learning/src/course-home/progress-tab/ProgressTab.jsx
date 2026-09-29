@@ -6,6 +6,7 @@ import ProgressTabCertificateStatusSidePanelSlot from '../../plugin-slots/Progre
 
 import CourseCompletion from './course-completion/CourseCompletion';
 import ProgressHeader from './ProgressHeader';
+import ProgressHighlights from './highlights/ProgressHighlights';
 import ProgressSummary from './progress-summary/ProgressSummary';
 
 import ProgressTabCertificateStatusMainBodySlot from '../../plugin-slots/ProgressTabCertificateStatusMainBodySlot';
@@ -34,6 +35,7 @@ const ProgressTab = () => {
 
   return (
     <>
+      <ProgressHighlights />
       <ProgressHeader />
       <div className="row w-100 m-0">
         {/* Main body */}
