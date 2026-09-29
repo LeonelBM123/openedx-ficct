@@ -5,6 +5,7 @@ import { useInitializeLearnerHome } from 'data/hooks';
 import SelectSessionModal from 'containers/SelectSessionModal';
 import CoursesPanel from 'containers/CoursesPanel';
 import PopularCourses from 'containers/PopularCourses';
+import NewCourses from 'containers/NewCourses';
 import DashboardModalSlot from 'plugin-slots/DashboardModalSlot';
 
 import LoadingView from './LoadingView';
@@ -38,6 +39,7 @@ export const Dashboard = () => {
               <DashboardLayout>
                 <CoursesPanel />
               </DashboardLayout>
+              <NewCourses />
             </>
           )}
       </div>

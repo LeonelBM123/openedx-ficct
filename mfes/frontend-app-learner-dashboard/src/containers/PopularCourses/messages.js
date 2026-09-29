@@ -11,6 +11,11 @@ const messages = defineMessages({
     description: 'Cantidad de estudiantes inscritos en un curso',
     defaultMessage: '{count, plural, one {# inscrito} other {# inscritos}}',
   },
+  newBadge: {
+    id: 'learner-dash.popularCourses.newBadge',
+    description: 'Etiqueta de un curso recien publicado',
+    defaultMessage: 'Nuevo',
+  },
   viewCourse: {
     id: 'learner-dash.popularCourses.viewCourse',
     description: 'Boton para ver la pagina del curso',

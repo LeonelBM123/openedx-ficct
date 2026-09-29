@@ -98,9 +98,9 @@ const requestCourseCreator = async (): Promise<string | undefined> => {
 
 // Cursos mas demandados de la plataforma, ordenados por inscritos activos.
 // El endpoint es publico, pero se usa el cliente autenticado por consistencia con el resto.
-const getPopularCourses = async (limit: number) => {
+const getPopularCourses = async (limit: number, sort?: string) => {
   const { data } = await getAuthenticatedHttpClient().get(
-    stringifyUrl(urls.popularCourses(), { limit }),
+    stringifyUrl(urls.popularCourses(), sort ? { limit, sort } : { limit }),
   );
   return data?.results ?? [];
 };

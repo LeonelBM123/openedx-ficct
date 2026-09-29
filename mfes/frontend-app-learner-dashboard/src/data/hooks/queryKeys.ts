@@ -10,5 +10,6 @@ export const learnerDashboardQueryKeys = {
   courseCreatorStatus: () => [...learnerDashboardQueryKeys.all, 'courseCreatorStatus'] as const,
   requestCourseCreator: () => [...learnerDashboardQueryKeys.all, 'requestCourseCreator'] as const,
   popularCourses: (limit: number) => [...learnerDashboardQueryKeys.all, 'popularCourses', limit] as const,
+  newCourses: (limit: number) => [...learnerDashboardQueryKeys.all, 'newCourses', limit] as const,
   courseProgress: (courseId: string) => [...learnerDashboardQueryKeys.all, 'courseProgress', courseId] as const,
 };

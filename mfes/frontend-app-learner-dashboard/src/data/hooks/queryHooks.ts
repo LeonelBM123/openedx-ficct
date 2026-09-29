@@ -55,6 +55,14 @@ const usePopularCourses = (limit: number = 8) => useQuery({
   staleTime: FIVE_MINUTES,
 });
 
+// Cursos mas recientes (mismo endpoint, ordenado por fecha de creacion).
+const useNewCourses = (limit: number = 8) => useQuery({
+  queryKey: learnerDashboardQueryKeys.newCourses(limit),
+  queryFn: () => getPopularCourses(limit, 'new'),
+  retry: false,
+  staleTime: FIVE_MINUTES,
+});
+
 // Progreso de un curso. Cada CourseCard pide el suyo, por lo que solo se consultan
 // los cursos de la pagina visible.
 const useCourseProgress = (courseId: string, enabled: boolean = true) => useQuery({
@@ -69,5 +77,6 @@ export {
   useInitializeLearnerHome,
   useCourseCreatorStatus,
   usePopularCourses,
+  useNewCourses,
   useCourseProgress,
 };

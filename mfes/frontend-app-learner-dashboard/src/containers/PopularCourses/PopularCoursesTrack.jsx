@@ -13,7 +13,7 @@ import messages from './messages';
  * Events), scroll-snap nativo, botones prev/next, flechas de teclado y
  * auto-scroll lento que se pausa mientras el usuario interactua.
  */
-export const PopularCoursesTrack = ({ courses }) => {
+export const PopularCoursesTrack = ({ courses, label, variant }) => {
   const { formatMessage } = useIntl();
   const trackRef = useRef(null);
   const { didDragRef, dragHandlers } = useCarouselDrag(trackRef);
@@ -79,7 +79,7 @@ export const PopularCoursesTrack = ({ courses }) => {
         ref={trackRef}
         className="popular-courses-list"
         role="group"
-        aria-label={formatMessage(messages.sectionTitle)}
+        aria-label={label || formatMessage(messages.sectionTitle)}
         tabIndex={0}
         onKeyDown={onTrackKeyDown}
         onClickCapture={onTrackClickCapture}
@@ -89,7 +89,7 @@ export const PopularCoursesTrack = ({ courses }) => {
         onPointerCancel={onPointerUp}
       >
         {courses.map((course) => (
-          <PopularCourseCard key={course.course_id} course={course} />
+          <PopularCourseCard key={course.course_id} course={course} variant={variant} />
         ))}
       </div>
       <div className="popular-courses-arrows">
@@ -114,6 +114,13 @@ PopularCoursesTrack.propTypes = {
   courses: PropTypes.arrayOf(PropTypes.shape({
     course_id: PropTypes.string.isRequired,
   })).isRequired,
+  label: PropTypes.string,
+  variant: PropTypes.oneOf(['popular', 'new']),
+};
+
+PopularCoursesTrack.defaultProps = {
+  label: undefined,
+  variant: 'popular',
 };
 
 export default PopularCoursesTrack;

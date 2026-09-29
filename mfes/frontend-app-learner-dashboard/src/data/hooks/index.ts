@@ -2,6 +2,7 @@ import {
   useInitializeLearnerHome,
   useCourseCreatorStatus,
   usePopularCourses,
+  useNewCourses,
   useCourseProgress,
 } from './queryHooks';
 import {
@@ -18,6 +19,7 @@ export {
   useInitializeLearnerHome,
   useCourseCreatorStatus,
   usePopularCourses,
+  useNewCourses,
   useCourseProgress,
   useUnenrollFromCourse,
   useUpdateEntitlementEnrollment,

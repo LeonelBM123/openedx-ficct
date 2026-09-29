@@ -13,7 +13,7 @@ import messages from './messages';
  * El backend devuelve rutas relativas del LMS, igual que learner_home/init,
  * por eso se pasan por baseAppUrl.
  */
-export const PopularCourseCard = ({ course }) => {
+export const PopularCourseCard = ({ course, variant }) => {
   const { formatMessage } = useIntl();
   const aboutUrl = baseAppUrl(course.about_url);
 
@@ -29,9 +29,13 @@ export const PopularCourseCard = ({ course }) => {
         subtitle={`${course.org} • ${course.number}`}
       />
       <Card.Section className="pt-0">
-        <Badge variant="light">
-          {formatMessage(messages.enrolledCount, { count: course.enrollment_count })}
-        </Badge>
+        {variant === 'new' ? (
+          <Badge variant="success">{formatMessage(messages.newBadge)}</Badge>
+        ) : (
+          <Badge variant="light">
+            {formatMessage(messages.enrolledCount, { count: course.enrollment_count })}
+          </Badge>
+        )}
       </Card.Section>
       <Card.Footer>
         <Button variant="outline-primary" size="sm" href={aboutUrl} block>
@@ -52,6 +56,11 @@ PopularCourseCard.propTypes = {
     about_url: PropTypes.string.isRequired,
     enrollment_count: PropTypes.number.isRequired,
   }).isRequired,
+  variant: PropTypes.oneOf(['popular', 'new']),
+};
+
+PopularCourseCard.defaultProps = {
+  variant: 'popular',
 };
 
 export default PopularCourseCard;

@@ -72,6 +72,7 @@ def _serialize_course(course_overview, enrollment_count):
         'about_url': f'/courses/{course_id}/about',
         'enrollment_count': enrollment_count,
         'start': course_overview.start.isoformat() if course_overview.start else None,
+        'created': course_overview.created.isoformat() if course_overview.created else None,
     }
 
 
@@ -91,16 +92,26 @@ def _build_popular_courses():
     return courses
 
 
+def _build_new_courses():
+    """
+    Lista completa de cursos visibles ordenada por fecha de creacion (mas nuevos primero).
+    """
+    counts = _enrollment_counts()
+    overviews = _visible_courses().order_by('-created')
+    return [_serialize_course(overview, counts.get(str(overview.id), 0)) for overview in overviews]
+
+
 class PopularCoursesView(APIView):
     """
     Cursos mas demandados de la plataforma, ordenados por inscripciones activas.
 
     **Ejemplo**
         GET /api/ficct/popular-courses/?limit=8
+        GET /api/ficct/popular-courses/?limit=8&sort=new   (mas recientes primero)
 
     **Respuesta**
         {"results": [{"course_id", "title", "org", "number", "short_description",
-                      "image_url", "about_url", "enrollment_count", "start"}, ...]}
+                      "image_url", "about_url", "enrollment_count", "start", "created"}, ...]}
 
     Es informacion de catalogo (misma sensibilidad que /api/courses/v1/courses/),
     asi que no requiere autenticacion. El filtrado de "cursos en los que ya estoy
@@ -121,4 +132,5 @@ class PopularCoursesView(APIView):
             limit = DEFAULT_LIMIT
         limit = max(1, min(limit, MAX_LIMIT))
 
-        return Response({'results': _build_popular_courses()[:limit]})
+        courses = _build_new_courses() if request.query_params.get('sort') == 'new' else _build_popular_courses()
+        return Response({'results': courses[:limit]})
