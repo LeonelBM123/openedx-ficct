@@ -130,6 +130,7 @@ Los plugins de Tutor son archivos Python que inyectan código en archivos que Tu
 | `ficct_theme.py` | Solo configura el Comprehensive Theme para páginas Django legacy |
 | `ficct_config.py` | MFE_CONFIG (logos, email, URLs) + Judge0 XBlock |
 | `notifications_ficct.py` | Activa el waffle flag `notifications.enable_notifications` (campana de notificaciones en todos los headers) |
+| `relative_dates_ficct.py` | Activa el waffle flag `course_experience.relative_dates`, requisito para que Open edX muestre fechas de entrega por sección (pestaña Fechas, y "Próximas fechas"/"Próxima entrega" en Progreso) |
 | `ficct_dashboard_api.py` | Instala el paquete `apps-custom/ficct-dashboard-api` en la imagen openedx (APIs propias bajo `/api/ficct/`) |
 | `avatar_tts.py` | Contenedor propio de voz del avatar (`services/avatar-tts`, imagen que se construye a mano en cada servidor) + ruta `/avatar-tts/*` dentro del vhost del LMS en Caddy (no un subdominio propio, para no consumir otro DNS). El token que autentica ese contenedor lo emite `/api/ficct/avatar/tts-token/`, definido junto al resto de settings del avatar en `avatar_asistente.py` |
 | `landing_page.py` | Contenedor `landing` (caddy sirviendo estáticos del build Vite/React de `landing-page/`) + vhost `www.{{ LMS_HOST }}` para él + redirect en el vhost del LMS: anónimos que visitan la raíz van a la landing, con sesión iniciada van al LMS normal (ver Dominios y vhosts arriba) |
@@ -424,6 +425,52 @@ tutor local do init --limit notifications_ficct
 ⚠️ La campana solo se muestra a un usuario autenticado si tiene **al menos una inscripción activa a un curso** (`get_show_notifications_tray()` en `notifications/utils.py` recorre los `CourseEnrollment` activos del usuario) — comportamiento nativo de Open edX, no configurable vía Tutor.
 
 **Push notifications:** el flag hermano `notifications.enable_push_notifications` es solo para la app móvil nativa (FCM/APNs vía `django-push-notifications`); no aplica a MFEs web y no tiene efecto en este monorepo (no hay app móvil FICCT).
+
+### `relative_dates_ficct.py`
+
+Activa el waffle flag `course_experience.relative_dates`. Sin él, Open edX **nunca** genera bloques
+de fecha de entrega (`/api/course_home/dates/{course_id}`) para ninguna sección calificada, sin
+importar qué tan bien esté configurado el campo `due` de cada sequential — ni la pestaña Fechas ni
+"Próximas fechas"/"Próxima entrega" en Progreso muestran nada hasta que este flag está activo.
+Mismo patrón que `notifications_ficct.py` (`CLI_DO_INIT_TASKS`, no Django Admin manual).
+
+```python
+from tutor import hooks
+
+hooks.Filters.CLI_DO_INIT_TASKS.add_item(
+    (
+        "lms",
+        """
+(./manage.py lms waffle_flag --list | grep course_experience.relative_dates) || ./manage.py lms waffle_flag --create --everyone course_experience.relative_dates
+"""
+    )
+)
+```
+
+⚠️ **Para que una sección tenga fecha de entrega hacen falta 3 cosas, no solo poner el campo `due`:**
+1. Este waffle flag activo (arriba).
+2. El curso **no puede ser self-paced** (`self_paced=True` bloquea el guardado de `due` a nivel de
+   XBlock — la escritura falla en silencio, ni siquiera tira error). Cambiar a instructor-paced es
+   un ajuste real de "Course Pacing" en Studio (Settings → Schedule & Details), no algo cosmético.
+3. Tras editar `.due` (o `self_paced`) fuera de Studio (por ejemplo desde un shell), hay que
+   refrescar a mano dos cachés que Studio invalida automáticamente al guardar/publicar, pero que un
+   script no dispara solo:
+   ```python
+   from openedx.core.djangoapps.content.block_structure.api import clear_course_from_cache, update_course_in_cache
+   from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+
+   clear_course_from_cache(course_key)
+   update_course_in_cache(course_key)
+   CourseOverview.load_from_module_store(course_key)  # CourseOverview es una copia cacheada en DB
+   ```
+   Sin este paso, `CourseOverview.self_paced` queda desactualizado y bloquea las fechas igual que si
+   el flag estuviera apagado, aunque el XBlock ya tenga el valor correcto.
+
+⚠️ **No usar `store.publish()` a nivel del bloque `course` completo** para forzar una recarga —
+puede republicar una versión vieja de la estructura y revertir ediciones recientes en cascada (así
+se perdieron `self_paced` y los `due` la primera vez que se probó esto). Alcanza con
+`store.update_item()` por bloque dentro de un `store.bulk_operations(course_key)`, más el refresh
+de cachés de arriba.
 
 ### `ficct_dashboard_api.py`
 
