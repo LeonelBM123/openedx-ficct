@@ -99,6 +99,20 @@ openedx-ficct/
 | Rojo (secundario) | `#cc0000` |
 | Dorado (acento) | `#f5c518` |
 
+### Barras de progreso: no usar `<ProgressBar/>` de Paragon
+
+El componente `ProgressBar` de `@openedx/paragon` no mapea sus variantes (`dark`, `success`, etc.)
+de forma confiable a los colores de este theme -- en `frontend-app-learning` se veía **roja
+siempre**, incluso al 100% con `variant="success"`. Además su look por defecto (barra recta, sin
+bordes redondeados) no le gustó al usuario.
+
+En su lugar, usar `BrandProgressBar` (`mfes/frontend-app-learning/src/course-home/progress-tab/BrandProgressBar.jsx`):
+un componente propio con pista + relleno redondeados (`border-radius: 999px`), color explícito por
+variante vía tokens `--pgn-color-*` (`muted`/`brand`/`success`/`danger`), y semántica ARIA
+(`role="progressbar"` + `aria-valuenow/min/max`) igual a la de Paragon. Si se necesita una barra de
+progreso en otro MFE o en otra parte de `frontend-app-learning`, replicar este mismo patrón en vez
+de volver a `<ProgressBar/>` de Paragon.
+
 ---
 
 ## Sistema de Plugins de Tutor

@@ -1,0 +1,29 @@
+.brand-progress-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--pgn-color-light-300);
+  overflow: hidden;
+  width: 100%;
+
+  &__fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.3s ease;
+
+    &--muted {
+      background: var(--pgn-color-light-500);
+    }
+
+    &--brand {
+      background: var(--pgn-color-primary-500);
+    }
+
+    &--success {
+      background: var(--pgn-color-success-500);
+    }
+
+    &--danger {
+      background: var(--pgn-color-danger-500);
+    }
+  }
+}

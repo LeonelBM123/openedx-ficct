@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import { useIntl } from '@edx/frontend-platform/i18n';
-import { ProgressBar } from '@openedx/paragon';
 
+import BrandProgressBar from '../BrandProgressBar';
 import messages from './messages';
 
 // La API de progreso no expone cuánto peso de la calificación corresponde a evaluaciones que
@@ -19,10 +19,11 @@ const ProjectedGrade = ({ currentGrade, passingGrade }) => {
       <div className="small font-weight-bold text-gray-700 mb-2">
         {intl.formatMessage(messages.projectedGradeTitle)}
       </div>
-      <ProgressBar
-        now={Math.min(currentGrade, 100)}
-        variant={isPassing ? 'success' : 'dark'}
+      <BrandProgressBar
+        now={currentGrade}
+        variant={isPassing ? 'success' : 'danger'}
         className="mb-2"
+        ariaLabel={intl.formatMessage(messages.projectedGradeTitle)}
       />
       <div className="small">
         {isPassing

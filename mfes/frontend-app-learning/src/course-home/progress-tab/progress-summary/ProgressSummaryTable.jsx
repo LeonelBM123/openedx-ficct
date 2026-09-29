@@ -10,6 +10,7 @@ import {
 } from '@openedx/paragon/icons';
 
 import { useContextId } from '../../../data/hooks';
+import BrandProgressBar from '../BrandProgressBar';
 import { ProgressTotalRow } from './ProgressSummaryTableFooter';
 import messages from './messages';
 
@@ -32,6 +33,12 @@ const getStatus = (percent) => {
 const STATUS_BADGE_VARIANT = {
   [STATUS.NOT_STARTED]: 'light',
   [STATUS.IN_PROGRESS]: 'info',
+  [STATUS.COMPLETED]: 'success',
+};
+
+const STATUS_BAR_VARIANT = {
+  [STATUS.NOT_STARTED]: 'muted',
+  [STATUS.IN_PROGRESS]: 'brand',
   [STATUS.COMPLETED]: 'success',
 };
 
@@ -133,22 +140,12 @@ const ProgressSummaryRow = ({
           data-label={intl.formatMessage(messages.progressPercent)}
         >
           <div className="d-flex align-items-center justify-content-end">
-            {/* Barra propia en vez de <ProgressBar/> de Paragon: sus variantes ("dark",
-                "success"...) no mapean de forma confiable a los colores de marca en este
-                theme (se veía roja incluso al 100%). Con un div propio controlamos el color
-                exacto por token de marca y el radio de los bordes. */}
-            <div
+            <BrandProgressBar
+              now={section.percent}
+              variant={STATUS_BAR_VARIANT[status]}
               className="progress-summary-table__bar flex-grow-1 mr-2"
-              role="progressbar"
-              aria-valuenow={section.percent}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            >
-              <div
-                className={`progress-summary-table__bar-fill progress-summary-table__bar-fill--${status}`}
-                style={{ width: `${section.percent}%` }}
-              />
-            </div>
+              ariaLabel={section.title}
+            />
             <span className="small font-weight-bold">{section.percent}%</span>
           </div>
         </td>
