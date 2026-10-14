@@ -19,7 +19,7 @@ Mantener sincronizados a mano si el prompt o los limites cambian ahi.
 Contrato (el que consume mfes/frontend-app-learning/src/asistente/config/llmService.js):
     POST /ask
         headers: Authorization: Bearer <token>
-        body:    {pregunta, contexto}
+        body:    {pregunta, contexto, historial?: [{role, content}]}
         ->       {respuesta}
 """
 import hashlib
@@ -55,6 +55,10 @@ web_app.add_middleware(
 # una sola peticion monopolice la CPU. Se aplican con o sin token.
 MAX_QUESTION_CHARS = 1000
 MAX_CONTEXT_CHARS = 8000
+# Historial de la conversacion (modo chat): solo los ultimos turnos, y cada mensaje
+# recortado. Copia de avatar_views.py.
+MAX_HISTORY_MESSAGES = 10
+MAX_HISTORY_MESSAGE_CHARS = 1000
 
 # Mismo valor que MAX_TOKENS en avatar_views.py (OpenRouter). Se probo primero
 # qwen3:4b, pero es un modelo hibrido "thinking" que gasta la mayoria del presupuesto
@@ -85,9 +89,27 @@ SYSTEM_PROMPT = (
 )
 
 
+class HistoryMessage(BaseModel):
+    role: str
+    content: str
+
+
 class AskRequest(BaseModel):
     pregunta: str
     contexto: str = ""
+    historial: list[HistoryMessage] = []
+
+
+def clean_history(historial) -> list[dict]:
+    """Ultimos MAX_HISTORY_MESSAGES turnos validos (solo user/assistant, sin vacios).
+    El navegador arma el historial, asi que nunca se acepta un rol "system"."""
+    cleaned = []
+    for item in historial or []:
+        role = item.role
+        content = (item.content or "").strip()[:MAX_HISTORY_MESSAGE_CHARS]
+        if role in ("user", "assistant") and content:
+            cleaned.append({"role": role, "content": content})
+    return cleaned[-MAX_HISTORY_MESSAGES:]
 
 
 class AskResponse(BaseModel):
@@ -203,6 +225,7 @@ def ask(request: AskRequest, user_id: int = Depends(verify_token)):
                 "model": LOCAL_LLM_MODEL,
                 "messages": [
                     {"role": "system", "content": SYSTEM_PROMPT},
+                    *clean_history(request.historial),
                     {"role": "user", "content": mensaje},
                 ],
                 "max_tokens": MAX_TOKENS,

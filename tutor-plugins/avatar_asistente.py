@@ -27,6 +27,29 @@ hooks.Filters.CONFIG_DEFAULTS.add_items([
 ])
 
 hooks.Filters.ENV_PATCHES.add_items([
+    # Carga del modelo 3D del avatar (public/*.glb y animacion.fbx del MFE learning).
+    # Antes se servian sin Cache-Control ni compresion: solo con ETag, asi que el
+    # navegador revalidaba o volvia a bajar ~6 MB. Los nombres no llevan hash, por eso
+    # las rutas del MFE agregan ?v=N (ASSET_VERSION en AvatarSwitcher.jsx): al
+    # reemplazar un modelo se sube ese numero y "immutable" es seguro. Este patch va
+    # en el Caddy del contenedor mfe, no en el frontal: `tutor local restart mfe`.
+    (
+        "mfe-caddyfile",
+        """
+@avatar_assets path *.glb *.fbx
+header @avatar_assets Cache-Control "public, max-age=31536000, immutable"
+# Caddy no conoce .fbx y lo sirve sin Content-Type, asi que `encode` no lo comprime
+# (2.9 MB -> 1.4 MB con gzip). Los .glb ya vienen comprimidos (meshopt + WebP): no
+# se tocan.
+@avatar_fbx path *.fbx
+header @avatar_fbx Content-Type application/octet-stream
+encode zstd gzip {
+    match {
+        header Content-Type application/octet-stream*
+    }
+}
+"""
+    ),
     # Lo unico que se publica al navegador. MFE_CONFIG se sirve sin autenticacion en
     # GET /api/mfe_config/v1, asi que aca no puede ir ningun secreto: la key de
     # OpenRouter vivia aca y era legible por cualquiera. AVATAR_LLM_PROVIDER/API_URL

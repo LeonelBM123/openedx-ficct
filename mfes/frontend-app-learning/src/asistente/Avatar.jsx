@@ -5,6 +5,8 @@ import { useGLTF, useFBX, useAnimations } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
+export const ANIMATION_PATH = `${process.env.PUBLIC_PATH || '/'}animacion.fbx?v=1`;
+
 const arkitMouthMuscles = [
   'jawOpen', 'mouthFunnel', 'mouthPucker', 'mouthClose',
   'mouthRollLower', 'mouthSmileLeft', 'mouthSmileRight',
@@ -32,7 +34,7 @@ export default function Avatar({
 }) {
   const group = useRef();
   const { scene, nodes } = useGLTF(avatarPath);
-  const { animations: idleAnim } = useFBX(`${process.env.PUBLIC_PATH || '/'}animacion.fbx`);
+  const { animations: idleAnim } = useFBX(ANIMATION_PATH);
 
   const clips = useMemo(() => {
     if (!idleAnim || !idleAnim[0]) { return []; }

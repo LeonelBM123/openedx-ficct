@@ -25,14 +25,14 @@ async function getToken(forceRefresh = false) {
   return fetchToken();
 }
 
-function askRequest(apiUrl, pregunta, contexto, token) {
+function askRequest(apiUrl, pregunta, contexto, historial, token) {
   return fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ pregunta, contexto }),
+    body: JSON.stringify({ pregunta, contexto, historial }),
   });
 }
 
@@ -40,18 +40,20 @@ function askRequest(apiUrl, pregunta, contexto, token) {
 // habla directo con ese contenedor, igual que ttsService.textToSpeech habla directo
 // con el contenedor de voz, para no bloquear los workers de uwsgi del LMS durante la
 // inferencia.
-export async function askQuestion(pregunta, contexto) {
+// `historial` es la conversacion previa ([{ role: 'user'|'assistant', content }]); el
+// servidor se queda con los ultimos turnos y descarta cualquier rol que no sea esos dos.
+export async function askQuestion(pregunta, contexto, historial = []) {
   const apiUrl = getConfig().AVATAR_LLM_API_URL;
   if (!apiUrl) {
     throw new Error('AVATAR_LLM_API_URL no está configurada.');
   }
 
   const token = await getToken();
-  let response = await askRequest(apiUrl, pregunta, contexto, token);
+  let response = await askRequest(apiUrl, pregunta, contexto, historial, token);
 
   if (response.status === 401) {
     const freshToken = await getToken(true);
-    response = await askRequest(apiUrl, pregunta, contexto, freshToken);
+    response = await askRequest(apiUrl, pregunta, contexto, historial, freshToken);
   }
 
   if (!response.ok) {

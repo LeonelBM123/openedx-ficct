@@ -294,3 +294,33 @@ AvatarTour
         currentTime → buscar cue activo → arkitMapping[letra]
         → lerp en morphTargetInfluences de Streamozi_Head
 ```
+
+## Modos: avatar y chat
+
+El asistente tiene dos modos, que comparten la misma conversación (historial):
+
+- **Avatar** (por defecto): modelo 3D con voz y lip sync, recorrido guiado y panel de estadísticas.
+- **Chat** (`ChatPanel.jsx`): hilo de mensajes con historial, sin modelo 3D ni voz. No descarga los `.glb`.
+
+El botón `💬 Chat` / `🧑 Avatar` alterna entre ambos; el modo se recuerda en `localStorage`
+(`ficct-avatar-mode`) y el historial en `sessionStorage` por curso (`ficct-avatar-chat:<course>`).
+Al preguntar, el navegador manda `historial` (últimos 10 turnos `user`/`assistant`) junto a
+`pregunta` y `contexto`; el servidor lo recorta y descarta cualquier rol que no sea esos dos
+(`_clean_history` en `avatar_views.py`, `clean_history` en `services/avatar-llm-gateway/app.py`).
+El contexto del curso solo viaja en la pregunta actual, no se repite por turno.
+
+## Carga del modelo 3D
+
+- Los `.glb` están comprimidos con `gltf-transform optimize` (meshopt + texturas WebP 1024 px,
+  sin `join`/`flatten` para no fusionar mallas con morph targets): ~4–5.5 MB → ~0.7–0.8 MB cada uno.
+  Los originales están en `backups/avatares-originales/` (no commitear).
+  ```bash
+  gltf-transform optimize in.glb out.glb --compress meshopt --texture-compress webp \
+    --texture-size 1024 --simplify false --join false --flatten false
+  ```
+- Las rutas llevan `?v=N` (`ASSET_VERSION` en `AvatarSwitcher.jsx`, `ANIMATION_PATH` en `Avatar.jsx`):
+  se sirven con `Cache-Control: immutable`, así que **al reemplazar un modelo hay que subir ese número**.
+- Cabeceras y gzip del FBX: patch `mfe-caddyfile` en `tutor-plugins/avatar_asistente.py`
+  (`tutor config save` + `tutor local restart mfe`).
+- `AvatarTour` precarga el avatar por defecto y la animación al abrir el curso, y muestra una barra
+  de progreso mientras baja el modelo.

@@ -4,11 +4,13 @@ import React, {
 import { useSelector, useDispatch } from 'react-redux';
 import { useMatch } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
+import { useGLTF, useFBX, useProgress } from '@react-three/drei';
 import Joyride from 'react-joyride';
 import { getConfig } from '@edx/frontend-platform';
 import { getAuthenticatedHttpClient, getAuthenticatedUser } from '@edx/frontend-platform/auth';
 
-import Avatar from './Avatar';
+import Avatar, { ANIMATION_PATH } from './Avatar';
+import ChatPanel from './ChatPanel';
 import TourUI from './TourUI';
 import StatsPanel from './StatsPanel';
 import { AVATAR_LIST } from './AvatarSwitcher';
@@ -25,6 +27,85 @@ import { DECODE_ROUTES } from '../constants';
 import './index.scss';
 
 const InvisibleTooltip = () => <div style={{ display: 'none' }} />;
+
+// --- Modo (avatar | chat) e historial de la conversación ---
+
+const MODE_STORAGE_KEY = 'ficct-avatar-mode';
+const CHAT_STORAGE_PREFIX = 'ficct-avatar-chat:';
+// Cuánto se guarda en el navegador vs. cuánto se manda al LLM por pregunta (el
+// servidor aplica su propio tope, MAX_HISTORY_MESSAGES en avatar-llm-gateway).
+const MAX_STORED_MESSAGES = 40;
+const MAX_HISTORY_SENT = 10;
+
+// sessionStorage/localStorage pueden lanzar (modo privado, datos bloqueados): la
+// persistencia es una comodidad, el asistente tiene que funcionar sin ella.
+function loadMode() {
+  try {
+    return window.localStorage.getItem(MODE_STORAGE_KEY) === 'chat' ? 'chat' : 'avatar';
+  } catch {
+    return 'avatar';
+  }
+}
+
+function saveMode(mode) {
+  try { window.localStorage.setItem(MODE_STORAGE_KEY, mode); } catch { /* sin persistencia */ }
+}
+
+function loadMessages(courseId) {
+  if (!courseId) { return []; }
+  try {
+    const raw = window.sessionStorage.getItem(`${CHAT_STORAGE_PREFIX}${courseId}`);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveMessages(courseId, messages) {
+  if (!courseId) { return; }
+  try {
+    window.sessionStorage.setItem(
+      `${CHAT_STORAGE_PREFIX}${courseId}`,
+      JSON.stringify(messages.slice(-MAX_STORED_MESSAGES)),
+    );
+  } catch { /* sin persistencia */ }
+}
+
+// Avisa que el modelo 3D se está descargando: con Suspense fallback={null} una
+// conexión lenta dejaba el recuadro vacío y parecía roto.
+const AvatarLoadingOverlay = () => {
+  const { active, progress } = useProgress();
+  if (!active) { return null; }
+  return (
+    <div style={{
+      position: 'absolute',
+      inset: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px',
+      pointerEvents: 'none',
+      color: '#0056D2',
+      fontSize: '12px',
+    }}
+    >
+      <div style={{
+        width: '120px', height: '6px', borderRadius: '999px', background: 'rgba(0,86,210,0.18)', overflow: 'hidden',
+      }}
+      >
+        <div style={{
+          width: `${Math.round(progress)}%`, height: '100%', background: '#0056D2', transition: 'width 0.2s',
+        }}
+        />
+      </div>
+      <span>Cargando avatar… {Math.round(progress)}%</span>
+    </div>
+  );
+};
 
 const AvatarTour = ({ tourName = 'learning' }) => {
   const steps = portalTours[tourName];
@@ -49,6 +130,9 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [lipSyncData, setLipSyncData] = useState(null);
   const [avatarIndex, setAvatarIndex] = useState(0);
+  const [mode, setMode] = useState(loadMode);
+  const [messages, setMessages] = useState(() => loadMessages(courseId));
+  const [greetingText, setGreetingText] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [question, setQuestion] = useState('');
@@ -69,6 +153,27 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   const revokeAudioRef = useRef(null);
 
   const ttsEnabled = useMemo(() => !!getConfig().AVATAR_TTS_API_URL, []);
+
+  const avatarEnabled = getConfig().AVATAR_ENABLED?.toLowerCase() === 'true';
+
+  // Precarga en segundo plano del avatar por defecto y su animación, apenas carga
+  // la página del curso: así, cuando el alumno abre el asistente ya están en la
+  // caché del navegador. Solo en modo avatar (el chat no usa el modelo 3D) y solo
+  // el avatar inicial -- los demás se bajan si el alumno los selecciona.
+  useEffect(() => {
+    if (!avatarEnabled || !steps || mode !== 'avatar') { return; }
+    useGLTF.preload(AVATAR_LIST[0].path);
+    useFBX.preload(ANIMATION_PATH);
+  }, [avatarEnabled, steps, mode]);
+
+  // El historial es por curso: al cambiar de curso se carga el suyo.
+  useEffect(() => {
+    setMessages(loadMessages(courseId));
+  }, [courseId]);
+
+  useEffect(() => {
+    saveMessages(courseId, messages);
+  }, [courseId, messages]);
 
   // Carga eager (al abrir el curso) del progreso y las fechas para que el
   // avatar tenga todo el contexto listo sin depender de que el estudiante
@@ -118,6 +223,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     greetedRef.current = true; // evita el saludo proactivo al terminar el tour
     setShowWelcome(false);
     setIsMinimized(false);
+    setMode('avatar'); // el recorrido narra con el avatar
     setCurrentStep(0);
     setIsTourActive(true);
   }, []);
@@ -391,6 +497,14 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   }, [statsData, getDeadlines, getWeakAreas]);
 
   const handleAskQuestion = useCallback(async (q) => {
+    // Turnos previos (sin los mensajes de error, que no son parte de la
+    // conversación). El contexto del curso va solo en la pregunta actual.
+    const historial = messages
+      .filter((m) => !m.error)
+      .slice(-MAX_HISTORY_SENT)
+      .map(({ role, content }) => ({ role, content }));
+
+    setMessages((prev) => [...prev, { role: 'user', content: q }]);
     setIsThinking(true);
     setAiResponse('');
     cleanupAudio();
@@ -405,14 +519,14 @@ const AvatarTour = ({ tourName = 'learning' }) => {
         // services/avatar-llm-gateway): el navegador habla directo con ese
         // contenedor con un token corto, igual que ya hace con la voz, para no
         // bloquear los workers de uwsgi del LMS durante la inferencia.
-        answer = await askLocalQuestion(q, contexto || '');
+        answer = await askLocalQuestion(q, contexto || '', historial);
       } else {
         // El LLM se consulta desde el LMS (apps-custom/ficct-dashboard-api), no desde
         // aca: la key de OpenRouter se publicaba en MFE_CONFIG, que es un endpoint
         // publico. El system prompt tambien vive del lado del servidor.
         const { data } = await getAuthenticatedHttpClient().post(
           `${getConfig().LMS_BASE_URL}/api/ficct/avatar/ask/`,
-          { pregunta: q, contexto: contexto || undefined },
+          { pregunta: q, contexto: contexto || undefined, historial },
         );
         answer = data.respuesta || '';
       }
@@ -420,15 +534,42 @@ const AvatarTour = ({ tourName = 'learning' }) => {
       setAiResponse(answer);
       setIsThinking(false);
       setQuestion('');
+      if (answer) {
+        setMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
+      }
 
-      if (answer && ttsEnabled) {
+      // En modo chat no se habla: es solo texto.
+      if (answer && ttsEnabled && mode === 'avatar') {
         await speakText(answer);
       }
     } catch {
+      const errorText = '❌ No pude responder esa pregunta en este momento.';
       setIsThinking(false);
-      setAiResponse('❌ No pude responder esa pregunta en este momento.');
+      setAiResponse(errorText);
+      setMessages((prev) => [...prev, { role: 'assistant', content: errorText, error: true }]);
     }
-  }, [buildLLMContext, ttsEnabled, speakText]);
+  }, [messages, mode, buildLLMContext, ttsEnabled, speakText]);
+
+  const handleClearChat = useCallback(() => {
+    setMessages([]);
+    setAiResponse('');
+  }, []);
+
+  const handleSwitchMode = useCallback(() => {
+    // Cambiar de modo corta la voz y el recorrido en curso (el recorrido narra con
+    // el avatar, que en modo chat no está).
+    cleanupAudio();
+    setIsSpeaking(false);
+    setLipSyncData(null);
+    setStatsVisible(false);
+    if (isTourActive) { endTour(); }
+    setAiBubbleVisible(false);
+    setMode((m) => {
+      const next = m === 'avatar' ? 'chat' : 'avatar';
+      saveMode(next);
+      return next;
+    });
+  }, [cleanupAudio, endTour, isTourActive]);
 
   const handlePrevAvatar = () => {
     cleanupAudio();
@@ -479,10 +620,11 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     if (!text) { return; }
     greetedRef.current = true;
     setAiResponse(text);
+    setGreetingText(text);
     setAiBubbleVisible(true);
   }, [statsData, datesData, isTourActive, showWelcome, isMinimized, buildGreeting]);
 
-  if (!steps || getConfig().AVATAR_ENABLED?.toLowerCase() !== 'true') { return null; }
+  if (!steps || !avatarEnabled) { return null; }
 
   // FAB cuando está minimizado
   if (isMinimized) {
@@ -564,7 +706,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
         <div style={{
           position: 'fixed',
           bottom: '20px',
-          right: '332px',
+          right: `${(mode === 'chat' ? 340 : 300) + 32}px`,
           width: '270px',
           zIndex: 9999,
           pointerEvents: 'auto',
@@ -585,7 +727,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
         position: 'fixed',
         bottom: '20px',
         right: '20px',
-        width: '300px',
+        width: mode === 'chat' ? '340px' : '300px',
         zIndex: 9999,
         pointerEvents: 'none',
         fontFamily: 'system-ui, -apple-system, sans-serif',
@@ -668,7 +810,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
         )}
 
         {/* Burbuja respuesta — ENCIMA del avatar */}
-        {!showWelcome && !isTourActive && aiBubbleVisible && (
+        {mode === 'avatar' && !showWelcome && !isTourActive && aiBubbleVisible && (
           <div style={{
             ...glassStyle,
             pointerEvents: 'auto',
@@ -685,116 +827,161 @@ const AvatarTour = ({ tourName = 'learning' }) => {
           </div>
         )}
 
+        {mode === 'chat' && (
+          <ChatPanel
+            messages={messages}
+            greeting={greetingText}
+            isThinking={isThinking}
+            question={question}
+            setQuestion={setQuestion}
+            onAsk={handleAskQuestion}
+            onSwitchMode={handleSwitchMode}
+            onMinimize={() => setIsMinimized(true)}
+            onClear={handleClearChat}
+          />
+        )}
+
         {/* Canvas 3D — fondo transparente, controles superpuestos */}
-        <div style={{ position: 'relative', height: '280px' }}>
-          {/* Botón ✕ — esquina superior derecha */}
-          <button
-            type="button"
-            onClick={() => setIsMinimized(true)}
-            title="Minimizar"
-            style={{
+        {mode === 'avatar' && (
+          <div style={{ position: 'relative', height: '280px' }}>
+            {/* Cambiar a modo chat — esquina superior izquierda */}
+            <button
+              type="button"
+              onClick={handleSwitchMode}
+              title="Cambiar al modo chat"
+              style={{
+                position: 'absolute',
+                top: '8px',
+                left: '8px',
+                zIndex: 10,
+                pointerEvents: 'auto',
+                height: '28px',
+                padding: '0 10px',
+                borderRadius: '14px',
+                background: 'rgba(255,255,255,0.75)',
+                backdropFilter: 'blur(6px)',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '12px',
+                color: '#0056D2',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+              }}
+            >
+              💬 Chat
+            </button>
+
+            {/* Botón ✕ — esquina superior derecha */}
+            <button
+              type="button"
+              onClick={() => setIsMinimized(true)}
+              title="Minimizar"
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                zIndex: 10,
+                pointerEvents: 'auto',
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.75)',
+                backdropFilter: 'blur(6px)',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '14px',
+                color: '#444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+              }}
+            >
+              ✕
+            </button>
+
+            {/* Selector de avatar — centrado en la parte inferior del canvas */}
+            <div style={{
               position: 'absolute',
-              top: '8px',
-              right: '8px',
+              bottom: '10px',
+              left: '50%',
+              transform: 'translateX(-50%)',
               zIndex: 10,
               pointerEvents: 'auto',
-              width: '28px',
-              height: '28px',
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.75)',
-              backdropFilter: 'blur(6px)',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '14px',
-              color: '#444',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+              gap: '4px',
+              background: 'rgba(255,255,255,0.82)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              borderRadius: '20px',
+              padding: '4px 10px',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
+              whiteSpace: 'nowrap',
             }}
-          >
-            ✕
-          </button>
+            >
+              <button
+                type="button"
+                onClick={handlePrevAvatar}
+                style={{
+                  border: 'none', background: 'transparent', cursor: 'pointer',
+                  fontSize: '11px', color: '#555', padding: '2px 4px',
+                }}
+                title="Avatar anterior"
+              >
+                ◀
+              </button>
+              <span style={{ fontSize: '20px', lineHeight: 1 }}>{selectedAvatar?.emoji}</span>
+              <span style={{ fontSize: '10px', color: '#888' }}>{avatarIndex + 1}/{AVATAR_LIST.length}</span>
+              <button
+                type="button"
+                onClick={handleNextAvatar}
+                style={{
+                  border: 'none', background: 'transparent', cursor: 'pointer',
+                  fontSize: '11px', color: '#555', padding: '2px 4px',
+                }}
+                title="Siguiente avatar"
+              >
+                ▶
+              </button>
+            </div>
 
-          {/* Selector de avatar — centrado en la parte inferior del canvas */}
-          <div style={{
-            position: 'absolute',
-            bottom: '10px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 10,
-            pointerEvents: 'auto',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            background: 'rgba(255,255,255,0.82)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            borderRadius: '20px',
-            padding: '4px 10px',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
-            whiteSpace: 'nowrap',
-          }}
-          >
-            <button
-              type="button"
-              onClick={handlePrevAvatar}
-              style={{
-                border: 'none', background: 'transparent', cursor: 'pointer',
-                fontSize: '11px', color: '#555', padding: '2px 4px',
-              }}
-              title="Avatar anterior"
+            <Canvas
+              dpr={[1, 2]}
+              gl={{ alpha: true, antialias: true }}
+              camera={{ position: [0, 0.3, 1.8], fov: 35 }}
+              onCreated={({ camera }) => camera.lookAt(0, 0.2, 0)}
             >
-              ◀
-            </button>
-            <span style={{ fontSize: '20px', lineHeight: 1 }}>{selectedAvatar?.emoji}</span>
-            <span style={{ fontSize: '10px', color: '#888' }}>{avatarIndex + 1}/{AVATAR_LIST.length}</span>
-            <button
-              type="button"
-              onClick={handleNextAvatar}
-              style={{
-                border: 'none', background: 'transparent', cursor: 'pointer',
-                fontSize: '11px', color: '#555', padding: '2px 4px',
-              }}
-              title="Siguiente avatar"
-            >
-              ▶
-            </button>
+              <ambientLight intensity={1.2} />
+              <directionalLight position={[2, 2, 5]} intensity={1.5} />
+              <directionalLight position={[-2, 0, 2]} intensity={0.5} />
+              <Suspense fallback={null}>
+                <Avatar
+                  key={selectedAvatar.id}
+                  position={[-0.6, -2.4, -0.5]}
+                  scale={1.45}
+                  currentAnimation="Idle"
+                  audioRef={audioRef}
+                  lipSyncData={lipSyncData}
+                  avatarPath={selectedAvatar.path}
+                />
+              </Suspense>
+            </Canvas>
+            <AvatarLoadingOverlay />
           </div>
-
-          <Canvas
-            dpr={[1, 2]}
-            gl={{ alpha: true, antialias: true }}
-            camera={{ position: [0, 0.3, 1.8], fov: 35 }}
-            onCreated={({ camera }) => camera.lookAt(0, 0.2, 0)}
-          >
-            <ambientLight intensity={1.2} />
-            <directionalLight position={[2, 2, 5]} intensity={1.5} />
-            <directionalLight position={[-2, 0, 2]} intensity={0.5} />
-            <Suspense fallback={null}>
-              <Avatar
-                key={selectedAvatar.id}
-                position={[-0.6, -2.4, -0.5]}
-                scale={1.45}
-                currentAnimation="Idle"
-                audioRef={audioRef}
-                lipSyncData={lipSyncData}
-                avatarPath={selectedAvatar.path}
-              />
-            </Suspense>
-          </Canvas>
-        </div>
+        )}
 
         {/* Input + estadísticas */}
-        <TourUI
-          onAskQuestion={handleAskQuestion}
-          isThinking={isThinking}
-          question={question}
-          setQuestion={setQuestion}
-          onStats={handleStats}
-          onStartTour={() => startTour(false)}
-          isTourActive={isTourActive}
-        />
+        {mode === 'avatar' && (
+          <TourUI
+            onAskQuestion={handleAskQuestion}
+            isThinking={isThinking}
+            question={question}
+            setQuestion={setQuestion}
+            onStats={handleStats}
+            onStartTour={() => startTour(false)}
+            isTourActive={isTourActive}
+          />
+        )}
       </div>
     </>
   );

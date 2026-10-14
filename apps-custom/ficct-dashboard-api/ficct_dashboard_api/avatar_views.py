@@ -35,6 +35,10 @@ log = logging.getLogger(__name__)
 # confiable y cada token se paga.
 MAX_QUESTION_CHARS = 1000
 MAX_CONTEXT_CHARS = 8000
+# Historial de la conversacion (modo chat): solo los ultimos turnos, y cada mensaje
+# recortado. Copia en services/avatar-llm-gateway/app.py.
+MAX_HISTORY_MESSAGES = 10
+MAX_HISTORY_MESSAGE_CHARS = 1000
 
 MAX_TOKENS = 300
 REQUEST_TIMEOUT = 30
@@ -79,6 +83,22 @@ def _avatar_settings():
     return getattr(settings, 'FICCT_AVATAR', {})
 
 
+def _clean_history(raw):
+    """Ultimos MAX_HISTORY_MESSAGES turnos validos (solo user/assistant, sin vacios).
+    El navegador arma el historial, asi que nunca se acepta un rol "system"."""
+    if not isinstance(raw, list):
+        return []
+    cleaned = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        role = item.get('role')
+        content = str(item.get('content') or '').strip()[:MAX_HISTORY_MESSAGE_CHARS]
+        if role in ('user', 'assistant') and content:
+            cleaned.append({'role': role, 'content': content})
+    return cleaned[-MAX_HISTORY_MESSAGES:]
+
+
 class AvatarAskThrottle(UserRateThrottle):
     """Limite por usuario autenticado, configurable desde Tutor."""
 
@@ -94,7 +114,8 @@ class AvatarAskView(APIView):
 
     **Ejemplo**
         POST /api/ficct/avatar/ask/
-        {"pregunta": "¿de que trata el curso?", "contexto": "..."}
+        {"pregunta": "¿de que trata el curso?", "contexto": "...",
+         "historial": [{"role": "user"|"assistant", "content": "..."}]}  # historial opcional
 
     **Respuesta**
         {"respuesta": "..."}
@@ -140,6 +161,7 @@ class AvatarAskView(APIView):
                     'model': config.get('OPENROUTER_MODEL') or DEFAULT_MODEL,
                     'messages': [
                         {'role': 'system', 'content': SYSTEM_PROMPT},
+                        *_clean_history(request.data.get('historial')),
                         {'role': 'user', 'content': mensaje},
                     ],
                     'max_tokens': MAX_TOKENS,
