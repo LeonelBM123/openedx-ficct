@@ -21,3 +21,6 @@ __pycache__/
 .idea/
 .DS_Store
 *.local
+
+# Copias de seguridad locales (ej. modelos 3D originales antes de comprimir)
+backups/
