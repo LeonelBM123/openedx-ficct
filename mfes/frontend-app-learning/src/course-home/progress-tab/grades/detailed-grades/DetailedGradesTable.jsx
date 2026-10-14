@@ -5,6 +5,7 @@ import { useContextId } from '../../../../data/hooks';
 import { useModel } from '../../../../generic/model-store';
 import messages from '../messages';
 import SubsectionTitleCell from './SubsectionTitleCell';
+import formatScore from './formatScore';
 import { showUngradedAssignments } from '../../utils';
 
 const DetailedGradesTable = () => {
@@ -32,7 +33,7 @@ const DetailedGradesTable = () => {
 
       const detailedGradesData = subsectionScores.map((subsection) => ({
         subsectionTitle: <SubsectionTitleCell subsection={subsection} />,
-        score: <span className={subsection.learnerHasAccess ? '' : 'greyed-out'}>{subsection.numPointsEarned}{isLocaleRtl ? '\\' : '/'}{subsection.numPointsPossible}</span>,
+        score: <span className={subsection.learnerHasAccess ? '' : 'greyed-out'}>{formatScore(subsection.numPointsEarned)}{isLocaleRtl ? '\\' : '/'}{formatScore(subsection.numPointsPossible)}</span>,
       }));
 
       return (

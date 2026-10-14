@@ -6,6 +6,7 @@ import { Icon, OverlayTrigger, Tooltip } from '@openedx/paragon';
 import { CheckCircle, ErrorOutline, WarningFilled } from '@openedx/paragon/icons';
 
 import messages from '../messages';
+import formatScore from './formatScore';
 
 // La API de progreso solo expone { earned, possible } por problema -- no hay nombre real de
 // evaluación ni una bandera de "intentado" (ver ProblemScore en progressTabData.factory.js).
@@ -80,12 +81,12 @@ const ProblemScoreChip = ({
         )}
         tabIndex={0}
         role="status"
-        aria-label={`${intl.formatMessage(messages.problemScoreChipLabel, { index })}: ${earned}${isLocaleRtl ? '\\' : '/'}${possible} — ${statusLabel}`}
+        aria-label={`${intl.formatMessage(messages.problemScoreChipLabel, { index })}: ${formatScore(earned)}${isLocaleRtl ? '\\' : '/'}${formatScore(possible)} — ${statusLabel}`}
       >
         {icon && <Icon src={icon} className="problem-score-chip__icon mr-1" />}
         {intl.formatMessage(messages.problemScoreChipLabel, { index })}
         <span className="mx-1" aria-hidden="true">·</span>
-        <span aria-hidden="true">{earned}{isLocaleRtl ? '\\' : '/'}{possible}</span>
+        <span aria-hidden="true">{formatScore(earned)}{isLocaleRtl ? '\\' : '/'}{formatScore(possible)}</span>
       </span>
     </OverlayTrigger>
   );
