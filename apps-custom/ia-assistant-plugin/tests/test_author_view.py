@@ -72,3 +72,39 @@ class AuthorViewTests(unittest.TestCase):
 
         self.assertFalse(result["ok"])
         self.assertIsNone(block.weight)
+
+
+class SaveMaxAttemptsTests(unittest.TestCase):
+    UNIT = {"version": 1, "titulo": "U", "componentes": []}
+
+    def test_save_unit_persists_max_attempts(self):
+        block = build_block()
+        handler = IAAssistantXBlock.save_unit.__wrapped__
+
+        result = handler(block, {"unit": self.UNIT, "max_attempts": "3"}, "")
+
+        self.assertTrue(result["ok"], result)
+        self.assertEqual(block.max_attempts, 3)
+
+    def test_save_unit_clears_max_attempts_when_empty(self):
+        block = build_block()
+        block.max_attempts = 3
+        handler = IAAssistantXBlock.save_unit.__wrapped__
+
+        handler(block, {"unit": self.UNIT, "max_attempts": ""}, "")
+
+        self.assertIsNone(block.max_attempts)
+
+    def test_invalid_max_attempts_changes_nothing(self):
+        block = build_block()
+        block.max_attempts = 3
+        block.weight = 5.0
+        handler = IAAssistantXBlock.save_unit.__wrapped__
+
+        result = handler(
+            block, {"unit": self.UNIT, "weight": "9", "max_attempts": "0"}, ""
+        )
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(block.max_attempts, 3)
+        self.assertEqual(block.weight, 5.0)

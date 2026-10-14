@@ -25,6 +25,11 @@
             return;
         }
 
+        Student.Attempts = {
+            used: Number(args.attempts) || 0,
+            max: Number(args.max_attempts) > 0 ? Number(args.max_attempts) : 0
+        };
+
         Student.State.loadUnit(args.initial_unit);
         if (typeof Student.Answers === "object" && typeof Student.Answers.loadAnswers === "function") {
             Student.Answers.loadAnswers(args.initial_student_answers || {});

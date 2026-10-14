@@ -31,10 +31,25 @@
     return input ? String(input.value || "").trim() : undefined;
   }
 
+  function getMaxAttemptsInput(root) {
+    var currentRoot = root || window.IAAssistant.Studio.Dom.getRoot();
+
+    return currentRoot
+      ? currentRoot.querySelector("[data-ia-assistant-max-attempts]")
+      : null;
+  }
+
+  function getMaxAttemptsValue(root) {
+    var input = getMaxAttemptsInput(root);
+
+    return input ? String(input.value || "").trim() : undefined;
+  }
+
   function getCurrentSnapshot() {
     return JSON.stringify([
       window.IAAssistant.Studio.State.getUnit(),
       getWeightValue(),
+      getMaxAttemptsValue(),
     ]);
   }
 
@@ -319,7 +334,11 @@
         self.setSaveStatus(root, "Autoguardando...", "saving");
       }
 
-      return window.IAAssistant.Studio.Api.saveUnit(unit, getWeightValue(root))
+      return window.IAAssistant.Studio.Api.saveUnit(
+        unit,
+        getWeightValue(root),
+        getMaxAttemptsValue(root),
+      )
         .then(function (response) {
           lastSavedSnapshot = snapshot;
           hasSavedInSession = true;
@@ -444,6 +463,15 @@
 
     initWeight: function (root, settings) {
       var input = getWeightInput(root);
+      var attemptsInput = getMaxAttemptsInput(root);
+
+      if (
+        attemptsInput &&
+        typeof settings.max_attempts === "number" &&
+        settings.max_attempts > 0
+      ) {
+        attemptsInput.value = String(settings.max_attempts);
+      }
 
       if (!input) {
         return;

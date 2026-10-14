@@ -186,13 +186,17 @@
             return Boolean(saveUrl);
         },
 
-        saveUnit: function (unit, weight) {
+        saveUnit: function (unit, weight, maxAttempts) {
             var payload = {
                 unit: unit
             };
 
             if (typeof weight !== "undefined") {
                 payload.weight = weight;
+            }
+
+            if (typeof maxAttempts !== "undefined") {
+                payload.max_attempts = maxAttempts;
             }
 
             return postJson(saveUrl, payload);

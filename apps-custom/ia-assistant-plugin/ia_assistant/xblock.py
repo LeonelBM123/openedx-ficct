@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from numbers import Number
 
 from xblock.core import XBlock
-from xblock.fields import Dict, Float, List, Scope, String
+from xblock.fields import Dict, Float, Integer, List, Scope, String
 from web_fragments.fragment import Fragment
 
 from .services.ai_errors import AIError, ai_error_to_payload
@@ -74,6 +74,23 @@ class IAAssistantXBlock(XBlock):
         ),
     )
 
+    max_attempts = Integer(
+        display_name="Maximo de intentos",
+        default=None,
+        scope=Scope.settings,
+        help=(
+            "Cantidad maxima de revisiones IA por alumno. Vacio = sin limite."
+        ),
+    )
+
+    # El nombre `attempts` es el que usa el Instructor Dashboard (Student Admin >
+    # Reset Attempts) para reiniciar el contador de un alumno.
+    attempts = Integer(
+        default=0,
+        scope=Scope.user_state,
+        help="Revisiones IA exitosas que el alumno ya consumio.",
+    )
+
     student_review_history = List(
         default=[],
         scope=Scope.user_state,
@@ -121,6 +138,8 @@ class IAAssistantXBlock(XBlock):
                     else {}
                 ),
                 "load_warning": load_warning,
+                "attempts": self.attempts or 0,
+                "max_attempts": self.max_attempts,
             },
         )
         return fragment
@@ -184,6 +203,7 @@ class IAAssistantXBlock(XBlock):
             "initial_unit": initial_unit,
             "load_warning": load_warning,
             "weight": self.weight,
+            "max_attempts": self.max_attempts,
         }
         fragment = Fragment(read_static_text(STUDIO_HTML_PATH))
         self._add_css_url_resources(fragment, STUDIO_CSS_URL_PATHS)
@@ -563,6 +583,26 @@ class IAAssistantXBlock(XBlock):
             return None, "El peso debe ser un numero mayor que 0."
         return value, ""
 
+    @staticmethod
+    def _parse_max_attempts(raw):
+        """Devuelve (valor, error). Vacio/None => sin limite."""
+        if raw is None or (isinstance(raw, str) and not raw.strip()):
+            return None, ""
+        if isinstance(raw, bool):
+            return None, "El maximo de intentos debe ser un entero mayor que 0."
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            return None, "El maximo de intentos debe ser un entero mayor que 0."
+        if value != value or value < 1 or value != int(value) or value > 1000:
+            return None, "El maximo de intentos debe ser un entero mayor que 0."
+        return int(value), ""
+
+    def _attempts_exhausted(self):
+        return bool(
+            self.max_attempts and (self.attempts or 0) >= self.max_attempts
+        )
+
     @XBlock.json_handler
     def save_unit(self, data, suffix=""):
         """
@@ -624,9 +664,30 @@ class IAAssistantXBlock(XBlock):
                     "warnings": validation_payload.get("warnings", []),
                 }
 
+        max_attempts = self.max_attempts
+        if "max_attempts" in payload:
+            max_attempts, attempts_error = self._parse_max_attempts(
+                payload.get("max_attempts")
+            )
+            if attempts_error:
+                return {
+                    "ok": False,
+                    "success": False,
+                    "error": attempts_error,
+                    "errors": [
+                        {
+                            "code": "invalid_max_attempts",
+                            "message": attempts_error,
+                            "field": "max_attempts",
+                        }
+                    ],
+                    "warnings": validation_payload.get("warnings", []),
+                }
+
         if "prompt_docente" in payload:
             self.prompt_docente = payload.get("prompt_docente") or ""
 
+        self.max_attempts = max_attempts
         self.weight = weight
         self.unidad_json = json.dumps(normalized_unit, ensure_ascii=False)
 
@@ -803,6 +864,18 @@ class IAAssistantXBlock(XBlock):
                 "error": "Unidad no valida.",
             }
 
+        if self._attempts_exhausted():
+            return {
+                "ok": False,
+                "success": False,
+                "code": "attempts_exhausted",
+                "error": (
+                    "Ya usaste los {} intentos de revision disponibles."
+                ).format(self.max_attempts),
+                "attempts": self.attempts or 0,
+                "max_attempts": self.max_attempts,
+            }
+
         componentes = (
             unit.get("componentes", []) if isinstance(unit, dict) else []
         )
@@ -900,6 +973,10 @@ class IAAssistantXBlock(XBlock):
             )
             review["_ia_assistant"] = review_meta
 
+        # Solo las revisiones exitosas consumen intento: un error de la IA
+        # no debe costarle un intento al alumno.
+        self.attempts = (self.attempts or 0) + 1
+
         # Guardar resultado en user_state
         self.student_review_result = review
 
@@ -907,7 +984,13 @@ class IAAssistantXBlock(XBlock):
         self.student_review_result = review
         self._append_review_history(review)
 
-        response = {"ok": True, "success": True, "review": review}
+        response = {
+            "ok": True,
+            "success": True,
+            "review": review,
+            "attempts": self.attempts,
+            "max_attempts": self.max_attempts,
+        }
         if grade_warning:
             response["warnings"] = [{"message": grade_warning}]
 

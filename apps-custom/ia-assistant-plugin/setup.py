@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="ia-assistant-plugin",
-    version="0.2.0",
+    version="0.3.0",
     description="Asistente Inteligente para Open edX - UAGRM",
     packages=find_packages(),
     install_requires=[

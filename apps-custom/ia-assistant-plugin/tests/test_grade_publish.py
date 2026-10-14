@@ -336,3 +336,83 @@ class ReviewHistoryAndWeightTests(unittest.TestCase):
             value, error = parse(bad)
             self.assertIsNone(value)
             self.assertTrue(error)
+
+
+class MaxAttemptsTests(unittest.TestCase):
+    def build_block(self, max_attempts=None, attempts=0):
+        runtime = TestRuntime(services={"field-data": DictFieldData({})})
+        runtime.publish = Mock()
+        block = IAAssistantXBlock(
+            runtime,
+            scope_ids=ScopeIds("student", "ia_assistant", "def_id", "usage_id"),
+        )
+        block.unidad_json = json.dumps(build_unit(), ensure_ascii=False)
+        block.student_answers = build_answers()
+        block.max_attempts = max_attempts
+        block.attempts = attempts
+        return block
+
+    def request_review(self, block):
+        return IAAssistantXBlock.request_student_review.__wrapped__(
+            block, {}, ""
+        )
+
+    @patch("ia_assistant.services.student_review_service.generate_student_review")
+    def test_successful_review_consumes_attempt(self, mock_generate):
+        block = self.build_block(max_attempts=2)
+        mock_generate.return_value = {
+            "ok": True, "success": True, "review": build_review(3, 5),
+        }
+
+        result = self.request_review(block)
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(block.attempts, 1)
+        self.assertEqual(result["attempts"], 1)
+        self.assertEqual(result["max_attempts"], 2)
+
+    @patch("ia_assistant.services.student_review_service.generate_student_review")
+    def test_blocks_when_attempts_exhausted_without_calling_ai(
+        self, mock_generate
+    ):
+        block = self.build_block(max_attempts=2, attempts=2)
+
+        result = self.request_review(block)
+
+        mock_generate.assert_not_called()
+        block.runtime.publish.assert_not_called()
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["code"], "attempts_exhausted")
+        self.assertEqual(block.attempts, 2)
+
+    @patch("ia_assistant.services.student_review_service.generate_student_review")
+    def test_ai_error_does_not_consume_attempt(self, mock_generate):
+        block = self.build_block(max_attempts=2)
+        mock_generate.return_value = {
+            "ok": False, "success": False, "error": "OpenRouter caido",
+        }
+
+        result = self.request_review(block)
+
+        self.assertFalse(result["ok"])
+        self.assertEqual(block.attempts, 0)
+
+    @patch("ia_assistant.services.student_review_service.generate_student_review")
+    def test_no_limit_when_max_attempts_empty(self, mock_generate):
+        block = self.build_block(max_attempts=None, attempts=500)
+        mock_generate.return_value = {
+            "ok": True, "success": True, "review": build_review(3, 5),
+        }
+
+        self.assertTrue(self.request_review(block)["ok"])
+
+    def test_parse_max_attempts(self):
+        parse = IAAssistantXBlock._parse_max_attempts
+        self.assertEqual(parse(None), (None, ""))
+        self.assertEqual(parse(""), (None, ""))
+        self.assertEqual(parse("3"), (3, ""))
+        self.assertEqual(parse(5), (5, ""))
+        for bad in ("0", -1, "2.5", "abc", True, "nan", 5000):
+            value, error = parse(bad)
+            self.assertIsNone(value)
+            self.assertTrue(error, bad)

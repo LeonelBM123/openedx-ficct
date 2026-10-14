@@ -1000,9 +1000,40 @@
       "ia-assistant-student-revision__result",
     );
     reviewButton.type = "button";
+    var attemptsLabel = createElement(
+      "span",
+      "ia-assistant-student-revision__attempts",
+      "",
+    );
+
+    function getAttempts() {
+      return window.IAAssistant.Student.Attempts || { used: 0, max: 0 };
+    }
+
+    function attemptsExhausted() {
+      var attempts = getAttempts();
+
+      return attempts.max > 0 && attempts.used >= attempts.max;
+    }
+
+    function renderAttempts() {
+      var attempts = getAttempts();
+
+      attemptsLabel.textContent =
+        attempts.max > 0
+          ? "Intentos usados: " + attempts.used + " de " + attempts.max
+          : "";
+      reviewButton.disabled = attemptsExhausted();
+      reviewButton.textContent = attemptsExhausted()
+        ? "Intentos agotados"
+        : "Enviar respuestas y solicitar revisión";
+    }
+
     reviewControls.appendChild(reviewButton);
+    reviewControls.appendChild(attemptsLabel);
     reviewControls.appendChild(reviewStatus);
     container.appendChild(reviewControls);
+    renderAttempts();
 
     if (showReviewDetails) {
       renderStoredReview(reviewResultContainer, currentReviewState);
@@ -1044,6 +1075,7 @@
       function restoreButton() {
         reviewButton.disabled = false;
         reviewButton.textContent = "Enviar respuestas y solicitar revisión";
+        renderAttempts();
       }
 
       function proceedRequest() {
@@ -1065,11 +1097,24 @@
         }
 
         api.requestReview(runtime, element, [], function (result) {
+          var attemptsState = window.IAAssistant.Student.Attempts;
+
+          if (result && attemptsState) {
+            if (typeof result.attempts === "number") {
+              attemptsState.used = result.attempts;
+            }
+            if (typeof result.max_attempts === "number") {
+              attemptsState.max = result.max_attempts;
+            }
+          }
+
           restoreButton();
 
           if (!result || !result.ok) {
             reviewStatus.textContent =
-              "No se pudo generar la revisión. Intenta nuevamente en unos momentos.";
+              result && result.code === "attempts_exhausted" && result.error
+                ? result.error
+                : "No se pudo generar la revisión. Intenta nuevamente en unos momentos.";
             return;
           }
 
