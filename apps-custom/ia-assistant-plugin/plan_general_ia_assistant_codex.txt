@@ -1,0 +1,1046 @@
+PLAN GENERAL DE TRABAJO - IA ASSISTANT XBLOCK
+Basado en los 4 documentos de observaciones:
+1. observaciones_flujo_docente.txt
+2. observaciones_ia_docente.txt
+3. observaciones_flujo_alumno.txt
+4. observaciones_ia_alumno.txt
+
+Proyecto: IA Assistant XBlock
+Fecha: 2026-06-12
+
+============================================================
+0. OBJETIVO DE ESTE PLAN
+============================================================
+
+Este documento organiza el orden recomendado de trabajo para mejorar el proyecto IA Assistant XBlock sin romper el MVP actual.
+
+La idea principal es:
+
+NO arreglar todo de golpe.
+NO meter puntajes antes de estabilizar.
+NO pensar en Open edX grades antes de tener reglas claras.
+NO tocar lógica crítica sin diagnóstico previo.
+
+Primero se debe asegurar que el MVP actual sea estable y confiable.
+Luego se mejora la experiencia alumno.
+Después se mejora la IA docente.
+Luego se endurecen validaciones.
+Finalmente se agregan puntajes y, recién al final, integración con Open edX grades.
+
+============================================================
+1. CONTEXTO GENERAL DEL ESTADO ACTUAL
+============================================================
+
+Según los 4 documentos de observaciones, el proyecto ya tiene un MVP funcional.
+
+Actualmente existe:
+
+- Flujo docente manual:
+  - crear unidad;
+  - editar título;
+  - agregar componentes;
+  - editar teoría, quiz, pregunta abierta y código;
+  - reordenar, renombrar y eliminar;
+  - ver JSON;
+  - previsualizar como alumno;
+  - guardar unidad_json.
+
+- IA docente:
+  - chatbar;
+  - detector de intención;
+  - generación de unidad;
+  - creación de componente;
+  - edición de componente activo;
+  - llamada a OpenRouter;
+  - validación y normalización;
+  - propuesta pendiente;
+  - aplicar o descartar;
+  - guardado manual posterior.
+
+- Flujo alumno:
+  - renderiza unidad;
+  - muestra teoría, quiz, pregunta abierta, código y revisión;
+  - guarda respuestas en Scope.user_state;
+  - restaura respuestas al recargar;
+  - no ejecuta código;
+  - usa autosave con debounce.
+
+- IA alumno:
+  - Revision aparece automáticamente;
+  - resume respuestas;
+  - solicita revisión IA;
+  - backend usa student_answers guardado;
+  - OpenRouter genera feedback;
+  - backend valida JSON;
+  - guarda student_review_result;
+  - frontend muestra comentarios y sugerencias.
+
+Pero los 4 documentos coinciden en que el proyecto aún no está listo para producción formal.
+
+============================================================
+2. PRINCIPIOS DE TRABAJO PARA CODEX
+============================================================
+
+Antes de modificar cualquier cosa, Codex debe cumplir estas reglas:
+
+1. Leer REGLAS_CODIGO.md.
+2. Diagnosticar antes de modificar.
+3. Explicar qué archivos tocará y por qué.
+4. No hacer cambios masivos sin necesidad.
+5. No reescribir arquitectura completa si no hace falta.
+6. No tocar áreas fuera del alcance de la fase.
+7. Mantener compatibilidad con el MVP actual.
+8. No mezclar puntajes, Open edX grades y UI en una misma fase.
+9. Probar cada fase antes de avanzar.
+10. Documentar riesgos si encuentra algo inesperado.
+
+============================================================
+3. ORDEN GENERAL RECOMENDADO
+============================================================
+
+FASE 0 - Congelar MVP actual.
+FASE 1 - Estabilización crítica.
+FASE 2 - Experiencia alumno.
+FASE 3 - Experiencia IA docente.
+FASE 4 - Seguridad del flujo docente.
+FASE 5 - Puntaje base.
+FASE 6 - Puntaje sugerido IA.
+FASE 7 - Open edX grades.
+
+Este orden está definido así porque:
+
+- Primero se protege lo que ya funciona.
+- Luego se corrigen riesgos que pueden romper confianza.
+- Después se mejora la UX más pobre: Student/Revision.
+- Luego se mejora la IA docente.
+- Después se endurece backend.
+- Al final se agregan puntajes y calificaciones.
+
+============================================================
+FASE 0 - CONGELAR MVP ACTUAL
+============================================================
+
+Referencia principal:
+- observaciones_flujo_docente.txt
+- observaciones_ia_docente.txt
+- observaciones_flujo_alumno.txt
+- observaciones_ia_alumno.txt
+
+Objetivo:
+Guardar un punto de retorno antes de tocar mejoras grandes.
+
+Justificación:
+Los 4 documentos indican que el proyecto ya está funcional para MVP o piloto controlado. Aunque faltan mejoras, ya existe una base útil que no se debe perder.
+
+Tareas:
+
+1. Revisar estado de git.
+2. Confirmar que se está en la rama correcta.
+3. Crear commit del estado actual.
+4. Crear tag o rama backup.
+5. Confirmar que Studio abre.
+6. Confirmar que Student abre.
+7. Confirmar que IA docente responde.
+8. Confirmar que IA alumno responde.
+9. Confirmar que no hay archivos críticos sin registrar.
+
+Comandos sugeridos:
+
+git status
+git branch --show-current
+git add .
+git commit -m "feat: complete IA Assistant MVP baseline"
+git tag mvp-rebuild-base
+git push origin rebuild/ia-assistant
+git push origin mvp-rebuild-base
+
+Resultado esperado:
+Existe una versión segura a la cual volver si una mejora rompe el proyecto.
+
+No hacer en esta fase:
+- No agregar puntajes.
+- No rediseñar UI.
+- No tocar Open edX grades.
+- No cambiar contrato unidad_json todavía.
+
+============================================================
+FASE 1 - ESTABILIZACIÓN CRÍTICA
+============================================================
+
+Referencias principales:
+- observaciones_flujo_alumno.txt
+- observaciones_ia_alumno.txt
+- observaciones_ia_docente.txt
+
+Objetivo:
+Corregir riesgos que pueden romper la confianza del docente o del alumno.
+
+------------------------------------------------------------
+1.1 Arreglar condición de carrera autosave/revisión
+------------------------------------------------------------
+
+Referencia:
+- observaciones_flujo_alumno.txt, sección "CONDICIÓN DE CARRERA AUTOSAVE / REVISION".
+- observaciones_ia_alumno.txt, sección "CONDICIÓN DE CARRERA AUTOSAVE / REVISION".
+
+Problema:
+El alumno puede escribir una respuesta y presionar "Solicitar revisión" antes de que AutoSave termine de guardar.
+
+Flujo problemático actual:
+
+Alumno escribe
+-> Student.Answers se actualiza en frontend
+-> AutoSave queda pendiente por debounce
+-> alumno presiona Solicitar revisión
+-> request_student_review lee student_answers del backend
+-> IA puede revisar respuestas viejas
+
+Solución requerida:
+- AutoSave.saveNow() debe devolver una Promise real.
+- AutoSave.flushPendingSave() debe devolver una Promise real.
+- RevisionPlayer debe esperar esa Promise antes de llamar request_student_review.
+- Si el guardado falla, no debe solicitar revisión como si todo estuviera bien.
+
+Flujo correcto:
+
+click Solicitar revisión
+-> flushPendingSave()
+-> esperar respuesta real de save_student_answers
+-> si guardado ok, llamar request_student_review
+-> IA revisa respuestas actualizadas
+
+Archivos probables:
+- ia_assistant/static/student/js/autosave.js
+- ia_assistant/static/student/components/revision/revision_player.js
+- ia_assistant/static/student/js/api.js, si se necesita ajustar callbacks/promesas.
+
+Criterio de aceptación:
+- Si el alumno escribe y solicita revisión inmediatamente, la IA revisa la respuesta recién escrita.
+- No se llama request_student_review antes de terminar save_student_answers.
+- Si save_student_answers falla, se muestra error y no se revisa con datos viejos.
+
+------------------------------------------------------------
+1.2 Cambiar fallback del detector IA docente a idle
+------------------------------------------------------------
+
+Referencia:
+- observaciones_ia_docente.txt, sección "FALLBACK DEL DETECTOR DE INTENCIÓN".
+
+Problema:
+Si ChatbarIntentDetector no está disponible, el fallback puede asumir mode: "unit".
+
+Riesgo:
+"unit" es la acción más agresiva porque puede generar una unidad completa y reemplazar el estado local al aplicar.
+
+Solución requerida:
+Si el detector falla o no está disponible:
+
+mode: "idle"
+
+La UI debe mostrar algo similar a:
+"No se pudo detectar la intención del prompt. Intenta reformular la solicitud."
+
+No debe asumir:
+mode: "unit"
+
+Archivos probables:
+- ia_assistant/static/studio/widgets/chatbar_ia/chatbar_ia.js
+- ia_assistant/static/studio/widgets/chatbar_ia/chat_ia_detector_prompt.js, solo si corresponde.
+
+Criterio de aceptación:
+- Si el detector no carga, el chatbar no genera unidad por defecto.
+- El docente recibe advertencia clara.
+- No se llama IA con intención inventada.
+
+------------------------------------------------------------
+1.3 Corregir textos viejos e inconsistentes
+------------------------------------------------------------
+
+Referencias:
+- observaciones_flujo_alumno.txt, secciones "PREGUNTA ABIERTA" y "TEXTOS Y ESTADOS VISUALES".
+- observaciones_ia_alumno.txt, sección "REVISION DEBE SER ORIENTATIVA, NO NOTA OFICIAL".
+
+Problemas detectados:
+- Textos que dicen que la respuesta no se guarda todavía.
+- Textos de revisión de prueba.
+- Mensajes que no dejan claro que la IA es orientativa.
+
+Textos recomendados:
+- "Tu respuesta se guarda automáticamente."
+- "Revisión generada con IA."
+- "La revisión con IA es orientativa y busca ayudarte a mejorar tus respuestas."
+- "Este editor no ejecuta el código. Tu respuesta se guarda como texto y será revisada de forma orientativa."
+
+Archivos probables:
+- ia_assistant/static/student/components/pregunta_abierta/pregunta_abierta_player.js
+- ia_assistant/static/student/components/codigo/codigo_player.js
+- ia_assistant/static/student/components/revision/revision_player.js
+- CSS si hay que ajustar presentación.
+
+Criterio de aceptación:
+- No quedan mensajes que contradigan el autosave real.
+- Revision indica que la IA es orientativa.
+- Código aclara que no se ejecuta.
+
+Resultado esperado de Fase 1:
+El MVP queda más confiable para prueba real.
+
+No hacer en esta fase:
+- No rediseñar todo Revision.
+- No agregar puntaje.
+- No tocar Open edX grades.
+- No endurecer todo save_unit todavía.
+
+============================================================
+FASE 2 - EXPERIENCIA ALUMNO
+============================================================
+
+Referencias principales:
+- observaciones_flujo_alumno.txt
+- observaciones_ia_alumno.txt
+
+Objetivo:
+Hacer que Student se sienta como una experiencia educativa coherente, no solo como componentes que capturan respuestas.
+
+Regla central:
+Los componentes normales capturan respuestas.
+Revision resume, evalúa, retroalimenta y muestra resultados.
+
+------------------------------------------------------------
+2.1 Rediseñar Quiz
+------------------------------------------------------------
+
+Referencia:
+- observaciones_flujo_alumno.txt, secciones "COMPONENTE QUIZ MÚLTIPLE" y "PROPUESTA PARA QUIZ".
+- observaciones_ia_alumno.txt, sección "QUIZ".
+
+Problema:
+El botón "Comprobar" no encaja con la idea de que Revision sea el centro de resultados.
+
+Flujo deseado:
+
+Alumno selecciona respuesta
+-> se guarda automáticamente
+-> se muestra estado discreto de respuesta guardada
+-> no se muestra correcto/incorrecto dentro del quiz
+-> resultado aparece en Revision
+
+Acción recomendada:
+- Quitar o neutralizar botón "Comprobar".
+- Mantener selección y autosave.
+- No mostrar feedback evaluativo local.
+- Dejar la evaluación del quiz para Revision.
+
+Archivos probables:
+- ia_assistant/static/student/components/quiz_multiple/quiz_multiple_player.js
+- CSS del componente quiz si aplica.
+- revision_player.js para mostrar resultado del quiz.
+
+Criterio de aceptación:
+- El alumno puede seleccionar respuesta.
+- La selección se autoguarda.
+- No aparece "Comprobar" como acción principal.
+- El resultado se presenta en Revision.
+
+------------------------------------------------------------
+2.2 Mover resultado del quiz a Revision
+------------------------------------------------------------
+
+Referencia:
+- observaciones_flujo_alumno.txt, sección "COMPONENTE REVISION COMO CENTRO DEL RESULTADO".
+- observaciones_ia_alumno.txt, sección "QUIZ".
+
+Regla:
+La IA no necesariamente debe evaluar el quiz si la respuesta correcta ya está definida. El sistema puede calcularlo de forma determinística.
+
+Revision debe mostrar:
+- respuesta seleccionada;
+- estado correcto/incorrecto;
+- feedback si existe;
+- puntaje futuro cuando exista.
+
+Criterio de aceptación:
+- Revision puede mostrar si el quiz está respondido.
+- Revision puede comparar la respuesta con respuestas_correctas.
+- El quiz deja de ser evaluador independiente.
+
+------------------------------------------------------------
+2.3 Mejorar Revision como panel final
+------------------------------------------------------------
+
+Referencia:
+- observaciones_flujo_alumno.txt, sección "REVISION COMO COMPONENTE SINTÉTICO".
+- observaciones_ia_alumno.txt, secciones "OBSERVACIÓN PRINCIPAL: LA UI DE REVISION SIGUE POBRE" y "UI PROPUESTA PARA REVISION".
+
+Problema:
+Revision existe, pero visualmente se siente como tarjeta más, no como cierre de actividad.
+
+UI deseada:
+1. Encabezado:
+   - Revisión de la actividad.
+   - Estado de guardado.
+   - Botón Solicitar revisión.
+
+2. Progreso:
+   - Respondidas: X/Y.
+   - Pendientes: X.
+   - Sin revisar: X.
+
+3. Resultado IA:
+   - Resumen general.
+   - Aviso de revisión orientativa.
+
+4. Resultado por componente:
+   - Nombre.
+   - Tipo.
+   - Estado.
+   - Respuesta del alumno resumida.
+   - Comentario.
+   - Sugerencia.
+   - Puntaje sugerido futuro.
+
+5. Recomendaciones generales.
+
+Archivos probables:
+- ia_assistant/static/student/components/revision/revision_player.js
+- ia_assistant/static/student/components/revision/revision_player.css o CSS correspondiente.
+- student CSS global si aplica.
+
+Criterio de aceptación:
+- Revision se ve como panel final de revisión.
+- Muestra progreso y feedback de forma clara.
+- No parece una actividad más.
+- Mantiene compatibilidad con respuesta IA actual.
+
+------------------------------------------------------------
+2.4 Rehidratar última revisión al recargar
+------------------------------------------------------------
+
+Referencia:
+- observaciones_ia_alumno.txt, sección "REHIDRATAR ÚLTIMA REVISIÓN".
+
+Problema:
+student_review_result se guarda en Scope.user_state, pero Student no necesariamente lo recibe al cargar.
+
+Solución:
+- Agregar initial_student_review_result en student_view.
+- Enviar self.student_review_result si existe y es dict.
+- Hacer que RevisionPlayer cargue y muestre la última revisión si existe.
+
+Archivos probables:
+- ia_assistant/xblock.py
+- ia_assistant/static/student/js/student.js
+- ia_assistant/static/student/components/revision/revision_player.js
+- state.js si se decide guardar la revisión inicial en Student.State.
+
+Criterio de aceptación:
+- Alumno solicita revisión.
+- Recarga la página.
+- La última revisión sigue visible.
+- No se requiere volver a llamar IA solo para verla.
+
+Resultado esperado de Fase 2:
+Student se siente más ordenado y Revision empieza a ser el centro real de resultados.
+
+No hacer en esta fase:
+- No agregar puntajes todavía.
+- No publicar notas Open edX.
+- No cambiar contrato unidad_json salvo que sea estrictamente necesario.
+
+============================================================
+FASE 3 - EXPERIENCIA IA DOCENTE
+============================================================
+
+Referencia principal:
+- observaciones_ia_docente.txt
+
+Objetivo:
+Evitar que el docente aplique contenido generado por IA sin verlo claramente.
+
+------------------------------------------------------------
+3.1 Preview renderizada de propuesta IA antes de aplicar
+------------------------------------------------------------
+
+Referencia:
+- observaciones_ia_docente.txt, secciones "OBSERVACIÓN PRINCIPAL" y "PROPUESTA: PREVIEW RENDERIZADA DE PROPUESTA IA".
+
+Problema:
+La IA genera una propuesta y el docente ve Aplicar/Descartar, pero no ve claramente qué se generó antes de aplicar.
+
+Solución:
+La propuesta pendiente debe mostrarse en un panel o modal temporal antes de tocar State.
+
+Flujo correcto:
+
+Prompt docente
+-> IA genera propuesta
+-> pendingProposal queda en memoria
+-> se muestra preview temporal
+-> docente revisa
+-> aplica o descarta
+-> solo si aplica se modifica State
+-> docente guarda manualmente
+
+Regla:
+La preview NO debe modificar:
+- State.currentUnit
+- unidad_json
+- componentes actuales
+
+Archivos probables:
+- ia_assistant/static/studio/widgets/chatbar_ia/chatbar_ia.js
+- ia_assistant/static/studio/widgets/chatbar_ia/chatbar_ia.css
+- studio.html si se necesita contenedor nuevo.
+- Renderer o componentes de preview, si se reutiliza render del Student/Studio.
+
+Criterio de aceptación:
+- La IA genera propuesta.
+- El docente ve contenido propuesto antes de aplicar.
+- La unidad actual permanece intacta hasta presionar Aplicar.
+- Descartar no altera State.
+
+------------------------------------------------------------
+3.2 Preview según tipo de propuesta
+------------------------------------------------------------
+
+Referencia:
+- observaciones_ia_docente.txt, sección "PREVIEW SEGÚN TIPO DE PROPUESTA".
+
+Para propuesta unit:
+Mostrar:
+- título propuesto;
+- cantidad de componentes;
+- tipos generados;
+- resumen o preview de la unidad;
+- advertencia de reemplazo.
+
+Para propuesta create:
+Mostrar:
+- tipo del componente;
+- nombre;
+- preview del contenido;
+- aclaración de que se agregará a la unidad actual.
+
+Para propuesta edit:
+Mostrar:
+- componente actual;
+- componente propuesto;
+- resumen antes/después.
+
+Criterio de aceptación:
+- El docente entiende si la propuesta reemplaza, agrega o edita.
+- El docente no aplica a ciegas.
+
+------------------------------------------------------------
+3.3 Confirmación para reemplazar unidad completa
+------------------------------------------------------------
+
+Referencia:
+- observaciones_ia_docente.txt, sección "CONFIRMACIÓN ESPECIAL PARA REEMPLAZAR UNIDAD COMPLETA".
+
+Problema:
+State.replaceUnit(unit) puede reemplazar todo el estado local.
+
+Solución:
+Si pendingProposal.kind === "unit", el botón debe decir:
+"Aplicar y reemplazar unidad actual"
+
+Además, mostrar confirmación:
+"Esta propuesta reemplazará la unidad actual en Studio. Revisa la vista previa antes de continuar."
+
+Criterio de aceptación:
+- No se puede reemplazar unidad completa sin advertencia.
+- El docente entiende la consecuencia.
+
+------------------------------------------------------------
+3.4 Mostrar warnings de normalización
+------------------------------------------------------------
+
+Referencia:
+- observaciones_ia_docente.txt, sección "WARNINGS DE NORMALIZACIÓN".
+
+Problema:
+El backend puede normalizar contenido IA, pero el docente no siempre ve advertencias.
+
+Solución:
+Mostrar warnings devueltos por backend:
+- HTML removido.
+- Imagen Markdown removida.
+- Opción corregida.
+- Contenido truncado.
+- ID ajustado.
+
+Criterio de aceptación:
+- Si backend devuelve warnings, el docente los ve en la propuesta.
+- Los warnings no bloquean necesariamente la aplicación, pero informan.
+
+Resultado esperado de Fase 3:
+La IA docente se vuelve más segura y transparente antes de modificar el contenido local.
+
+No hacer en esta fase:
+- No cambiar prompts IA masivamente.
+- No agregar puntajes todavía.
+- No reescribir chatbar completo si se puede extender el flujo actual.
+
+============================================================
+FASE 4 - SEGURIDAD DEL FLUJO DOCENTE
+============================================================
+
+Referencia principal:
+- observaciones_flujo_docente.txt
+
+Objetivo:
+Endurecer el guardado docente para evitar unidades corruptas, incompletas o manipuladas.
+
+------------------------------------------------------------
+4.1 Endurecer save_unit en backend
+------------------------------------------------------------
+
+Referencia:
+- observaciones_flujo_docente.txt, secciones "VALIDACIÓN DEL GUARDADO DOCENTE" y "VALIDACIONES RECOMENDADAS PARA save_unit".
+
+Problema:
+El backend valida estructura mínima, pero no valida profundamente.
+
+Validaciones generales requeridas:
+- version debe ser 1.
+- titulo debe ser string.
+- componentes debe ser lista.
+- No permitir IDs duplicados.
+- No permitir tipos desconocidos.
+- No permitir revision enviada manualmente como componente authorable.
+- No permitir componentes system en unidad_json docente.
+- No permitir componentes no authorable.
+- Respetar allowMultiple.
+
+Validaciones por tipo:
+
+TEORIA:
+- data.titulo debe existir.
+- data.contenido debe existir.
+- data.formato debe ser markdown.
+
+QUIZ_MULTIPLE:
+- data.pregunta debe existir.
+- data.opciones debe tener mínimo 2 opciones.
+- Cada opción debe tener id y texto.
+- data.respuestas_correctas debe existir.
+- Cada respuesta correcta debe apuntar a una opción existente.
+- Evitar opciones duplicadas.
+
+PREGUNTA_ABIERTA:
+- data.enunciado debe existir.
+- data.rubrica o data.criterio debe existir si se decide hacer obligatorio para evaluación IA.
+
+CODIGO:
+- data.enunciado debe existir.
+- data.lenguaje debe existir.
+- data.instrucciones debe existir.
+- data.codigo_base debe ser string, aunque puede estar vacío.
+- No ejecutar código.
+
+Advertencia importante:
+Cuidado con autosave docente. Si save_unit rechaza cualquier borrador incompleto, puede molestar al docente mientras edita.
+
+Recomendación:
+Primero aplicar validaciones de integridad estructural fuertes:
+- IDs duplicados.
+- tipos inválidos.
+- system/revision.
+- opciones de quiz incoherentes.
+- data no objeto.
+
+Y dejar validaciones pedagógicas muy estrictas para una fase de "publicar unidad", si luego existe.
+
+Archivos probables:
+- ia_assistant/xblock.py
+- ia_assistant/schema.py
+- ia_assistant/validators.py, si se reutiliza lógica.
+- tests si existen.
+
+Criterio de aceptación:
+- No se guarda una unidad con IDs duplicados.
+- No se guarda revision como componente docente.
+- No se guardan tipos desconocidos.
+- No se guarda quiz con respuesta correcta inexistente.
+- No se rompe edición normal de borradores.
+
+------------------------------------------------------------
+4.2 Revisar autosave docente como borrador vs guardado real
+------------------------------------------------------------
+
+Referencia:
+- observaciones_flujo_docente.txt, sección "OBSERVACIÓN SOBRE AUTOSAVE DOCENTE".
+- observaciones_ia_docente.txt, sección "AUTOSAVE DESPUÉS DE APLICAR PROPUESTA IA".
+
+Problema:
+Autosave docente puede guardar borradores incompletos o persistir una propuesta IA aplicada localmente antes de confirmación manual clara.
+
+Decisión futura:
+Definir si autosave docente significa:
+A) guardado real;
+B) borrador;
+C) cambios pendientes sin publicar.
+
+Recomendación:
+Para MVP, documentarlo como riesgo.
+Para producción formal, separar:
+- Borrador guardado.
+- Cambios sin publicar.
+- Publicar unidad.
+
+Criterio de aceptación inicial:
+- Al aplicar IA, la UI indica "Propuesta aplicada localmente. Revisa antes de guardar."
+- No se confunde aplicar con guardar final.
+
+Resultado esperado de Fase 4:
+El contenido docente queda mejor protegido contra payloads corruptos o manipulados.
+
+============================================================
+FASE 5 - PUNTAJE BASE POR COMPONENTE
+============================================================
+
+Referencias principales:
+- observaciones_flujo_docente.txt
+- observaciones_flujo_alumno.txt
+- observaciones_ia_alumno.txt
+
+Objetivo:
+Agregar la base de puntaje sin convertir todavía la IA en calificador oficial.
+
+------------------------------------------------------------
+5.1 Agregar campo puntaje a nivel componente
+------------------------------------------------------------
+
+Referencia:
+- observaciones_flujo_docente.txt, secciones "NUEVA NECESIDAD: PUNTAJE POR COMPONENTE" y "PROPUESTA DE PUNTAJE POR COMPONENTE".
+
+Campo recomendado:
+
+{
+  "id": "quiz_multiple_1",
+  "tipo": "quiz_multiple",
+  "nombre": "Quiz inicial",
+  "puntaje": 10,
+  "data": {}
+}
+
+Regla:
+El puntaje pertenece al componente completo, no a data.
+
+Motivo:
+- Es más fácil calcular totales.
+- Es más fácil mostrar en tabs.
+- Es más fácil mostrar en Student.
+- Es más fácil enviar a IA Alumno.
+- Evita mezclar evaluación con campos internos del tipo.
+
+Defaults:
+- teoria: 0
+- quiz_multiple: 0 o valor configurable
+- pregunta_abierta: 0 o valor configurable
+- codigo: 0 o valor configurable
+- revision: sin puntaje
+
+Validaciones:
+- puntaje debe ser número.
+- puntaje >= 0.
+- Recomendación inicial: enteros.
+- Si falta puntaje en unidades antiguas, asumir 0.
+
+Archivos probables:
+- ia_assistant/schema.py
+- ia_assistant/static/common/components/* definitions
+- state.js o normalizadores frontend
+- validators.py
+- xblock.py save_unit
+
+Criterio de aceptación:
+- Unidades viejas sin puntaje siguen funcionando.
+- Componentes nuevos tienen puntaje default.
+- save_unit normaliza puntaje faltante a 0.
+- No se asigna puntaje a revision.
+
+------------------------------------------------------------
+5.2 Mostrar puntaje en Studio
+------------------------------------------------------------
+
+Referencia:
+- observaciones_flujo_docente.txt, sección "CAMBIOS QUE IMPLICARÍA AGREGAR PUNTAJE".
+
+Studio debe permitir:
+- editar puntaje del componente;
+- validar número >= 0;
+- mostrar total de puntos de la unidad.
+
+Dónde mostrar:
+- Cabecera del editor activo.
+- O configuración del componente.
+- Resumen/tabs si no recarga visualmente demasiado.
+
+Criterio de aceptación:
+- Docente puede asignar quiz 30 pts y otro quiz 5 pts.
+- Total unidad se actualiza.
+- Puntaje se guarda en unidad_json.
+
+------------------------------------------------------------
+5.3 Mostrar puntaje en Student
+------------------------------------------------------------
+
+Referencia:
+- observaciones_flujo_alumno.txt, sección "PUNTAJE POR COMPONENTE EN STUDENT".
+
+Student debe mostrar:
+- "Valor: 10 puntos" en actividades evaluables.
+- Teoría puede mostrar nada o "Sin puntaje".
+- Revision mostrará resultados/puntajes cuando estén disponibles.
+
+Criterio de aceptación:
+- Alumno ve cuánto vale cada actividad.
+- El resultado no se muestra dentro de cada componente, sino en Revision.
+
+Resultado esperado de Fase 5:
+Ya existe puntaje máximo por componente, pero todavía no existe calificación oficial.
+
+No hacer en esta fase:
+- No publicar grade event.
+- No llamar puntaje sugerido como nota oficial.
+- No automatizar calificación final todavía.
+
+============================================================
+FASE 6 - PUNTAJE SUGERIDO POR IA
+============================================================
+
+Referencia principal:
+- observaciones_ia_alumno.txt
+
+Objetivo:
+Permitir que IA Alumno devuelva puntaje sugerido, sin publicarlo como nota oficial.
+
+------------------------------------------------------------
+6.1 Incluir puntaje en payload IA
+------------------------------------------------------------
+
+Referencia:
+- observaciones_flujo_docente.txt, sección "CAMBIOS QUE IMPLICARÍA AGREGAR PUNTAJE".
+- observaciones_ia_alumno.txt, sección "PUNTAJE SUGERIDO POR IA".
+
+El backend debe enviar a IA:
+- puntaje máximo del componente;
+- enunciado;
+- rúbrica/criterio privado para pregunta abierta;
+- instrucciones para código;
+- respuesta del alumno.
+
+Para pregunta abierta:
+- IA usa enunciado + rúbrica/criterio privado + respuesta.
+
+Para código:
+- IA usa enunciado + instrucciones + lenguaje + código_base + respuesta.
+- Código NO necesita rúbrica formal obligatoria.
+
+Para quiz:
+- Preferiblemente calcular resultado de forma determinística.
+- No depender de IA para saber si una respuesta objetiva es correcta.
+
+------------------------------------------------------------
+6.2 Cambiar contrato de respuesta IA
+------------------------------------------------------------
+
+Respuesta futura esperada:
+
+{
+  "componentId": "pregunta_abierta_1",
+  "tipo": "pregunta_abierta",
+  "estado": "parcial",
+  "puntaje_obtenido": 14,
+  "puntaje_maximo": 20,
+  "comentario": "...",
+  "sugerencia": "..."
+}
+
+Reglas:
+- puntaje_obtenido >= 0.
+- puntaje_obtenido <= puntaje_maximo.
+- puntaje_maximo debe coincidir con el componente.
+- Si IA omite puntaje, backend puede dejarlo null o 0 según decisión.
+- Mostrar como "puntaje sugerido".
+
+Archivos probables:
+- ia_assistant/services/student_review_service.py
+- ia_assistant/services/prompts/student_review_prompt.py
+- ia_assistant/static/student/components/revision/revision_player.js
+- validators relacionados a payload IA.
+
+Criterio de aceptación:
+- IA devuelve feedback y puntaje sugerido.
+- Frontend muestra puntaje sugerido sin tratarlo como nota oficial.
+- No se publica a Open edX.
+
+------------------------------------------------------------
+6.3 Aviso de revisión orientativa
+------------------------------------------------------------
+
+Referencia:
+- observaciones_ia_alumno.txt, sección "REVISION DEBE SER ORIENTATIVA, NO NOTA OFICIAL".
+
+Mostrar siempre:
+"La revisión con IA es orientativa y busca ayudarte a mejorar tus respuestas."
+
+Criterio de aceptación:
+- Alumno no interpreta el puntaje sugerido como nota final.
+- UI distingue feedback IA de calificación oficial.
+
+Resultado esperado de Fase 6:
+Revision puede mostrar feedback + puntaje sugerido, sin integrar aún con calificaciones oficiales.
+
+============================================================
+FASE 7 - OPEN EDX GRADES
+============================================================
+
+Referencia principal:
+- observaciones_ia_alumno.txt, sección "INTEGRACIÓN CON OPEN EDX GRADES".
+
+Objetivo:
+Analizar y diseñar integración con notas oficiales de Open edX.
+
+Importante:
+No hacer esta fase hasta que existan:
+- puntaje por componente;
+- puntaje sugerido estable;
+- reglas claras de intentos;
+- política sobre si IA puede calificar;
+- decisión sobre aprobación docente;
+- manejo de errores;
+- confianza en autosave/revisión.
+
+Preguntas a responder antes:
+1. ¿La IA puede publicar nota oficial?
+2. ¿El docente debe aprobar el puntaje?
+3. ¿Solo quiz publica nota automática?
+4. ¿Pregunta abierta y código quedan como sugeridos?
+5. ¿Cuántos intentos tiene el alumno?
+6. ¿Se guarda mejor intento o último intento?
+7. ¿Qué pasa si OpenRouter falla?
+8. ¿Qué pasa si la IA devuelve JSON inválido?
+9. ¿Cómo se informa privacidad al alumno?
+
+Posible integración futura:
+- Usar runtime.publish con evento grade.
+- Enviar value y max_value.
+- Solo después de tener reglas claras.
+
+Resultado esperado:
+Open edX grades se integra solo cuando el sistema de evaluación sea confiable.
+
+============================================================
+4. PLAN RESUMIDO FINAL
+============================================================
+
+Orden final recomendado:
+
+FASE 0 - Congelar MVP actual
+1. Commit/tag backup del rebuild actual.
+2. Confirmar instalación básica en Open edX/Tutor.
+
+FASE 1 - Estabilización crítica
+3. Arreglar carrera autosave/revisión con Promise.
+4. Cambiar fallback detector IA docente a idle.
+5. Corregir textos viejos y avisos de IA orientativa.
+
+FASE 2 - Experiencia alumno
+6. Quitar o neutralizar botón Comprobar del quiz.
+7. Mover resultado/feedback del quiz a Revision.
+8. Mejorar Revision como panel final.
+9. Rehidratar última revisión al recargar.
+
+FASE 3 - Experiencia IA docente
+10. Preview renderizada de propuesta IA antes de aplicar.
+11. Confirmación especial para reemplazar unidad completa.
+12. Mostrar warnings de normalización.
+
+FASE 4 - Seguridad del flujo docente
+13. Endurecer save_unit en backend.
+14. Revisar autosave docente como borrador vs guardado real.
+
+FASE 5 - Puntaje base
+15. Agregar puntaje por componente.
+16. Mostrar total en Studio.
+17. Mostrar valor del componente en Student.
+18. Mostrar puntajes en Revision.
+
+FASE 6 - Puntaje sugerido IA
+19. IA Alumno devuelve puntaje sugerido.
+20. Pregunta abierta usa rúbrica privada.
+21. Código usa instrucciones, enunciado, lenguaje y código base.
+22. Quiz se calcula de forma determinística.
+
+FASE 7 - Open edX grades
+23. Definir reglas de intentos y publicación.
+24. Decidir si requiere aprobación docente.
+25. Publicar grade event solo cuando esté bien diseñado.
+
+============================================================
+5. BLOQUE INMEDIATO RECOMENDADO
+============================================================
+
+El siguiente bloque de trabajo debería ser:
+
+1. Commit/tag del MVP actual.
+2. Arreglar carrera autosave/revisión.
+3. Cambiar fallback detector IA docente a idle.
+4. Corregir textos viejos.
+5. Probar en Open edX/Tutor.
+
+Motivo:
+Este bloque no cambia el contrato grande del sistema, pero mejora la confiabilidad.
+
+No iniciar todavía:
+- puntaje por componente;
+- puntaje sugerido;
+- Open edX grades;
+- rediseño completo de Studio;
+- validaciones pedagógicas estrictas que puedan romper borradores.
+
+============================================================
+6. BLOQUE SIGUIENTE RECOMENDADO
+============================================================
+
+Después de estabilizar:
+
+1. Rediseñar quiz.
+2. Mover resultado de quiz a Revision.
+3. Mejorar UI de Revision.
+4. Rehidratar última revisión.
+5. Probar flujo completo alumno.
+
+Motivo:
+La parte alumno es la más pobre en experiencia educativa. Mejorarla dará más impacto visible.
+
+============================================================
+7. CONCLUSIÓN
+============================================================
+
+La ruta más segura es:
+
+Primero confiar.
+Luego ordenar.
+Luego evaluar.
+Luego calificar.
+
+Traducción práctica:
+
+1. Primero hacer que el autosave y la revisión no fallen.
+2. Luego ordenar la experiencia del alumno.
+3. Luego hacer segura la IA docente.
+4. Luego endurecer el guardado docente.
+5. Luego agregar puntajes.
+6. Luego pensar en Open edX grades.
+
+No conviene empezar por puntajes ni por grades porque todavía hay piezas de confianza y UX que deben cerrarse primero.
+
+Este plan está basado en:
+- observaciones_flujo_docente.txt
+- observaciones_ia_docente.txt
+- observaciones_flujo_alumno.txt
+- observaciones_ia_alumno.txt

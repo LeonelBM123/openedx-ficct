@@ -1,0 +1,230 @@
+.ia-assistant-component-picker__button,
+.ia-assistant-save-button,
+.ia-assistant-student-preview-button,
+.ia-assistant-close-button,
+.ia-assistant-chatbar__button {
+    appearance: none;
+    background: var(--ia-assistant-color-primary);
+    border: 1px solid var(--ia-assistant-color-primary);
+    border-radius: var(--ia-assistant-radius-sm);
+    color: var(--ia-assistant-color-surface);
+    cursor: pointer;
+    align-items: center;
+    display: inline-flex;
+    gap: var(--ia-assistant-space-xs);
+    justify-content: center;
+    font-weight: 700;
+    line-height: 1.2;
+    min-height: 40px;
+    min-width: 104px;
+    padding: 0 var(--ia-assistant-space-md);
+    transition: background-color var(--ia-assistant-transition-fast),
+        border-color var(--ia-assistant-transition-fast),
+        box-shadow var(--ia-assistant-transition-fast);
+}
+
+.ia-assistant-component-picker__menu {
+    background: var(--ia-assistant-color-surface);
+    border: 1px solid var(--ia-assistant-color-border);
+    border-radius: var(--ia-assistant-radius-md);
+    box-shadow: var(--ia-assistant-shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ia-assistant-space-xs);
+    min-width: 220px;
+    padding: var(--ia-assistant-space-sm);
+    position: absolute;
+    right: 0;
+    top: calc(100% + var(--ia-assistant-space-xs));
+    z-index: 4;
+}
+
+.ia-assistant-component-picker__menu[hidden] {
+    display: none;
+}
+
+.ia-assistant-component-picker__option {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--ia-assistant-radius-sm);
+    color: var(--ia-assistant-color-text);
+    cursor: pointer;
+    font: inherit;
+    min-height: 36px;
+    padding: var(--ia-assistant-space-xs) var(--ia-assistant-space-sm);
+    text-align: left;
+    transition: background-color var(--ia-assistant-transition-fast),
+        border-color var(--ia-assistant-transition-fast);
+    width: 100%;
+}
+
+.ia-assistant-component-picker__option:hover {
+    background: var(--ia-assistant-color-background-soft);
+    border-color: var(--ia-assistant-color-border);
+}
+
+.ia-assistant-component-picker__option:focus {
+    outline: 2px solid var(--ia-assistant-color-primary);
+    outline-offset: 2px;
+}
+
+.ia-assistant-component-picker__empty {
+    color: var(--ia-assistant-color-muted);
+    font-size: var(--ia-assistant-font-size-sm);
+    line-height: 1.45;
+    margin: 0;
+    padding: var(--ia-assistant-space-sm);
+}
+
+.ia-assistant-component-picker__button:hover,
+.ia-assistant-save-button:hover,
+.ia-assistant-student-preview-button:hover,
+.ia-assistant-close-button:hover,
+.ia-assistant-chatbar__button:hover {
+    background: var(--ia-assistant-color-primary-hover);
+    border-color: var(--ia-assistant-color-primary-hover);
+}
+
+.ia-assistant-component-picker__button:focus,
+.ia-assistant-save-button:focus,
+.ia-assistant-student-preview-button:focus,
+.ia-assistant-json-toggle:focus,
+.ia-assistant-chatbar__button:focus,
+.ia-assistant-chatbar__textarea:focus {
+    outline: 2px solid var(--ia-assistant-color-primary);
+    outline-offset: 2px;
+}
+
+.ia-assistant-save-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.ia-assistant-save-button--saving::before {
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    border-top-color: var(--ia-assistant-color-surface);
+    border-radius: 999px;
+    content: "";
+    height: 14px;
+    width: 14px;
+    animation: ia-assistant-save-spin 720ms linear infinite;
+}
+
+.ia-assistant-save-button--success,
+.ia-assistant-save-button--success:hover {
+    background: var(--ia-assistant-color-success);
+    border-color: var(--ia-assistant-color-success);
+}
+
+.ia-assistant-save-button--error,
+.ia-assistant-save-button--error:hover {
+    background: var(--ia-assistant-color-danger);
+    border-color: var(--ia-assistant-color-danger);
+}
+
+@keyframes ia-assistant-save-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.ia-assistant-save-status {
+    align-items: center;
+    background: var(--ia-assistant-color-background-soft);
+    border: 1px solid var(--ia-assistant-color-border);
+    border-radius: 999px;
+    color: var(--ia-assistant-color-muted);
+    display: inline-flex;
+    font-size: var(--ia-assistant-font-size-sm);
+    font-weight: 700;
+    line-height: 1.35;
+    min-height: 28px;
+    min-width: 0;
+    padding: 0 var(--ia-assistant-space-sm);
+    white-space: nowrap;
+}
+
+.ia-assistant-save-status[hidden] {
+    display: none;
+}
+
+.ia-assistant-save-status--success {
+    background: #ecfdf3;
+    border-color: rgba(2, 122, 72, 0.28);
+    color: var(--ia-assistant-color-success);
+}
+
+.ia-assistant-save-status--error {
+    background: #fef3f2;
+    border-color: rgba(180, 35, 24, 0.28);
+    color: var(--ia-assistant-color-danger);
+}
+
+.ia-assistant-save-status--warning {
+    background: #fff7ed;
+    border-color: rgba(181, 71, 8, 0.28);
+    color: var(--ia-assistant-color-warning);
+}
+
+.ia-assistant-save-status--pending,
+.ia-assistant-save-status--saving {
+    background: var(--ia-assistant-color-background-soft);
+    border-color: rgba(26, 58, 107, 0.24);
+    color: var(--ia-assistant-color-primary);
+}
+
+.ia-assistant-chatbar {
+    padding: var(--ia-assistant-space-md);
+}
+
+.ia-assistant-chatbar__label {
+    color: var(--ia-assistant-color-muted);
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: var(--ia-assistant-space-sm);
+}
+
+.ia-assistant-chatbar__controls {
+    align-items: flex-end;
+    display: flex;
+    gap: var(--ia-assistant-space-sm);
+}
+
+.ia-assistant-chatbar__textarea {
+    background: var(--ia-assistant-color-surface);
+    border: 1px solid var(--ia-assistant-color-border);
+    border-radius: var(--ia-assistant-radius-sm);
+    color: var(--ia-assistant-color-text);
+    flex: 1 1 auto;
+    line-height: 1.45;
+    max-height: 144px;
+    min-height: 40px;
+    overflow-y: hidden;
+    padding: var(--ia-assistant-space-sm) var(--ia-assistant-space-base);
+    resize: none;
+    transition: border-color var(--ia-assistant-transition-fast),
+        box-shadow var(--ia-assistant-transition-fast);
+}
+
+.ia-assistant-chatbar__textarea--scroll {
+    overflow-y: auto;
+}
+
+@media (max-width: 640px) {
+    .ia-assistant-component-picker {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .ia-assistant-component-picker__menu {
+        left: 0;
+        min-width: 0;
+        right: 0;
+    }
+
+    .ia-assistant-chatbar__controls {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}

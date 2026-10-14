@@ -1,0 +1,2 @@
+recursive-include ia_assistant/static *
+recursive-include ia_assistant/public *

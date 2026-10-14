@@ -1,0 +1,507 @@
+OBSERVACIONES PARA RETROSPECTIVA - FLUJO ALUMNO
+Proyecto: IA Assistant XBlock
+Documento base: FLUJO_ALUMNO.md
+Fecha: 2026-06-12
+
+============================================================
+1. VEREDICTO GENERAL
+============================================================
+
+El flujo alumno funciona para MVP, pero es la parte que más se siente básica dentro del proyecto.
+
+Actualmente permite:
+- Renderizar la unidad creada por el docente.
+- Mostrar teoría, quiz, pregunta abierta, código y revisión.
+- Permitir que el alumno responda actividades.
+- Guardar respuestas automáticamente.
+- Restaurar respuestas al recargar la página.
+- Mantener respuestas por alumno usando Scope.user_state.
+- No ejecutar código del alumno.
+
+La arquitectura técnica está bien encaminada:
+
+unidad_json
+-> student_view
+-> initial_unit
+-> Student.State
+-> Renderer
+-> players por componente
+-> Student.Answers
+-> AutoSave
+-> save_student_answers
+-> Scope.user_state
+
+El problema principal no es que esté roto, sino que la experiencia educativa todavía se siente muy MVP:
+- Los componentes capturan respuestas.
+- El autosave funciona.
+- Pero todavía falta una experiencia más clara de realización, revisión y resultados.
+
+============================================================
+2. IDEA GENERAL DE DISEÑO PARA STUDENT
+============================================================
+
+La regla que deberíamos seguir es:
+
+Los componentes normales capturan respuestas.
+El componente Revision resume, evalúa, retroalimenta y muestra resultados.
+
+Esto significa:
+
+- Teoría: contenido de lectura.
+- Quiz: el alumno selecciona una respuesta.
+- Pregunta abierta: el alumno escribe una respuesta.
+- Código: el alumno escribe o edita código como texto.
+- Revision: concentra el resumen, pendientes, retroalimentación, estados y, en futuro, puntajes.
+
+Actualmente hay cierta mezcla, especialmente en quiz, porque el quiz tiene botón "Comprobar" y puede mostrar resultado local. Eso choca con la idea de que Revision sea el centro de evaluación.
+
+============================================================
+3. COMPONENTE TEORÍA
+============================================================
+
+Estado actual:
+- Muestra título y contenido.
+- Usa Markdown.
+- No tiene inputs.
+- No guarda respuesta.
+- No participa directamente en autoguardado.
+- Puede tener fallback si el visor Markdown no carga.
+
+Opinión:
+Está bien como está.
+
+No necesita cambios grandes. Solo conviene cuidar:
+- Que el Markdown se vea limpio.
+- Que el fallback no se vea demasiado básico.
+- Que no haya textos con encoding roto.
+
+Veredicto:
+APROBADO.
+
+============================================================
+4. COMPONENTE QUIZ MÚLTIPLE
+============================================================
+
+Estado actual:
+- Muestra pregunta.
+- Muestra opciones.
+- Permite seleccionar una o varias respuestas.
+- Guarda la selección.
+- Tiene botón "Comprobar".
+- Al comprobar, guarda metadata como checked e isCorrect.
+- Puede mostrar feedback local.
+
+Problema:
+El botón "Comprobar" no encaja del todo con el diseño general que queremos.
+
+Si existe un componente Revision que resume, evalúa y luego mostrará puntajes, el quiz no debería comportarse como un evaluador independiente.
+
+Ahora mismo se mezclan dos experiencias:
+1. El quiz evalúa localmente con "Comprobar".
+2. Revision también resume y revisa respuestas.
+
+Esto puede confundir al alumno porque no queda claro dónde debe mirar el resultado final.
+
+============================================================
+5. PROPUESTA PARA QUIZ
+============================================================
+
+Se recomienda cambiar el quiz a un flujo más simple:
+
+Alumno selecciona respuesta
+-> se guarda automáticamente
+-> se muestra estado "Respuesta guardada"
+-> no se muestra resultado correcto/incorrecto dentro del quiz
+-> el resultado aparece en Revision
+
+En vez de botón:
+"Comprobar"
+
+Se podría mostrar:
+"Respuesta guardada automáticamente"
+
+O simplemente un estado visual discreto.
+
+La comprobación de si está bien o mal no se pierde. Se puede hacer en Revision usando:
+- respuesta seleccionada por el alumno;
+- respuestas_correctas del componente;
+- puntaje del componente cuando exista;
+- feedback definido por el docente.
+
+Ejemplo esperado en Revision:
+
+Quiz: Condición de salida
+Respuesta: Un caso base
+Estado: Correcto
+Puntaje: 10 / 10
+Feedback: Correcto, el caso base evita que la recursión continúe indefinidamente.
+
+Conclusión:
+El quiz debe capturar respuesta. Revision debe mostrar resultado.
+
+============================================================
+6. COMPONENTE PREGUNTA ABIERTA
+============================================================
+
+Estado actual:
+- Muestra enunciado.
+- Muestra textarea.
+- Restaura respuesta previa.
+- Guarda al escribir usando Student.Answers y AutoSave.
+- La respuesta se guarda como value.
+- No se evalúa localmente.
+
+Opinión:
+Está bien planteado.
+
+Lo que sí debe corregirse:
+- Cualquier texto viejo que diga que la respuesta no se guarda todavía.
+- Ahora el texto correcto debería indicar que se guarda automáticamente.
+
+Ejemplo de texto recomendado:
+"Tu respuesta se guarda automáticamente."
+
+Importante:
+No mostrar la rúbrica o criterio interno al alumno si se usará como guía privada para la revisión IA o evaluación docente.
+
+La rúbrica debe ser usada por la IA/backend para revisar, pero no necesariamente mostrada en Student.
+
+Esto permite que el alumno responda con base en el enunciado y que la revisión se haga usando criterios docentes internos.
+
+Veredicto:
+APROBADO, con corrección de textos de guardado.
+
+============================================================
+7. COMPONENTE CÓDIGO
+============================================================
+
+Estado actual:
+- Muestra enunciado.
+- Muestra lenguaje.
+- Muestra instrucciones.
+- Muestra código base.
+- Permite escribir o editar código.
+- Guarda el código como texto.
+- Restaura respuesta previa.
+- No ejecuta código.
+- No hay intérprete, consola, sandbox ni evaluador automático.
+
+Opinión:
+Está bien para MVP.
+
+Lo importante es dejar claro al alumno que:
+- El código no se ejecuta en el navegador.
+- El código no se prueba automáticamente.
+- La revisión lo analizará como texto.
+
+Texto recomendado:
+"Este editor no ejecuta el código. Tu respuesta será guardada y podrá ser revisada posteriormente."
+
+También conviene revisar el botón de restaurar código base:
+- Si reemplaza lo escrito por el alumno, debería tener advertencia o confirmación.
+- Ejemplo: "Esto reemplazará tu código actual por el código base."
+
+Veredicto:
+APROBADO para MVP, con mejoras de claridad visual.
+
+============================================================
+8. COMPONENTE REVISION COMO CENTRO DEL RESULTADO
+============================================================
+
+Aunque el análisis profundo de IA Alumno se verá en IA_ALUMNO.md, desde el flujo alumno ya conviene definir que Revision debe ser el centro del resultado.
+
+Revision debería encargarse de:
+- Mostrar respuestas dadas.
+- Mostrar actividades pendientes.
+- Mostrar estado por componente.
+- Mostrar resultado del quiz.
+- Mostrar retroalimentación IA.
+- Mostrar recomendaciones generales.
+- Mostrar puntajes cuando se agregue puntaje por componente.
+- Mostrar resumen final del avance.
+
+Esto evita que cada componente tenga su propia lógica de evaluación y hace que la experiencia sea más ordenada.
+
+============================================================
+9. AUTOGUARDADO DEL ALUMNO
+============================================================
+
+Estado actual:
+- Cada cambio en una respuesta llama Student.Answers.setAnswer().
+- Esto dispara el evento ia-assistant:student-answer-change.
+- AutoSave escucha ese evento.
+- Usa debounce de aproximadamente 1000 ms.
+- Evita hacer un POST por cada letra.
+- Guarda usando save_student_answers.
+- El backend guarda en student_answers con Scope.user_state.
+- Al recargar, student_view manda initial_student_answers y los players restauran respuestas.
+
+Esto está bien encaminado.
+
+El flujo correcto es:
+
+Alumno escribe o selecciona
+-> Student.Answers actualiza memoria local
+-> AutoSave espera debounce
+-> save_student_answers guarda en backend
+-> Scope.user_state conserva respuestas del alumno
+-> al recargar se restauran
+
+============================================================
+10. CONDICIÓN DE CARRERA AUTOSAVE / REVISION
+============================================================
+
+Este punto aparece en FLUJO_ALUMNO y también debe repetirse en IA_ALUMNO porque afecta directamente a la revisión IA.
+
+Problema:
+La revisión IA usa las respuestas guardadas en backend, no solo las respuestas locales del frontend.
+
+Riesgo:
+1. Alumno escribe una respuesta.
+2. Student.Answers se actualiza en frontend.
+3. AutoSave queda pendiente por debounce.
+4. Alumno presiona "Solicitar revisión" inmediatamente.
+5. Backend ejecuta request_student_review.
+6. Backend puede leer student_answers anterior, sin la respuesta recién escrita.
+
+Esto significa que la IA podría revisar respuestas viejas o incompletas.
+
+Actualmente existe flushPendingSave(), pero según el diagnóstico:
+- fuerza el guardado pendiente;
+- sin embargo, no espera de forma confiable a que termine el POST;
+- Revision puede llamar request_student_review antes de que save_student_answers haya terminado.
+
+Conclusión:
+La condición de carrera está parcialmente mitigada, pero no completamente resuelta.
+
+Solución recomendada:
+- AutoSave.saveNow() debe devolver una Promise.
+- AutoSave.flushPendingSave() debe devolver una Promise.
+- RevisionPlayer debe esperar esa Promise antes de llamar request_student_review.
+
+Flujo correcto esperado:
+
+click Solicitar revisión
+-> flushPendingSave()
+-> esperar respuesta de save_student_answers
+-> si guardado ok, llamar request_student_review
+-> IA revisa respuestas realmente actualizadas
+
+Este punto es importante y se debe tratar también en IA_ALUMNO.md.
+
+============================================================
+11. VALIDACIÓN BACKEND DE RESPUESTAS DEL QUIZ
+============================================================
+
+El backend actualmente normaliza respuestas del quiz, pero se recomienda validar que la opción seleccionada exista realmente en el componente.
+
+Ejemplo:
+Si el quiz tiene opciones:
+- opcion_1
+- opcion_2
+
+El backend debería rechazar o limpiar:
+- opcion_999
+- opciones inexistentes
+- valores raros no presentes en data.opciones
+
+Esto evita que un payload manipulado guarde respuestas inválidas.
+
+============================================================
+12. PUNTAJE POR COMPONENTE EN STUDENT
+============================================================
+
+Cuando agreguemos puntaje por componente, Student debería mostrarlo de forma clara.
+
+Ejemplo:
+- Quiz: Valor 10 puntos.
+- Pregunta abierta: Valor 20 puntos.
+- Código: Valor 30 puntos.
+- Teoría: sin puntaje o 0 puntos.
+
+Pero el resultado o puntos obtenidos deberían mostrarse en Revision, no dentro de cada componente.
+
+En cada componente bastaría mostrar:
+"Valor: 10 puntos"
+
+En Revision se mostraría:
+- Quiz: 10 / 10
+- Pregunta abierta: pendiente de revisión
+- Código: requiere revisión
+- Total: según resultados disponibles
+
+Importante:
+No implementar todavía calificación automática final.
+Primero implementar puntaje como configuración docente y visualización.
+
+============================================================
+13. TEXTOS Y ESTADOS VISUALES
+============================================================
+
+Corregir textos desactualizados:
+- No debe decir que la respuesta no se guarda si ya existe autosave.
+- Usar "Guardado automáticamente" o "Cambios guardados".
+
+Estados recomendados:
+- Cambios pendientes.
+- Guardando...
+- Guardado.
+- Error al guardar.
+- Reintentando, si luego se agrega retry.
+
+Esto mejora la confianza del alumno.
+
+============================================================
+14. MANEJO DE ERRORES DE AUTOSAVE
+============================================================
+
+Actualmente, si falla el guardado, se muestra error visual, pero no parece haber retry automático fuerte.
+
+Recomendación:
+En una fase posterior:
+- Agregar retry/backoff para errores temporales.
+- Mantener cambios pendientes si falla.
+- No mostrar "Guardado" si el backend no confirmó.
+- Evitar que Revision se solicite si hay error de guardado pendiente.
+
+============================================================
+15. REVISION COMO COMPONENTE SINTÉTICO
+============================================================
+
+Actualmente Revision se agrega automáticamente al final si hay componentes auditables.
+
+Esto está bien conceptualmente:
+- No forma parte de unidad_json.
+- No es authorable.
+- Es un componente de sistema en Student.
+
+Pero visualmente conviene tratarlo como:
+"Panel final de revisión"
+
+No como una actividad más.
+
+Esto ayudará a que el alumno entienda que ahí verá resumen, feedback y resultados.
+
+============================================================
+16. COMPARACIÓN DE LO QUE TENEMOS VS LO QUE QUEREMOS
+============================================================
+
+TEORÍA
+Tenemos:
+- Render de contenido.
+- Solo lectura.
+
+Queremos:
+- Mantener.
+- Pulir visualmente si hace falta.
+
+QUIZ
+Tenemos:
+- Selección.
+- Botón comprobar.
+- Feedback local.
+
+Queremos:
+- Selección y autoguardado.
+- Sin comprobar local.
+- Resultado en Revision.
+
+PREGUNTA ABIERTA
+Tenemos:
+- Textarea.
+- Autoguardado.
+- Restauración.
+
+Queremos:
+- Mantener.
+- Corregir textos de guardado.
+- No mostrar rúbrica interna al alumno.
+
+CÓDIGO
+Tenemos:
+- Textarea de código.
+- Código base.
+- Instrucciones.
+- Autoguardado.
+- No ejecución.
+
+Queremos:
+- Mantener.
+- Aclarar visualmente que no se ejecuta.
+- Confirmar restauración de código base si sobrescribe respuesta.
+
+REVISION
+Tenemos:
+- Resumen.
+- Solicitud de revisión.
+
+Queremos:
+- Centro de feedback, estados, resultados y puntajes.
+
+AUTOSAVE
+Tenemos:
+- Debounce.
+- Guardado en Scope.user_state.
+
+Queremos:
+- Promise real para cerrar carrera con revisión.
+- Mejor manejo de errores.
+
+============================================================
+17. LISTA PRIORIZADA DE MEJORAS
+============================================================
+
+PRIORIDAD ALTA
+
+1. Quitar o neutralizar el botón "Comprobar" del quiz.
+2. Mover resultado/feedback del quiz al componente Revision.
+3. Hacer que flushPendingSave espere realmente al POST antes de solicitar revisión.
+4. Corregir textos viejos sobre guardado en pregunta abierta.
+5. Validar en backend que respuestas de quiz apunten a opciones reales.
+
+PRIORIDAD MEDIA
+
+6. Mostrar puntaje por componente cuando se implemente el campo puntaje.
+7. Mostrar estado claro de autoguardado.
+8. Aclarar en código que no se ejecuta.
+9. Confirmar antes de restaurar código base si sobrescribe respuesta del alumno.
+10. Tratar Revision como panel final de revisión.
+
+PRIORIDAD BAJA
+
+11. Agregar retry/backoff para autosave.
+12. Revisar encoding UTF-8.
+13. Mejorar fallback visual del Markdown en teoría.
+14. Agregar pruebas de persistencia y restauración.
+15. Agregar prueba específica de carrera autosave/revisión.
+
+============================================================
+18. CONCLUSIÓN
+============================================================
+
+El flujo alumno está funcional, pero es la parte menos madura del proyecto en términos de experiencia educativa.
+
+No hace falta rehacer todo.
+
+Los componentes base están razonablemente bien:
+- Teoría está bien.
+- Pregunta abierta está bien.
+- Código está bien.
+- Quiz necesita rediseño de UX.
+
+La mejora clave es separar responsabilidades:
+
+Componentes normales:
+- capturan respuestas.
+
+Revision:
+- muestra resumen, resultados, retroalimentación y en futuro puntajes.
+
+Antes de producción formal, los puntos más importantes son:
+1. Rediseñar quiz para que no evalúe localmente con "Comprobar".
+2. Centralizar resultados en Revision.
+3. Cerrar la condición de carrera entre autosave y revisión.
+4. Corregir textos de guardado.
+5. Validar respuestas de quiz contra opciones reales.
+
+Con esos ajustes, el flujo alumno se sentiría mucho más coherente y menos improvisado.

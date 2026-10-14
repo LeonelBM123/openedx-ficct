@@ -1,0 +1,2035 @@
+{
+  "name": "chatbar_intent_dataset",
+  "version": 1,
+  "description": "Dataset inicial de prompts para probar la detección de intención del chatbar IA docente.",
+  "schema": {
+    "id": "string",
+    "prompt": "string",
+    "expectedMode": "unit | create | edit | idle",
+    "expectedComponentType": "teoria | quiz_multiple | pregunta_abierta | codigo | ''",
+    "expectedConfidence": "high | medium | low | ambiguous",
+    "category": "string",
+    "activeComponentRequired": "boolean",
+    "notes": "string"
+  },
+  "cases": [
+    {
+      "id": "unit_001",
+      "prompt": "genera una unidad sobre recursividad con teoría, quiz y preguntas abiertas",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_002",
+      "prompt": "crea un tema sobre arqueología con dos teorías y un cuestionario",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_003",
+      "prompt": "prepara una clase sobre variables y tipos de datos con ejemplos",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_004",
+      "prompt": "desarrolla un módulo sobre redes TCP/IP con teoría y evaluación",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_005",
+      "prompt": "haz una lección sobre algoritmos de ordenamiento con quiz final",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_006",
+      "prompt": "genera un tema abordando el tema de recursividad, tomando en cuenta los tiempos T(n), con un quiz y 2 preguntas abiertas",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_007",
+      "prompt": "crea una unidad completa sobre programación orientada a objetos",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_008",
+      "prompt": "prepara un tema de matrices con dos teorías y una pregunta abierta",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_009",
+      "prompt": "desarrolla una clase sobre normalización de bases de datos con actividades",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_010",
+      "prompt": "haz un módulo sobre seguridad informática con teoría, quiz y ejercicio de código",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_011",
+      "prompt": "genera una unidad para explicar la pila y la cola en estructuras de datos",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_012",
+      "prompt": "crea un tema completo sobre historia de Bolivia con preguntas para practicar",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_013",
+      "prompt": "prepara una lección sobre funciones matemáticas con ejemplos y cuestionario",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_014",
+      "prompt": "desarrolla un curso breve sobre HTML y CSS para principiantes",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_015",
+      "prompt": "genera una unidad sobre inteligencia artificial con teoría y reflexión final",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_016",
+      "prompt": "crea una clase sobre sistemas operativos y planificación de procesos",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_017",
+      "prompt": "prepara una unidad sobre TCP, FTP, SMTP y Telnet con evaluación",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_018",
+      "prompt": "haz una lección sobre derivadas con teoría, ejercicios y quiz",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_019",
+      "prompt": "desarrolla un tema sobre economía clásica y keynesiana",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_020",
+      "prompt": "genera una unidad con 2 teorías, 2 quizzes y una pregunta abierta sobre redes",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_021",
+      "prompt": "crea una unidad sobre algoritmos incluyendo teoría, quiz y ejercicio de código",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_022",
+      "prompt": "prepara una clase completa sobre Power BI y jerarquías",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_023",
+      "prompt": "desarrolla un módulo sobre UML con casos de uso y preguntas",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_024",
+      "prompt": "haz un tema sobre ciberseguridad con teoría y cuestionario",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_025",
+      "prompt": "genera una lección sobre SQL Server y exportación de bases de datos",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_026",
+      "prompt": "crea un curso corto sobre Flutter y consumo de APIs",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_027",
+      "prompt": "prepara una unidad sobre Docker con ejemplos prácticos y quiz",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_028",
+      "prompt": "desarrolla un tema de telecomunicaciones sobre centrales telefónicas",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_029",
+      "prompt": "haz una clase sobre multiplexación digital y analógica con preguntas abiertas",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_030",
+      "prompt": "genera una unidad sobre modulación con teoría y actividad de código",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_031",
+      "prompt": "crea un módulo completo sobre estadística descriptiva",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_032",
+      "prompt": "prepara una clase sobre probabilidad condicional con teoría y quiz",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_033",
+      "prompt": "desarrolla una unidad sobre grafos con ejercicios y preguntas abiertas",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_034",
+      "prompt": "haz un tema sobre programación en Python con teoría, código y quiz",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_035",
+      "prompt": "genera una unidad sobre JavaScript asíncrono con ejemplos",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_036",
+      "prompt": "crea una lección sobre APIs REST con teoría y cuestionario",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_037",
+      "prompt": "prepara un tema sobre FastAPI y endpoints básicos",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_038",
+      "prompt": "desarrolla una clase sobre PostgreSQL con ejemplos y evaluación",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_039",
+      "prompt": "haz una unidad sobre machine learning introductorio",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_040",
+      "prompt": "genera un módulo sobre redes neuronales con teoría y preguntas",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_041",
+      "prompt": "crea un tema sobre lógica proposicional con quiz y pregunta abierta",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_042",
+      "prompt": "prepara una unidad sobre diagramas de estado UML",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_043",
+      "prompt": "desarrolla una clase sobre análisis financiero de proyectos",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_044",
+      "prompt": "haz una lección sobre flujo de caja con ejercicios",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_045",
+      "prompt": "genera una unidad sobre costos fijos y punto de equilibrio",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_046",
+      "prompt": "crea un tema sobre asistencia estudiantil con KPIs y análisis",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_047",
+      "prompt": "prepara un módulo sobre arquitectura cliente-servidor",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_048",
+      "prompt": "desarrolla una unidad sobre autenticación JWT con teoría y código",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_049",
+      "prompt": "haz una clase completa sobre ramas Git, commits y push",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_clear",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "unit_050",
+      "prompt": "genera un tema sobre pruebas de software con quiz y actividad práctica",
+      "expectedMode": "unit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "unit_with_components",
+      "activeComponentRequired": false,
+      "notes": "Debe crear una unidad completa, aunque mencione componentes internos."
+    },
+    {
+      "id": "create_001",
+      "prompt": "crea un componente teoría sobre recursividad",
+      "expectedMode": "create",
+      "expectedComponentType": "teoria",
+      "expectedConfidence": "high",
+      "category": "create_teoria",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_002",
+      "prompt": "agrega una teoría sobre complejidad temporal",
+      "expectedMode": "create",
+      "expectedComponentType": "teoria",
+      "expectedConfidence": "high",
+      "category": "create_teoria",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_003",
+      "prompt": "añade un bloque teórico sobre pilas y colas",
+      "expectedMode": "create",
+      "expectedComponentType": "teoria",
+      "expectedConfidence": "high",
+      "category": "create_teoria",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_004",
+      "prompt": "crea una explicación sobre normalización de bases de datos",
+      "expectedMode": "create",
+      "expectedComponentType": "teoria",
+      "expectedConfidence": "high",
+      "category": "create_teoria",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_005",
+      "prompt": "agrega contenido teórico sobre redes TCP/IP",
+      "expectedMode": "create",
+      "expectedComponentType": "teoria",
+      "expectedConfidence": "high",
+      "category": "create_teoria",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_006",
+      "prompt": "crea una lectura sobre programación orientada a objetos",
+      "expectedMode": "create",
+      "expectedComponentType": "teoria",
+      "expectedConfidence": "high",
+      "category": "create_teoria",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_007",
+      "prompt": "añade una teoría introductoria sobre algoritmos",
+      "expectedMode": "create",
+      "expectedComponentType": "teoria",
+      "expectedConfidence": "high",
+      "category": "create_teoria",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_008",
+      "prompt": "crea un concepto sobre Docker y contenedores",
+      "expectedMode": "create",
+      "expectedComponentType": "teoria",
+      "expectedConfidence": "high",
+      "category": "create_teoria",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_009",
+      "prompt": "agrega una sección teórica sobre UML",
+      "expectedMode": "create",
+      "expectedComponentType": "teoria",
+      "expectedConfidence": "high",
+      "category": "create_teoria",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_010",
+      "prompt": "crea un componente de explicación sobre APIs REST",
+      "expectedMode": "create",
+      "expectedComponentType": "teoria",
+      "expectedConfidence": "high",
+      "category": "create_teoria",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_011",
+      "prompt": "agrega un quiz sobre esta unidad",
+      "expectedMode": "create",
+      "expectedComponentType": "quiz_multiple",
+      "expectedConfidence": "high",
+      "category": "create_quiz",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_012",
+      "prompt": "crea un cuestionario sobre variables",
+      "expectedMode": "create",
+      "expectedComponentType": "quiz_multiple",
+      "expectedConfidence": "high",
+      "category": "create_quiz",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_013",
+      "prompt": "añade un test de selección múltiple sobre redes",
+      "expectedMode": "create",
+      "expectedComponentType": "quiz_multiple",
+      "expectedConfidence": "high",
+      "category": "create_quiz",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_014",
+      "prompt": "crea un quiz de cinco preguntas sobre recursividad",
+      "expectedMode": "create",
+      "expectedComponentType": "quiz_multiple",
+      "expectedConfidence": "high",
+      "category": "create_quiz",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_015",
+      "prompt": "agrega otro cuestionario para practicar",
+      "expectedMode": "create",
+      "expectedComponentType": "quiz_multiple",
+      "expectedConfidence": "high",
+      "category": "create_quiz",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_016",
+      "prompt": "haz preguntas de opción múltiple sobre SQL",
+      "expectedMode": "create",
+      "expectedComponentType": "quiz_multiple",
+      "expectedConfidence": "high",
+      "category": "create_quiz",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_017",
+      "prompt": "crea una evaluación tipo quiz sobre Docker",
+      "expectedMode": "create",
+      "expectedComponentType": "quiz_multiple",
+      "expectedConfidence": "high",
+      "category": "create_quiz",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_018",
+      "prompt": "añade un componente quiz sobre JavaScript",
+      "expectedMode": "create",
+      "expectedComponentType": "quiz_multiple",
+      "expectedConfidence": "high",
+      "category": "create_quiz",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_019",
+      "prompt": "crea un test rápido sobre UML",
+      "expectedMode": "create",
+      "expectedComponentType": "quiz_multiple",
+      "expectedConfidence": "high",
+      "category": "create_quiz",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_020",
+      "prompt": "agrega una prueba de opción múltiple sobre TCP",
+      "expectedMode": "create",
+      "expectedComponentType": "quiz_multiple",
+      "expectedConfidence": "high",
+      "category": "create_quiz",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_021",
+      "prompt": "añade una pregunta abierta sobre la teoría actual",
+      "expectedMode": "create",
+      "expectedComponentType": "pregunta_abierta",
+      "expectedConfidence": "high",
+      "category": "create_pregunta_abierta",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_022",
+      "prompt": "crea un componente de pregunta abierta",
+      "expectedMode": "create",
+      "expectedComponentType": "pregunta_abierta",
+      "expectedConfidence": "high",
+      "category": "create_pregunta_abierta",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_023",
+      "prompt": "agrega una reflexión sobre el uso de algoritmos",
+      "expectedMode": "create",
+      "expectedComponentType": "pregunta_abierta",
+      "expectedConfidence": "high",
+      "category": "create_pregunta_abierta",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_024",
+      "prompt": "crea una pregunta de desarrollo sobre bases de datos",
+      "expectedMode": "create",
+      "expectedComponentType": "pregunta_abierta",
+      "expectedConfidence": "high",
+      "category": "create_pregunta_abierta",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_025",
+      "prompt": "añade una actividad de respuesta abierta sobre redes",
+      "expectedMode": "create",
+      "expectedComponentType": "pregunta_abierta",
+      "expectedConfidence": "high",
+      "category": "create_pregunta_abierta",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_026",
+      "prompt": "crea una pregunta abierta con rúbrica sobre recursividad",
+      "expectedMode": "create",
+      "expectedComponentType": "pregunta_abierta",
+      "expectedConfidence": "high",
+      "category": "create_pregunta_abierta",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_027",
+      "prompt": "agrega una reflexión final sobre inteligencia artificial",
+      "expectedMode": "create",
+      "expectedComponentType": "pregunta_abierta",
+      "expectedConfidence": "high",
+      "category": "create_pregunta_abierta",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_028",
+      "prompt": "crea una pregunta para que el alumno explique con sus palabras",
+      "expectedMode": "create",
+      "expectedComponentType": "pregunta_abierta",
+      "expectedConfidence": "high",
+      "category": "create_pregunta_abierta",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_029",
+      "prompt": "añade una actividad de desarrollo sobre costos fijos",
+      "expectedMode": "create",
+      "expectedComponentType": "pregunta_abierta",
+      "expectedConfidence": "high",
+      "category": "create_pregunta_abierta",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_030",
+      "prompt": "crea una pregunta abierta sobre diagramas UML",
+      "expectedMode": "create",
+      "expectedComponentType": "pregunta_abierta",
+      "expectedConfidence": "high",
+      "category": "create_pregunta_abierta",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_031",
+      "prompt": "haz un ejercicio de código en Java",
+      "expectedMode": "create",
+      "expectedComponentType": "codigo",
+      "expectedConfidence": "high",
+      "category": "create_codigo",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_032",
+      "prompt": "crea una actividad de programación en Python",
+      "expectedMode": "create",
+      "expectedComponentType": "codigo",
+      "expectedConfidence": "high",
+      "category": "create_codigo",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_033",
+      "prompt": "añade un ejercicio de JavaScript sobre funciones",
+      "expectedMode": "create",
+      "expectedComponentType": "codigo",
+      "expectedConfidence": "high",
+      "category": "create_codigo",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_034",
+      "prompt": "crea un componente código para practicar recursividad",
+      "expectedMode": "create",
+      "expectedComponentType": "codigo",
+      "expectedConfidence": "high",
+      "category": "create_codigo",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_035",
+      "prompt": "agrega una práctica de programación sobre arrays",
+      "expectedMode": "create",
+      "expectedComponentType": "codigo",
+      "expectedConfidence": "high",
+      "category": "create_codigo",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_036",
+      "prompt": "haz un algoritmo en pseudocódigo para ordenar números",
+      "expectedMode": "create",
+      "expectedComponentType": "codigo",
+      "expectedConfidence": "high",
+      "category": "create_codigo",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_037",
+      "prompt": "crea un ejercicio de HTML y CSS",
+      "expectedMode": "create",
+      "expectedComponentType": "codigo",
+      "expectedConfidence": "high",
+      "category": "create_codigo",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_038",
+      "prompt": "añade una actividad de TypeScript sobre clases",
+      "expectedMode": "create",
+      "expectedComponentType": "codigo",
+      "expectedConfidence": "high",
+      "category": "create_codigo",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_039",
+      "prompt": "crea un problema de programación con C++",
+      "expectedMode": "create",
+      "expectedComponentType": "codigo",
+      "expectedConfidence": "high",
+      "category": "create_codigo",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_040",
+      "prompt": "agrega un ejercicio de Python sobre listas",
+      "expectedMode": "create",
+      "expectedComponentType": "codigo",
+      "expectedConfidence": "high",
+      "category": "create_codigo",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_041",
+      "prompt": "crea un componente teoría que explique el ciclo de vida de una API",
+      "expectedMode": "create",
+      "expectedComponentType": "teoria",
+      "expectedConfidence": "high",
+      "category": "create_teoria",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_042",
+      "prompt": "agrega un quiz corto sobre autenticación JWT",
+      "expectedMode": "create",
+      "expectedComponentType": "quiz_multiple",
+      "expectedConfidence": "high",
+      "category": "create_quiz",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_043",
+      "prompt": "añade una pregunta abierta con criterio de evaluación sobre proyectos públicos",
+      "expectedMode": "create",
+      "expectedComponentType": "pregunta_abierta",
+      "expectedConfidence": "high",
+      "category": "create_pregunta_abierta",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_044",
+      "prompt": "haz un ejercicio de código para calcular el punto de equilibrio",
+      "expectedMode": "create",
+      "expectedComponentType": "codigo",
+      "expectedConfidence": "high",
+      "category": "create_codigo",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_045",
+      "prompt": "crea una teoría sobre indicadores KPI",
+      "expectedMode": "create",
+      "expectedComponentType": "teoria",
+      "expectedConfidence": "high",
+      "category": "create_teoria",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_046",
+      "prompt": "agrega un cuestionario sobre protocolos SMTP FTP y Telnet",
+      "expectedMode": "create",
+      "expectedComponentType": "quiz_multiple",
+      "expectedConfidence": "high",
+      "category": "create_quiz",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_047",
+      "prompt": "crea una pregunta abierta sobre ética en inteligencia artificial",
+      "expectedMode": "create",
+      "expectedComponentType": "pregunta_abierta",
+      "expectedConfidence": "high",
+      "category": "create_pregunta_abierta",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_048",
+      "prompt": "añade un ejercicio de código en PHP sobre formularios",
+      "expectedMode": "create",
+      "expectedComponentType": "codigo",
+      "expectedConfidence": "high",
+      "category": "create_codigo",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_049",
+      "prompt": "crea una explicación corta sobre herencia en POO",
+      "expectedMode": "create",
+      "expectedComponentType": "teoria",
+      "expectedConfidence": "high",
+      "category": "create_teoria",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "create_050",
+      "prompt": "agrega un test de selección múltiple sobre estructuras de datos",
+      "expectedMode": "create",
+      "expectedComponentType": "quiz_multiple",
+      "expectedConfidence": "high",
+      "category": "create_quiz",
+      "activeComponentRequired": false,
+      "notes": "Debe crear un componente nuevo del tipo indicado."
+    },
+    {
+      "id": "edit_001",
+      "prompt": "podes enriquecer este componente de teoría añadiendo más contenido",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_enrich",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_002",
+      "prompt": "mejora este componente y hazlo más claro",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_003",
+      "prompt": "corrige la ortografía de este contenido",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_correction",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_004",
+      "prompt": "agrega feedbacks al quiz actual",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_feedback",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_005",
+      "prompt": "ajusta la rúbrica de esta pregunta",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_rubric",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_006",
+      "prompt": "amplía esta teoría con ejemplos prácticos",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_enrich",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_007",
+      "prompt": "complementa el componente actual con una explicación más profunda",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_enrich",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_008",
+      "prompt": "reescribe este quiz para que sea más entendible",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_rewrite",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_009",
+      "prompt": "modifica el componente seleccionado sin cambiar el tema",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_010",
+      "prompt": "cambia la redacción de este enunciado",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_correction",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_011",
+      "prompt": "mejora esta pregunta abierta agregando criterios",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_rubric",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_012",
+      "prompt": "hazlo más claro para estudiantes principiantes",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_013",
+      "prompt": "expande esta explicación con un ejemplo sencillo",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_enrich",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_014",
+      "prompt": "corrige las opciones del quiz actual",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_correction",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_015",
+      "prompt": "añade retroalimentación a las respuestas de este quiz",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_feedback",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_016",
+      "prompt": "optimiza este contenido para que sea más breve",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_017",
+      "prompt": "simplifica esta teoría manteniendo la idea principal",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_018",
+      "prompt": "profundiza el componente actual con más detalles",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_enrich",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_019",
+      "prompt": "reformula esta pregunta para que sea más clara",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_rewrite",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_020",
+      "prompt": "actualiza este componente con una explicación moderna",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_021",
+      "prompt": "corrige errores de redacción en el componente seleccionado",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_correction",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_022",
+      "prompt": "agrega ejemplos a esta teoría",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_enrich",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_023",
+      "prompt": "mejora el feedback de las respuestas incorrectas",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_feedback",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_024",
+      "prompt": "ajusta los criterios de evaluación de esta pregunta",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_rubric",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_025",
+      "prompt": "haz que este contenido sea más formal",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_026",
+      "prompt": "enriquece esta teoría con analogías",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_enrich",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_027",
+      "prompt": "reescribe este contenido en palabras más simples",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_rewrite",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_028",
+      "prompt": "modifica el quiz actual para hacerlo más difícil",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_029",
+      "prompt": "cambia el enunciado de esta actividad de código",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_030",
+      "prompt": "agrega instrucciones más claras al ejercicio actual",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_031",
+      "prompt": "corrige esta explicación porque está confusa",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_correction",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_032",
+      "prompt": "amplía el componente seleccionado con más contenido",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_enrich",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_033",
+      "prompt": "mejora el cierre de esta teoría",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_034",
+      "prompt": "agrega una pista al ejercicio de código actual",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_035",
+      "prompt": "ajusta esta pregunta abierta para que tenga mejor rúbrica",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_rubric",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_036",
+      "prompt": "complementa este quiz con mejores feedbacks",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_feedback",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_037",
+      "prompt": "haz más corta esta explicación",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_038",
+      "prompt": "mejora la coherencia de este componente",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_039",
+      "prompt": "reescribe la respuesta esperada de esta pregunta",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_rewrite",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_040",
+      "prompt": "corrige el código base de este ejercicio",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_correction",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_041",
+      "prompt": "amplía esta lectura con un caso real",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_enrich",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_042",
+      "prompt": "enriquece el componente actual usando ejemplos de la vida diaria",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_enrich",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_043",
+      "prompt": "ajusta el nivel de dificultad de este quiz",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_044",
+      "prompt": "mejora este componente para estudiantes de primer semestre",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_045",
+      "prompt": "agrega más contexto a esta pregunta",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_enrich",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_046",
+      "prompt": "corrige la gramática de esta teoría",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_correction",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_047",
+      "prompt": "modifica este ejercicio de código para usar Python",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_048",
+      "prompt": "hazlo más dinámico y menos largo",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_049",
+      "prompt": "añade más contenido a este componente",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_enrich",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "edit_050",
+      "prompt": "pulir este contenido y mejorar su redacción",
+      "expectedMode": "edit",
+      "expectedComponentType": "",
+      "expectedConfidence": "high",
+      "category": "edit_general",
+      "activeComponentRequired": true,
+      "notes": "Debe editar el componente activo; requiere activeComponent para generar."
+    },
+    {
+      "id": "ambiguous_001",
+      "prompt": "crea preguntas sobre este tema",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_question_type",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_002",
+      "prompt": "explica mejor variables",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_target",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_003",
+      "prompt": "haz contenido sobre redes",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_scope",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_004",
+      "prompt": "quiero algo sobre recursividad",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_action",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_005",
+      "prompt": "prepara preguntas",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_question_type",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_006",
+      "prompt": "mejora el contenido sobre matrices",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_needs_active_component",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_007",
+      "prompt": "pon más ejemplos",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_target",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_008",
+      "prompt": "necesito una explicación",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_scope",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_009",
+      "prompt": "hazlo bonito",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_target",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_010",
+      "prompt": "más difícil por favor",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_target",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_011",
+      "prompt": "puedes ayudarme con recursividad",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_action",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_012",
+      "prompt": "algo de programación",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_action",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_013",
+      "prompt": "preguntas para complementar",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_question_type",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_014",
+      "prompt": "quiero evaluar este tema",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_question_type",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_015",
+      "prompt": "haz una actividad",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_activity_type",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_016",
+      "prompt": "crea una actividad sobre redes",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_activity_type",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_017",
+      "prompt": "quiero una práctica",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_activity_type",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_018",
+      "prompt": "mejorar",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_target",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_019",
+      "prompt": "crear",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_target",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_020",
+      "prompt": "tema de matrices",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_action",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_021",
+      "prompt": "recursividad con preguntas",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_action",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_022",
+      "prompt": "haz preguntas de recursividad",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_question_type",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_023",
+      "prompt": "agrega contenido",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_create_or_edit",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_024",
+      "prompt": "añade más información",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_create_or_edit",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_025",
+      "prompt": "quiero un ejemplo",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_component_or_unit",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_026",
+      "prompt": "da ejemplos sobre SQL",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_component_or_unit",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_027",
+      "prompt": "pregunta sobre bases de datos",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_question_type",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_028",
+      "prompt": "evaluación sobre redes",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_question_type",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_029",
+      "prompt": "contenido de teoría",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_action",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_030",
+      "prompt": "un quiz de recursividad",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_action",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_031",
+      "prompt": "pregunta abierta de matrices",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_action",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_032",
+      "prompt": "código en Java",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_action",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_033",
+      "prompt": "puedes hacerlo mejor",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_target",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_034",
+      "prompt": "que sea más claro",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_target",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_035",
+      "prompt": "quiero que el alumno responda",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_question_type",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_036",
+      "prompt": "hacer una explicación sobre Docker",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_scope",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_037",
+      "prompt": "prepara algo con quiz",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_component_or_unit",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_038",
+      "prompt": "estructura sobre algoritmos",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_action",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_039",
+      "prompt": "usa preguntas abiertas",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_action",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_040",
+      "prompt": "corrige esto",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_active_component",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_041",
+      "prompt": "amplía",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_target",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_042",
+      "prompt": "más contenido",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_create_or_edit",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_043",
+      "prompt": "agrega un apartado",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_component_or_unit",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_044",
+      "prompt": "necesito material de apoyo",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_action",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_045",
+      "prompt": "dame una explicación y preguntas",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_component_or_unit",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_046",
+      "prompt": "puedes formular preguntas",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_question_type",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_047",
+      "prompt": "haz una prueba",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_question_type",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_048",
+      "prompt": "trabajemos variables",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_action",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_049",
+      "prompt": "contenido para complementar",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_create_or_edit",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    },
+    {
+      "id": "ambiguous_050",
+      "prompt": "revisar el tema",
+      "expectedMode": "idle",
+      "expectedComponentType": "",
+      "expectedConfidence": "ambiguous",
+      "category": "ambiguous_no_target",
+      "activeComponentRequired": false,
+      "notes": "Debe pedir aclaración o no ejecutar una acción fuerte automáticamente."
+    }
+  ],
+  "metadata": {
+    "totalCases": 200,
+    "countsByExpectedMode": {
+      "unit": 50,
+      "create": 50,
+      "edit": 50,
+      "idle": 50
+    },
+    "countsByExpectedComponentType": {
+      "": 150,
+      "teoria": 13,
+      "quiz_multiple": 13,
+      "pregunta_abierta": 12,
+      "codigo": 12
+    },
+    "recommendedLocation": "tests/fixtures/chatbar_intent_dataset.json",
+    "usage": "Usar como fixture para probar ChatbarIntentDetector.detect(prompt, options)."
+  }
+}

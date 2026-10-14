@@ -1,0 +1,348 @@
+OBSERVACIONES PARA RETROSPECTIVA - FLUJO DOCENTE
+Proyecto: IA Assistant XBlock
+Documento base: FLUJO_DOCENTE.md
+Fecha: 2026-06-12
+
+============================================================
+1. VEREDICTO GENERAL
+============================================================
+
+El flujo docente está aprobado para MVP o piloto controlado.
+
+Actualmente permite:
+- Crear una unidad desde Studio.
+- Editar el título de la unidad.
+- Agregar componentes manualmente.
+- Editar teoría, quiz múltiple, pregunta abierta y código.
+- Renombrar, eliminar y reordenar componentes.
+- Ver el JSON generado.
+- Previsualizar la unidad como alumno.
+- Guardar la unidad en unidad_json.
+
+La arquitectura está bien encaminada porque separa:
+- Studio: creación y edición de contenido.
+- Student: consumo de la unidad y respuestas del alumno.
+- unidad_json: contrato común entre ambas vistas.
+
+Sin embargo, todavía no lo consideraría cerrado para producción formal porque faltan validaciones fuertes del lado backend y una definición más clara de evaluación/puntaje por componente.
+
+============================================================
+2. OBSERVACIÓN PRINCIPAL: VALIDACIÓN DEL GUARDADO DOCENTE
+============================================================
+
+Actualmente el guardado manual valida la estructura mínima de la unidad, pero no valida profundamente si el contenido pedagógico está completo.
+
+Riesgo:
+El frontend puede advertir que faltan datos, pero el backend aún podría aceptar una unidad incompleta o inconsistente si llega un payload manual, alterado o mal formado.
+
+Ejemplos de problemas que podrían guardarse:
+- Quiz sin opciones suficientes.
+- Quiz sin respuesta correcta.
+- Pregunta abierta sin enunciado.
+- Pregunta abierta sin rúbrica o criterio.
+- Ejercicio de código sin instrucciones.
+- Ejercicio de código sin lenguaje.
+- Componentes con IDs duplicados.
+- Componentes de tipo system como revision enviados manualmente.
+- Tipos no authorable enviados desde payload externo.
+- Componentes que incumplen allowMultiple.
+- Data incompleta según el tipo de componente.
+
+Conclusión:
+Para MVP controlado puede pasar, pero antes de producción conviene endurecer save_unit desde backend.
+
+============================================================
+3. VALIDACIONES RECOMENDADAS PARA save_unit
+============================================================
+
+El handler save_unit debería validar como mínimo:
+
+3.1 Validaciones generales de unidad
+- version debe ser 1.
+- titulo debe ser string no vacío o usar fallback controlado.
+- componentes debe ser lista.
+- No permitir IDs duplicados.
+- No permitir tipos desconocidos.
+- No permitir componentes system en unidad_json docente.
+- No permitir componentes no authorable creados desde Studio.
+- Respetar allowMultiple si algún componente futuro no permite múltiples instancias.
+
+3.2 Validaciones por tipo
+
+TEORIA:
+- data.titulo debe existir.
+- data.contenido debe existir.
+- data.formato debe ser markdown.
+- No permitir HTML peligroso o imágenes si la política actual no las permite.
+
+QUIZ_MULTIPLE:
+- data.pregunta debe existir.
+- data.opciones debe tener mínimo 2 opciones.
+- Cada opción debe tener id y texto.
+- data.respuestas_correctas debe existir.
+- Cada respuesta_correcta debe apuntar a una opción existente.
+- Evitar opciones duplicadas o IDs repetidos.
+- Validar feedback como string opcional.
+
+PREGUNTA_ABIERTA:
+- data.enunciado debe existir.
+- data.rubrica o data.criterio debería existir.
+- La rúbrica puede ser obligatoria si se quiere evaluación IA más consistente.
+
+CODIGO:
+- data.enunciado debe existir.
+- data.lenguaje debe existir.
+- data.instrucciones debe existir.
+- data.codigo_base debe ser string, aunque puede estar vacío.
+- No ejecutar código.
+- Validar lenguaje contra lista permitida si existe.
+
+============================================================
+4. OBSERVACIÓN SOBRE AUTOSAVE DOCENTE
+============================================================
+
+El diagnóstico indica que además del botón Guardar existe autosave cada cierto tiempo.
+
+Esto es bueno para UX, pero tiene un riesgo:
+- Puede guardar borradores incompletos.
+- El docente puede pensar que algo quedó "final" cuando en realidad era una versión temporal.
+- Puede persistir una unidad a medio construir.
+
+Recomendación:
+Definir claramente si el autosave docente guarda como:
+A) guardado real, o
+B) borrador.
+
+Para una fase posterior sería ideal diferenciar:
+- Guardado como borrador.
+- Publicar unidad.
+- Última versión guardada.
+- Estado visual claro: "Borrador guardado", "Cambios sin publicar", etc.
+
+Para MVP, se puede mantener, pero debe quedar documentado como riesgo conocido.
+
+============================================================
+5. NUEVA NECESIDAD: PUNTAJE POR COMPONENTE
+============================================================
+
+Actualmente los componentes tienen contenido, pero no tienen un campo claro para indicar cuánto vale cada actividad.
+
+Problema:
+No se puede decir que:
+- Un quiz vale 30 puntos.
+- Otro quiz vale 5 puntos.
+- Una pregunta abierta vale 20 puntos.
+- Un ejercicio de código vale 40 puntos.
+
+Esto limita:
+- Evaluación formal.
+- Retroalimentación ponderada.
+- Reportes futuros.
+- Cálculo de nota total.
+- Priorización en la revisión IA.
+- Configuración docente realista.
+
+============================================================
+6. PROPUESTA DE PUNTAJE POR COMPONENTE
+============================================================
+
+Se recomienda agregar un campo de puntaje por componente.
+
+Opción recomendada:
+
+Cada componente evaluable debería tener un campo a nivel componente:
+
+{
+  "id": "quiz_multiple_1",
+  "tipo": "quiz_multiple",
+  "nombre": "Quiz inicial",
+  "puntaje": 30,
+  "data": {
+    "pregunta": "...",
+    "opciones": [],
+    "respuestas_correctas": []
+  }
+}
+
+Recomendación personal:
+Usar un campo a nivel componente: "puntaje": 0
+
+Motivo:
+- El puntaje describe al componente completo, no a su contenido interno.
+- Es más fácil calcular totales.
+- Es más fácil mostrarlo en tabs, resumen y Student.
+- Evita mezclar evaluación con data específica de cada tipo.
+
+============================================================
+7. COMPONENTES QUE DEBERÍAN TENER PUNTAJE
+============================================================
+
+TEORIA:
+- Normalmente puntaje = 0.
+- Es contenido de lectura, no actividad evaluable.
+
+QUIZ_MULTIPLE:
+- Debe permitir puntaje.
+- Puede calcularse automático si el alumno responde correctamente.
+- Si hay múltiples respuestas, se puede definir evaluación completa o parcial en el futuro.
+
+PREGUNTA_ABIERTA:
+- Debe permitir puntaje.
+- La IA puede sugerir retroalimentación, pero no necesariamente asignar nota automática en MVP.
+- En futuro podría sugerir calificación basada en rúbrica.
+
+CODIGO:
+- Debe permitir puntaje.
+- Como no se ejecuta código, la IA podría revisar estáticamente.
+- En MVP puede dar feedback, no nota definitiva.
+- En futuro puede haber rúbrica para asignar puntaje.
+
+REVISION:
+- No debería tener puntaje propio.
+- Es un componente system.
+- Solo resume o revisa las respuestas de otros componentes.
+
+============================================================
+8. VALIDACIONES PARA PUNTAJE
+============================================================
+
+Si se agrega puntaje, validar:
+- Debe ser número.
+- Debe ser >= 0.
+- Puede permitir decimales o solo enteros. Recomendación inicial: enteros.
+- Máximo razonable, por ejemplo 100 por componente.
+- Teoría puede tener 0 por defecto.
+- Componentes evaluables pueden tener 0 si son práctica no calificada.
+- El total de la unidad puede ser calculado automáticamente como suma de puntajes.
+
+Ejemplo:
+- teoria_1: 0 pts
+- quiz_multiple_1: 10 pts
+- pregunta_abierta_1: 20 pts
+- codigo_1: 30 pts
+
+Total: 60 pts
+
+============================================================
+9. CAMBIOS QUE IMPLICARÍA AGREGAR PUNTAJE
+============================================================
+
+9.1 Backend / schema.py
+- Agregar puntaje default por componente.
+- Definir si todos los componentes tienen puntaje o solo evaluables.
+- Mantener compatibilidad con unidades antiguas: si falta puntaje, asumir 0.
+
+9.2 Frontend Studio
+- Agregar input "Puntaje" en el editor o cabecera del componente.
+- Mostrar puntaje en tab o resumen del componente.
+- Validar que sea número >= 0.
+- Mostrar total de puntos de la unidad.
+
+9.3 Guardado backend
+- Validar puntaje.
+- Normalizar puntaje si falta.
+- Rechazar valores inválidos.
+
+9.4 Student
+- Mostrar puntaje de actividades evaluables.
+- Ejemplo: "Valor: 30 puntos".
+- No mostrar puntaje en teoría o mostrar "Sin puntaje".
+
+9.5 IA Alumno
+- Incluir puntaje en el payload de revisión IA.
+- La IA puede priorizar componentes de mayor puntaje.
+- La IA puede decir: "Este ejercicio vale 30 puntos, conviene corregirlo con prioridad".
+- No necesariamente asignar nota automática todavía.
+
+9.6 IA Docente
+- Cuando genere unidades, podría asignar puntajes sugeridos.
+- Ejemplo:
+  - teoría: 0
+  - quiz: 10
+  - pregunta abierta: 20
+  - código: 30
+
+============================================================
+10. PUNTAJE VS CALIFICACIÓN
+============================================================
+
+Importante diferenciar:
+
+PUNTAJE:
+- Lo define el docente.
+- Indica cuánto vale una actividad.
+- Es parte de la configuración del componente.
+
+CALIFICACIÓN:
+- Es el resultado obtenido por el alumno.
+- Puede calcularse, sugerirse o revisarse.
+- Todavía no está implementada formalmente.
+
+Para MVP, se recomienda implementar solo PUNTAJE.
+No implementar todavía calificación automática final.
+
+Motivo:
+- La revisión IA aún es retroalimentación, no nota oficial.
+- Evita problemas de precisión o justicia.
+- Mantiene el sistema como asistente, no como evaluador definitivo.
+
+============================================================
+11. PROPUESTA DE FASES
+============================================================
+
+FASE 1: Endurecer guardado docente
+- Validar IDs duplicados.
+- Validar tipos authorable/system.
+- Validar data mínima por tipo.
+- Validar allowMultiple.
+- Evitar guardar componentes inválidos desde backend.
+
+FASE 2: Agregar puntaje por componente
+- Agregar campo puntaje.
+- Input en Studio.
+- Mostrar total unidad.
+- Mostrar puntaje en Student.
+- Normalizar unidades antiguas.
+
+FASE 3: Integrar puntaje con IA Alumno
+- Enviar puntaje a revisión IA.
+- Priorizar sugerencias según puntaje.
+- No asignar nota automática todavía.
+
+FASE 4: Evaluación formal futura
+- Calificación por componente.
+- Rúbricas más estructuradas.
+- Historial de revisiones.
+- Reportes por alumno.
+- Exportación de resultados.
+
+============================================================
+12. OBSERVACIONES MENORES DEL FLUJO DOCENTE
+============================================================
+
+- Revisar si revision_editor.js sigue en manifest. Si no se usa, puede confundir.
+- Revisar encoding UTF-8 para textos con acentos.
+- Revisar que el modo SDK no se active accidentalmente en LMS.
+- Revisar si la preview Student en Studio necesita autosave.js o solo renderer/players.
+- Documentar claramente que la preview no guarda respuestas.
+- Mantener sincronizados schema.py y las definiciones JS.
+- Agregar pruebas unitarias para validación de unidad.
+- Agregar pruebas manuales o e2e para crear, editar, borrar, reordenar, previsualizar y guardar.
+
+============================================================
+13. CONCLUSIÓN
+============================================================
+
+El flujo docente cumple bien como MVP:
+- Permite autoría visual.
+- Tiene componentes claros.
+- Guarda unidad_json.
+- Tiene preview alumno.
+- Mantiene revision fuera de la autoría docente.
+
+Pero antes de producción formal se recomienda trabajar dos puntos:
+
+1. Endurecer el guardado docente desde backend.
+2. Agregar configuración de puntaje por componente.
+
+El puntaje no debería mezclarse todavía con calificación automática. Primero debe existir como metadato docente. Luego podrá usarse en Student, IA Alumno y reportes futuros.

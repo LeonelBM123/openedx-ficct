@@ -1,0 +1,120 @@
+.ia-assistant-studio,
+.ia-assistant-student {
+    box-sizing: border-box;
+    color: var(--ia-assistant-color-text);
+    font-family: inherit;
+}
+
+.ia-assistant-studio *,
+.ia-assistant-studio *::before,
+.ia-assistant-studio *::after,
+.ia-assistant-student *,
+.ia-assistant-student *::before,
+.ia-assistant-student *::after {
+    box-sizing: border-box;
+}
+
+.ia-assistant-studio button,
+.ia-assistant-studio textarea {
+    font: inherit;
+}
+
+.ia-assistant-card {
+    background: var(--ia-assistant-color-surface);
+    border: 1px solid var(--ia-assistant-color-border);
+    border-radius: var(--ia-assistant-radius-md);
+    box-shadow: var(--ia-assistant-shadow-sm);
+}
+
+.ia-assistant-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ia-assistant-space-xs);
+}
+
+.ia-assistant-label {
+    color: var(--ia-assistant-color-text);
+    font-size: var(--ia-assistant-font-size-base);
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.ia-assistant-input,
+.ia-assistant-textarea {
+    border: 1px solid var(--ia-assistant-color-border);
+    border-radius: var(--ia-assistant-radius-sm);
+    color: var(--ia-assistant-color-text);
+    font: inherit;
+    line-height: 1.5;
+    padding: var(--ia-assistant-space-sm);
+    transition: border-color var(--ia-assistant-transition-fast),
+        box-shadow var(--ia-assistant-transition-fast);
+    width: 100%;
+}
+
+.ia-assistant-input:focus,
+.ia-assistant-textarea:focus {
+    border-color: var(--ia-assistant-color-primary);
+    outline: 2px solid var(--ia-assistant-color-primary);
+    outline-offset: 2px;
+}
+
+.ia-assistant-textarea {
+    resize: vertical;
+}
+
+.ia-assistant-button {
+    appearance: none;
+    border: 1px solid transparent;
+    border-radius: var(--ia-assistant-radius-sm);
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    line-height: 1.2;
+    min-height: 40px;
+    padding: 0 var(--ia-assistant-space-md);
+    transition: background-color var(--ia-assistant-transition-fast),
+        border-color var(--ia-assistant-transition-fast),
+        color var(--ia-assistant-transition-fast);
+}
+
+.ia-assistant-button:focus {
+    outline: 2px solid var(--ia-assistant-color-primary);
+    outline-offset: 2px;
+}
+
+.ia-assistant-button--primary {
+    background: var(--ia-assistant-color-primary);
+    border-color: var(--ia-assistant-color-primary);
+    color: var(--ia-assistant-color-surface);
+}
+
+.ia-assistant-button--primary:hover {
+    background: var(--ia-assistant-color-primary-hover);
+    border-color: var(--ia-assistant-color-primary-hover);
+}
+
+.ia-assistant-button--secondary {
+    background: var(--ia-assistant-color-surface);
+    border-color: var(--ia-assistant-color-border);
+    color: var(--ia-assistant-color-text);
+}
+
+.ia-assistant-button--secondary:hover {
+    background: var(--ia-assistant-color-background-soft);
+}
+
+.ia-assistant-button--danger {
+    background: var(--ia-assistant-color-danger);
+    border-color: var(--ia-assistant-color-danger);
+    color: var(--ia-assistant-color-surface);
+}
+
+.ia-assistant-button--danger:hover {
+    background: var(--ia-assistant-color-danger-hover);
+    border-color: var(--ia-assistant-color-danger-hover);
+}
+
+.ia-assistant-muted {
+    color: var(--ia-assistant-color-muted);
+}
