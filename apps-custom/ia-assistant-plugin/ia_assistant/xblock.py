@@ -144,6 +144,52 @@ class IAAssistantXBlock(XBlock):
         )
         return fragment
 
+    def student_view_data(self, context=None):
+        """
+        Texto de la unidad para la Course Blocks API (?student_view_data=ia_assistant).
+
+        Lo consume el asistente avatar del MFE learning para saber que esta viendo el
+        alumno. Solo expone lo que el alumno ya lee en pantalla: teoria y enunciados.
+        Nunca respuestas correctas ni rubricas: este endpoint no es la vista del
+        bloque, asi que no debe filtrar nada que la vista no mostraria como texto.
+        """
+        unit, _warning = self._get_initial_unit()
+        if not isinstance(unit, dict):
+            return {"componentes": []}
+
+        componentes = []
+        for component in unit.get("componentes") or []:
+            if not isinstance(component, dict):
+                continue
+            data = component.get("data")
+            if not isinstance(data, dict):
+                continue
+            tipo = component.get("tipo")
+            parts = []
+            if tipo == "teoria":
+                parts = [data.get("titulo"), data.get("contenido")]
+            elif tipo == "quiz_multiple":
+                options = data.get("opciones") or []
+                option_texts = [
+                    (o.get("texto") or o.get("label") or "") if isinstance(o, dict) else str(o)
+                    for o in options
+                ]
+                parts = [data.get("pregunta"), "Opciones: " + "; ".join(t for t in option_texts if t)
+                         if any(option_texts) else ""]
+            elif tipo == "pregunta_abierta":
+                parts = [data.get("enunciado")]
+            elif tipo == "codigo":
+                parts = [data.get("enunciado"), data.get("instrucciones")]
+            texto = "\n".join(p.strip() for p in parts if isinstance(p, str) and p.strip())
+            if texto:
+                componentes.append({
+                    "tipo": tipo,
+                    "nombre": component.get("nombre") or "",
+                    "texto": texto,
+                })
+
+        return {"titulo": unit.get("titulo") or "", "componentes": componentes}
+
     def author_view(self, context=None):
         """
         Vista de Studio (pagina de unidad). Si el docente aun no configuro la

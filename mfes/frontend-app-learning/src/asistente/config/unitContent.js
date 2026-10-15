@@ -5,7 +5,8 @@ import { getAuthenticatedHttpClient, getAuthenticatedUser } from '@edx/frontend-
  * Texto de la unidad que el alumno tiene abierta, para dárselo al LLM como contexto.
  *
  * Sale de la Course Blocks API (la misma que ya usa este MFE en courseware/data/api.js),
- * pidiendo solo los hijos de la unidad. Los bloques HTML solo traen su contenido si el
+ * pidiendo solo los hijos de la unidad. Los bloques `ia_assistant` (apps-custom) aportan
+ * su teoría y enunciados vía student_view_data. Los bloques HTML solo traen su contenido si el
  * LMS tiene ENABLE_HTML_XBLOCK_STUDENT_VIEW_DATA (ver tutor-plugins/avatar_asistente.py);
  * los videos traen la URL de su transcripción; los problemas solo aportan el título (el
  * enunciado no está en la API, y así no se arriesga a filtrar respuestas).
@@ -67,8 +68,8 @@ async function loadUnitContent(unitId) {
         username: username || '',
         depth: 'all',
         requested_fields: 'children',
-        student_view_data: 'html,video',
-        block_types_filter: 'html,video,problem',
+        student_view_data: 'html,video,ia_assistant',
+        block_types_filter: 'html,video,problem,ia_assistant',
       },
     },
   );
@@ -93,6 +94,11 @@ async function loadUnitContent(unitId) {
       // eslint-disable-next-line no-await-in-loop
       const transcript = url ? await fetchTranscript(url) : '';
       parts.push(`Video "${block.display_name || 'sin título'}"${transcript ? `, transcripción: ${transcript}` : ''}`);
+    } else if (block.type === 'ia_assistant') {
+      // Bloque propio (apps-custom/ia-assistant-plugin): solo teoría y enunciados.
+      (svd.componentes || []).forEach((c) => {
+        parts.push(`${c.nombre ? `${c.nombre}: ` : ''}${c.texto}`);
+      });
     } else if (block.type === 'problem') {
       parts.push(`Ejercicio: ${block.display_name || 'sin título'}`);
     }
