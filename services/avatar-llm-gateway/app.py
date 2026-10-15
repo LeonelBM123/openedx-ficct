@@ -96,8 +96,9 @@ SYSTEM_PROMPT = (
     'escribe algo corto o que depende de lo anterior ("dame ejemplos", "y eso?", '
     '"explicalo mejor"), respondelo sobre el tema que ya se estaba hablando en los '
     'mensajes previos, no sobre el progreso ni las notas del contexto. Responde en '
-    'espanol, claro, conciso y con tono alentador, maximo 3 oraciones. Reserva el "no '
-    'tengo esa informacion" solo para el contenido interno especifico de una leccion '
+    'espanol, claro y con tono alentador, maximo 3 oraciones MUY cortas (de unas 12 a '
+    '15 palabras cada una), sin listas ni introducciones; ve directo a la respuesta. '
+    'Reserva el "no tengo esa informacion" solo para el contenido interno especifico de una leccion '
     'que no aparece en el contexto.'
 )
 
