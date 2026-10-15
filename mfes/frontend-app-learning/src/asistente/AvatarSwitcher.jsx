@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Button } from '@openedx/paragon';
+import { UserIcon } from './Icons';
 
 const BASE = process.env.PUBLIC_PATH || '/';
 // Los .glb se sirven con Cache-Control immutable (ver tutor-plugins/avatar_asistente.py):
@@ -37,7 +38,7 @@ const AvatarSwitcher = ({ selectedId, onSelect }) => (
         variant={selectedId === avatar.id ? 'primary' : 'tertiary'}
         onClick={() => onSelect(avatar.id)}
       >
-        {avatar.emoji}
+        <UserIcon size={16} />
       </Button>
     ))}
   </div>

@@ -12,6 +12,7 @@ import { getAuthenticatedHttpClient, getAuthenticatedUser } from '@edx/frontend-
 import Avatar, { ANIMATION_PATH } from './Avatar';
 import ChatPanel from './ChatPanel';
 import TourUI from './TourUI';
+import { UserIcon, ChatIcon } from './Icons';
 import StatsPanel from './StatsPanel';
 import { AVATAR_LIST } from './AvatarSwitcher';
 import { portalTours } from './config/ToursConfig';
@@ -898,7 +899,9 @@ const AvatarTour = ({ tourName = 'learning' }) => {
                 boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
               }}
             >
-              💬 Chat
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <ChatIcon size={14} /> Chat
+              </span>
             </button>
 
             {/* Botón ✕ — esquina superior derecha */}
@@ -961,7 +964,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
               >
                 ◀
               </button>
-              <span style={{ fontSize: '20px', lineHeight: 1 }}>{selectedAvatar?.emoji}</span>
+              <span style={{ display: 'flex', color: '#1a3a6b' }}><UserIcon size={20} /></span>
               <span style={{ fontSize: '10px', color: '#888' }}>{avatarIndex + 1}/{AVATAR_LIST.length}</span>
               <button
                 type="button"

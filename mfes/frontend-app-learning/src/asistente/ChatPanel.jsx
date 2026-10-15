@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
+import { UserIcon } from './Icons';
 
 const headerButton = {
   border: 'none',
@@ -102,7 +103,9 @@ const ChatPanel = ({
             title="Cambiar al modo avatar"
             style={{ ...headerButton, color: '#fff' }}
           >
-            🧑 Avatar
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <UserIcon size={14} /> Avatar
+            </span>
           </button>
           <button
             type="button"
