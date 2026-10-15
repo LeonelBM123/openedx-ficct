@@ -1110,6 +1110,14 @@
 
           restoreButton();
 
+          // Si se agotaron los intentos, el avatar vuelve a estar disponible.
+          if (
+            window.IAAssistant.Student.AvatarLock &&
+            typeof window.IAAssistant.Student.AvatarLock.refresh === "function"
+          ) {
+            window.IAAssistant.Student.AvatarLock.refresh();
+          }
+
           if (!result || !result.ok) {
             reviewStatus.textContent =
               result && result.code === "attempts_exhausted" && result.error

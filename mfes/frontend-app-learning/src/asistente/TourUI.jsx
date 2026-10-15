@@ -30,11 +30,12 @@ const TourUI = ({
   onStats,
   onStartTour,
   isTourActive,
+  locked,
 }) => {
   const inputRef = useRef(null);
 
   const handleSend = () => {
-    if (question.trim() && !isThinking) {
+    if (question.trim() && !isThinking && !locked) {
       onAskQuestion(question);
     }
   };
@@ -113,8 +114,9 @@ const TourUI = ({
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Escribe tu pregunta…"
-          disabled={isThinking}
+          placeholder={locked ? 'Asistente en pausa durante la actividad' : 'Escribe tu pregunta…'}
+          title={locked ? 'El asistente no responde preguntas mientras resuelves una actividad evaluada.' : undefined}
+          disabled={isThinking || locked}
           style={{
             flex: 1,
             border: 'none',
@@ -128,16 +130,16 @@ const TourUI = ({
         <button
           type="button"
           onClick={handleSend}
-          disabled={!question.trim() || isThinking}
+          disabled={!question.trim() || isThinking || locked}
           title="Enviar"
           style={{
             border: 'none',
             borderRadius: '9px',
-            background: (question.trim() && !isThinking) ? '#0056D2' : '#c8d6f0',
+            background: (question.trim() && !isThinking && !locked) ? '#0056D2' : '#c8d6f0',
             color: '#fff',
             padding: '6px 11px',
             fontSize: '14px',
-            cursor: (question.trim() && !isThinking) ? 'pointer' : 'not-allowed',
+            cursor: (question.trim() && !isThinking && !locked) ? 'pointer' : 'not-allowed',
             flexShrink: 0,
           }}
         >

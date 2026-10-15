@@ -26,6 +26,8 @@ const bubbleBase = {
  * mensajes con historial, sin el modelo 3D ni la voz. El historial vive en
  * AvatarTour (compartido entre ambos modos) y se manda al LLM en cada pregunta.
  */
+const LOCKED_MESSAGE = 'El asistente no responde preguntas mientras resuelves una actividad evaluada.';
+
 const ChatPanel = ({
   messages,
   greeting,
@@ -36,6 +38,7 @@ const ChatPanel = ({
   onSwitchMode,
   onMinimize,
   onClear,
+  locked,
 }) => {
   const listRef = useRef(null);
 
@@ -44,7 +47,7 @@ const ChatPanel = ({
     if (el) { el.scrollTop = el.scrollHeight; }
   }, [messages, isThinking]);
 
-  const canSend = !!question.trim() && !isThinking;
+  const canSend = !!question.trim() && !isThinking && !locked;
 
   const handleSend = () => {
     if (canSend) { onAsk(question); }
@@ -158,6 +161,20 @@ const ChatPanel = ({
         )}
       </div>
 
+      {locked && (
+        <div
+          role="status"
+          style={{
+            padding: '6px 10px',
+            fontSize: '12px',
+            color: '#7a4b00',
+            background: '#fff6e0',
+            borderTop: '1px solid #f0dca8',
+          }}
+        >
+          {LOCKED_MESSAGE}
+        </div>
+      )}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -171,8 +188,8 @@ const ChatPanel = ({
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Escribe tu pregunta…"
-          disabled={isThinking}
+          placeholder={locked ? 'Asistente en pausa durante la actividad' : 'Escribe tu pregunta…'}
+          disabled={isThinking || locked}
           style={{
             flex: 1,
             border: '1px solid #d5dcea',
@@ -219,10 +236,12 @@ ChatPanel.propTypes = {
   onSwitchMode: PropTypes.func.isRequired,
   onMinimize: PropTypes.func.isRequired,
   onClear: PropTypes.func.isRequired,
+  locked: PropTypes.bool,
 };
 
 ChatPanel.defaultProps = {
   greeting: '',
+  locked: false,
 };
 
 export default ChatPanel;

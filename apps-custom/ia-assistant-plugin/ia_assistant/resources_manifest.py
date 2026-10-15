@@ -103,5 +103,6 @@ STUDENT_JS_PATHS = [
     "student/components/quiz_multiple/quiz_multiple_player.js",
     "student/components/pregunta_abierta/pregunta_abierta_player.js",
     "student/components/codigo/codigo_player.js",
+    "student/js/avatar_lock.js",
     "student/js/student.js",
 ]

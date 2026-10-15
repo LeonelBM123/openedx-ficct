@@ -31,6 +31,10 @@
         };
 
         Student.State.loadUnit(args.initial_unit);
+
+        if (Student.AvatarLock && typeof Student.AvatarLock.init === "function") {
+            Student.AvatarLock.init(element, args);
+        }
         if (typeof Student.Answers === "object" && typeof Student.Answers.loadAnswers === "function") {
             Student.Answers.loadAnswers(args.initial_student_answers || {});
         }

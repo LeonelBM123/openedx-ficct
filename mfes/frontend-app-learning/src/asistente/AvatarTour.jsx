@@ -107,6 +107,8 @@ const AvatarLoadingOverlay = () => {
   );
 };
 
+const AVATAR_LOCK_MESSAGE = 'ficct.avatar.lock';
+
 const AvatarTour = ({ tourName = 'learning' }) => {
   const steps = portalTours[tourName];
   const courseId = useContextId();
@@ -132,6 +134,10 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   const [avatarIndex, setAvatarIndex] = useState(0);
   const [mode, setMode] = useState(loadMode);
   const [messages, setMessages] = useState(() => loadMessages(courseId));
+  // Ids de los bloques "IA Assistant" evaluados que piden pausar al asistente
+  // (ver apps-custom/ia-assistant-plugin, static/student/js/avatar_lock.js).
+  const [lockedBy, setLockedBy] = useState([]);
+  const isAskLocked = lockedBy.length > 0;
   const [greetingText, setGreetingText] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [isThinking, setIsThinking] = useState(false);
@@ -417,6 +423,29 @@ const AvatarTour = ({ tourName = 'learning' }) => {
       .join('\n');
   }, [outlineData, courseId]);
 
+  // El bloque de evaluacion vive en un iframe del LMS y avisa por postMessage.
+  // Solo se aceptan mensajes del origen del LMS.
+  useEffect(() => {
+    let lmsOrigin = '';
+    try { lmsOrigin = new URL(getConfig().LMS_BASE_URL).origin; } catch { /* sin origen valido no se acepta nada */ }
+
+    const onMessage = (event) => {
+      const data = event.data || {};
+      if (!lmsOrigin || event.origin !== lmsOrigin || data.type !== AVATAR_LOCK_MESSAGE) { return; }
+      if (typeof data.blockId !== 'string') { return; }
+      setLockedBy((prev) => {
+        const without = prev.filter((id) => id !== data.blockId);
+        return data.locked === true ? [...without, data.blockId] : without;
+      });
+    };
+
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
+  // Al cambiar de unidad el iframe se descarga: no arrastrar el bloqueo.
+  useEffect(() => { setLockedBy([]); }, [unitId]);
+
   const buildLLMContext = useCallback(() => {
     const lines = [];
     if (course?.title) { lines.push(`Curso: ${course.title}`); }
@@ -497,6 +526,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   }, [statsData, getDeadlines, getWeakAreas]);
 
   const handleAskQuestion = useCallback(async (q) => {
+    if (isAskLocked) { return; }
     // Turnos previos (sin los mensajes de error, que no son parte de la
     // conversación). El contexto del curso va solo en la pregunta actual.
     const historial = messages
@@ -548,7 +578,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
       setAiResponse(errorText);
       setMessages((prev) => [...prev, { role: 'assistant', content: errorText, error: true }]);
     }
-  }, [messages, mode, buildLLMContext, ttsEnabled, speakText]);
+  }, [messages, mode, buildLLMContext, ttsEnabled, speakText, isAskLocked]);
 
   const handleClearChat = useCallback(() => {
     setMessages([]);
@@ -838,6 +868,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
             onSwitchMode={handleSwitchMode}
             onMinimize={() => setIsMinimized(true)}
             onClear={handleClearChat}
+            locked={isAskLocked}
           />
         )}
 
@@ -980,6 +1011,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
             onStats={handleStats}
             onStartTour={() => startTour(false)}
             isTourActive={isTourActive}
+            locked={isAskLocked}
           />
         )}
       </div>
