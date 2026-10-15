@@ -89,16 +89,16 @@ const AvatarLoadingOverlay = () => {
       justifyContent: 'center',
       gap: '8px',
       pointerEvents: 'none',
-      color: '#0056D2',
+      color: '#1a3a6b',
       fontSize: '12px',
     }}
     >
       <div style={{
-        width: '120px', height: '6px', borderRadius: '999px', background: 'rgba(0,86,210,0.18)', overflow: 'hidden',
+        width: '120px', height: '6px', borderRadius: '999px', background: 'rgba(26,58,107,0.18)', overflow: 'hidden',
       }}
       >
         <div style={{
-          width: `${Math.round(progress)}%`, height: '100%', background: '#0056D2', transition: 'width 0.2s',
+          width: `${Math.round(progress)}%`, height: '100%', background: '#1a3a6b', transition: 'width 0.2s',
         }}
         />
       </div>
@@ -675,9 +675,9 @@ const AvatarTour = ({ tourName = 'learning' }) => {
             width: '56px',
             height: '56px',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #0056D2 0%, #00A3E0 100%)',
+            background: 'linear-gradient(135deg, #1a3a6b 0%, #2a4d8f 100%)',
             border: 'none',
-            boxShadow: '0 4px 16px rgba(0,86,210,0.4)',
+            boxShadow: '0 4px 16px rgba(26,58,107,0.4)',
             cursor: 'pointer',
             fontSize: '26px',
             display: 'flex',
@@ -771,7 +771,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
             padding: '10px 12px',
             marginBottom: '6px',
             fontSize: '12.5px',
-            color: '#1a2a4a',
+            color: '#0d1e38',
             lineHeight: 1.5,
           }}
           >
@@ -793,7 +793,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
                 type="button"
                 onClick={() => startTour(true)}
                 style={{
-                  border: 'none', borderRadius: '8px', background: '#0056D2',
+                  border: 'none', borderRadius: '8px', background: '#1a3a6b',
                   color: '#fff', fontSize: '12px', cursor: 'pointer', padding: '4px 10px',
                 }}
               >
@@ -811,7 +811,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
             padding: '9px 12px',
             marginBottom: '6px',
             fontSize: '12.5px',
-            color: '#1a2a4a',
+            color: '#0d1e38',
             lineHeight: 1.55,
           }}
           >
@@ -829,7 +829,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
                 type="button"
                 onClick={endTour}
                 style={{
-                  border: 'none', background: 'transparent', color: '#0056D2',
+                  border: 'none', background: 'transparent', color: '#1a3a6b',
                   fontSize: '11px', cursor: 'pointer', textDecoration: 'underline',
                 }}
               >
@@ -847,7 +847,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
             padding: '9px 12px',
             marginBottom: '6px',
             fontSize: '12.5px',
-            color: '#1a2a4a',
+            color: '#0d1e38',
             lineHeight: 1.55,
           }}
           >
@@ -894,7 +894,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
                 border: 'none',
                 cursor: 'pointer',
                 fontSize: '12px',
-                color: '#0056D2',
+                color: '#1a3a6b',
                 boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
               }}
             >

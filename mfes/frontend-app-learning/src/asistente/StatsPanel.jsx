@@ -17,10 +17,10 @@ const sectionTitle = {
   marginBottom: '6px',
 };
 
-const Bar = ({ percent, color = 'linear-gradient(90deg,#0056D2,#00A3E0)' }) => (
+const Bar = ({ percent, color = 'linear-gradient(90deg,#1a3a6b,#2a4d8f)' }) => (
   <div style={{
     height: '5px', borderRadius: '3px',
-    background: 'rgba(0,86,210,0.1)',
+    background: 'rgba(26,58,107,0.1)',
     overflow: 'hidden', margin: '3px 0',
   }}
   >
@@ -81,7 +81,7 @@ const StatsPanel = ({ data, loading, onClose }) => {
         {/* ── Progreso de completitud ── */}
         <div style={sectionTitle}>Progreso del curso</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <span style={{ fontSize: '22px', fontWeight: 800, color: '#0056D2', lineHeight: 1 }}>
+          <span style={{ fontSize: '22px', fontWeight: 800, color: '#1a3a6b', lineHeight: 1 }}>
             {completePct}%
           </span>
           <span style={{ fontSize: '10.5px', color: '#777' }}>
@@ -189,7 +189,7 @@ const StatsPanel = ({ data, loading, onClose }) => {
                     </span>
                     <span style={{ flexShrink: 0, marginLeft: '6px', color: '#555', fontWeight: 600 }}>
                       {possible > 0 ? `${earned}/${possible} pts` : '—'}
-                      {pct !== null && <span style={{ color: '#0056D2', marginLeft: '4px' }}>({pct}%)</span>}
+                      {pct !== null && <span style={{ color: '#1a3a6b', marginLeft: '4px' }}>({pct}%)</span>}
                     </span>
                   </div>
                   {pct !== null && <Bar percent={pct} />}
@@ -202,7 +202,7 @@ const StatsPanel = ({ data, loading, onClose }) => {
                 onClick={() => setSectionsExpanded((e) => !e)}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  color: '#0056D2', fontSize: '10.5px', padding: '2px 0', marginTop: '2px',
+                  color: '#1a3a6b', fontSize: '10.5px', padding: '2px 0', marginTop: '2px',
                 }}
               >
                 {sectionsExpanded ? '▲ Ver menos' : `▼ Ver ${sections.length - 3} más`}
@@ -215,7 +215,7 @@ const StatsPanel = ({ data, loading, onClose }) => {
   };
 
   return (
-    <div style={{ ...glass, padding: '14px 16px', color: '#1a2a4a', position: 'relative' }}>
+    <div style={{ ...glass, padding: '14px 16px', color: '#0d1e38', position: 'relative' }}>
       <button
         type="button"
         onClick={onClose}
@@ -228,7 +228,7 @@ const StatsPanel = ({ data, loading, onClose }) => {
       >
         ✕
       </button>
-      <div style={{ fontWeight: 800, fontSize: '13px', color: '#0056D2', marginBottom: '12px', paddingRight: '24px' }}>
+      <div style={{ fontWeight: 800, fontSize: '13px', color: '#1a3a6b', marginBottom: '12px', paddingRight: '24px' }}>
         Mi progreso
       </div>
       {renderContent()}

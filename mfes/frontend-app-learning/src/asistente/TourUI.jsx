@@ -71,7 +71,7 @@ const TourUI = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: isTourActive ? '#aaa' : '#0056D2',
+          color: isTourActive ? '#aaa' : '#1a3a6b',
           flexShrink: 0,
         }}
       >
@@ -92,7 +92,7 @@ const TourUI = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#0056D2',
+          color: '#1a3a6b',
           flexShrink: 0,
         }}
       >
@@ -135,7 +135,7 @@ const TourUI = ({
           style={{
             border: 'none',
             borderRadius: '9px',
-            background: (question.trim() && !isThinking && !locked) ? '#0056D2' : '#c8d6f0',
+            background: (question.trim() && !isThinking && !locked) ? '#1a3a6b' : '#c5d1e8',
             color: '#fff',
             padding: '6px 11px',
             fontSize: '14px',

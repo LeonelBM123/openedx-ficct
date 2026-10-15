@@ -5,7 +5,7 @@ const headerButton = {
   border: 'none',
   background: 'transparent',
   cursor: 'pointer',
-  color: '#0056D2',
+  color: '#1a3a6b',
   fontSize: '12px',
   padding: '4px 8px',
   borderRadius: '8px',
@@ -80,7 +80,7 @@ const ChatPanel = ({
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '6px 8px 6px 12px',
-        background: 'linear-gradient(135deg, #0056D2 0%, #00A3E0 100%)',
+        background: 'linear-gradient(135deg, #1a3a6b 0%, #2a4d8f 100%)',
         color: '#fff',
       }}
       >
@@ -127,7 +127,7 @@ const ChatPanel = ({
         }}
       >
         {showGreeting && (
-          <div style={{ ...bubbleBase, alignSelf: 'flex-start', background: '#eef3fc', color: '#1a2a4a' }}>
+          <div style={{ ...bubbleBase, alignSelf: 'flex-start', background: '#e8edf5', color: '#0d1e38' }}>
             {greeting}
           </div>
         )}
@@ -144,8 +144,8 @@ const ChatPanel = ({
             style={{
               ...bubbleBase,
               alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-              background: m.role === 'user' ? '#0056D2' : '#eef3fc',
-              color: m.role === 'user' ? '#fff' : '#1a2a4a',
+              background: m.role === 'user' ? '#1a3a6b' : '#e8edf5',
+              color: m.role === 'user' ? '#fff' : '#0d1e38',
             }}
           >
             {m.content}
@@ -153,7 +153,7 @@ const ChatPanel = ({
         ))}
         {isThinking && (
           <div style={{
-            ...bubbleBase, alignSelf: 'flex-start', background: '#eef3fc', color: '#888',
+            ...bubbleBase, alignSelf: 'flex-start', background: '#e8edf5', color: '#888',
           }}
           >
             Pensando…
@@ -180,7 +180,7 @@ const ChatPanel = ({
         alignItems: 'center',
         gap: '6px',
         padding: '8px',
-        borderTop: '1px solid #e3e8f2',
+        borderTop: '1px solid #c5d1e8',
       }}
       >
         <input
@@ -192,7 +192,7 @@ const ChatPanel = ({
           disabled={isThinking || locked}
           style={{
             flex: 1,
-            border: '1px solid #d5dcea',
+            border: '1px solid #c5d1e8',
             borderRadius: '10px',
             outline: 'none',
             padding: '7px 10px',
@@ -209,7 +209,7 @@ const ChatPanel = ({
           style={{
             border: 'none',
             borderRadius: '9px',
-            background: canSend ? '#0056D2' : '#c8d6f0',
+            background: canSend ? '#1a3a6b' : '#c5d1e8',
             color: '#fff',
             padding: '7px 12px',
             fontSize: '14px',
