@@ -338,11 +338,9 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     setStatsVisible(!!step?.openStats);
   }, [currentStep, isTourActive, steps]);
 
-  // Reproduce texto con voz + lip-sync (síntesis en services/avatar-tts).
+  // Reproduce un audio ya sintetizado ({ audioData, lipSyncData }) con lip-sync.
   // Lanza si el navegador bloquea el autoplay (audio.play() sin gesto previo).
-  const speakText = useCallback(async (text) => {
-    if (!text || !ttsEnabled) { return; }
-    const { audioData, lipSyncData: ld } = await textToSpeech(text, selectedAvatar.voice);
+  const playSpeech = useCallback(async ({ audioData, lipSyncData: ld }) => {
     cleanupAudio();
     const blob = new Blob([audioData], { type: 'audio/wav' });
     const audioUrl = URL.createObjectURL(blob);
@@ -352,7 +350,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     setLipSyncData(ld);
     await audioRef.current.play();
     setIsSpeaking(true);
-  }, [ttsEnabled, selectedAvatar.voice, cleanupAudio]);
+  }, [cleanupAudio]);
 
   // Formatea la fecha de una entrega en español legible (ej. "18 de julio").
   const formatDueDate = (iso) => {
@@ -562,6 +560,20 @@ const AvatarTour = ({ tourName = 'learning' }) => {
         answer = data.respuesta || '';
       }
 
+      // En modo chat no se habla: es solo texto. En modo avatar la respuesta se
+      // muestra junto con el audio: "Pensando…" sigue hasta que la voz esté lista,
+      // para que el texto no aparezca, desaparezca y reaparezca al sintetizarse.
+      let speech = null;
+      if (answer && ttsEnabled && mode === 'avatar') {
+        try {
+          speech = await textToSpeech(answer, selectedAvatar.voice);
+        } catch (err) {
+          // Sin voz igual se muestra el texto.
+          // eslint-disable-next-line no-console
+          console.error('Error generando audio:', err);
+        }
+      }
+
       setAiResponse(answer);
       setIsThinking(false);
       setQuestion('');
@@ -569,9 +581,14 @@ const AvatarTour = ({ tourName = 'learning' }) => {
         setMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
       }
 
-      // En modo chat no se habla: es solo texto.
-      if (answer && ttsEnabled && mode === 'avatar') {
-        await speakText(answer);
+      if (speech) {
+        try {
+          await playSpeech(speech);
+        } catch (err) {
+          // Autoplay bloqueado por el navegador: el texto ya está visible.
+          // eslint-disable-next-line no-console
+          console.error('Error reproduciendo audio:', err);
+        }
       }
     } catch {
       const errorText = '❌ No pude responder esa pregunta en este momento.';
@@ -579,7 +596,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
       setAiResponse(errorText);
       setMessages((prev) => [...prev, { role: 'assistant', content: errorText, error: true }]);
     }
-  }, [messages, mode, buildLLMContext, ttsEnabled, speakText, isAskLocked]);
+  }, [messages, mode, buildLLMContext, ttsEnabled, selectedAvatar.voice, playSpeech, isAskLocked]);
 
   const handleClearChat = useCallback(() => {
     setMessages([]);
