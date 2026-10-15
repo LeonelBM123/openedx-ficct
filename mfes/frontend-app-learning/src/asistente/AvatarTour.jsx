@@ -18,6 +18,7 @@ import { AVATAR_LIST } from './AvatarSwitcher';
 import { portalTours } from './config/ToursConfig';
 import { textToSpeech } from './config/ttsService';
 import { askQuestion as askLocalQuestion } from './config/llmService';
+import { getUnitContent } from './config/unitContent';
 import { useContextId } from '../data/hooks';
 import { getProgressTabData, getDatesTabData, getOutlineTabData } from '../course-home/data/api';
 import { useModel } from '../generic/model-store';
@@ -32,11 +33,14 @@ const InvisibleTooltip = () => <div style={{ display: 'none' }} />;
 // --- Modo (avatar | chat) e historial de la conversación ---
 
 const MODE_STORAGE_KEY = 'ficct-avatar-mode';
-const CHAT_STORAGE_PREFIX = 'ficct-avatar-chat:';
+const CHAT_STORAGE_PREFIX = 'ficct-avatar-chat-v2:';
 // Cuánto se guarda en el navegador vs. cuánto se manda al LLM por pregunta (el
 // servidor aplica su propio tope, MAX_HISTORY_MESSAGES en avatar-llm-gateway).
 const MAX_STORED_MESSAGES = 40;
 const MAX_HISTORY_SENT = 10;
+// Tope del contexto que acepta el servidor (MAX_CONTEXT_CHARS en avatar_views.py y
+// avatar-llm-gateway): más allá lo recorta por la cola.
+const MAX_CONTEXT_CHARS = 8000;
 
 // sessionStorage/localStorage pueden lanzar (modo privado, datos bloqueados): la
 // persistencia es una comodidad, el asistente tiene que funcionar sin ella.
@@ -52,25 +56,43 @@ function saveMode(mode) {
   try { window.localStorage.setItem(MODE_STORAGE_KEY, mode); } catch { /* sin persistencia */ }
 }
 
-function loadMessages(courseId) {
+// El historial vive en localStorage (sobrevive a cerrar la pestaña) y se separa por
+// usuario y curso: en un equipo compartido un alumno no ve la conversación de otro.
+// Vence a los CHAT_TTL_MS sin uso para no acumular conversaciones viejas.
+const CHAT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function chatKey(username, courseId) {
+  return `${CHAT_STORAGE_PREFIX}${username || 'anon'}:${courseId}`;
+}
+
+function loadMessages(username, courseId) {
   if (!courseId) { return []; }
   try {
-    const raw = window.sessionStorage.getItem(`${CHAT_STORAGE_PREFIX}${courseId}`);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed)
-      ? parsed.filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
-      : [];
+    const raw = window.localStorage.getItem(chatKey(username, courseId));
+    const stored = raw ? JSON.parse(raw) : null;
+    if (!stored || !Array.isArray(stored.messages)) { return []; }
+    if (Date.now() - (stored.savedAt || 0) > CHAT_TTL_MS) {
+      window.localStorage.removeItem(chatKey(username, courseId));
+      return [];
+    }
+    return stored.messages.filter(
+      (m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string',
+    );
   } catch {
     return [];
   }
 }
 
-function saveMessages(courseId, messages) {
+function saveMessages(username, courseId, messages) {
   if (!courseId) { return; }
   try {
-    window.sessionStorage.setItem(
-      `${CHAT_STORAGE_PREFIX}${courseId}`,
-      JSON.stringify(messages.slice(-MAX_STORED_MESSAGES)),
+    if (!messages.length) {
+      window.localStorage.removeItem(chatKey(username, courseId));
+      return;
+    }
+    window.localStorage.setItem(
+      chatKey(username, courseId),
+      JSON.stringify({ savedAt: Date.now(), messages: messages.slice(-MAX_STORED_MESSAGES) }),
     );
   } catch { /* sin persistencia */ }
 }
@@ -134,7 +156,7 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   const [lipSyncData, setLipSyncData] = useState(null);
   const [avatarIndex, setAvatarIndex] = useState(0);
   const [mode, setMode] = useState(loadMode);
-  const [messages, setMessages] = useState(() => loadMessages(courseId));
+  const [messages, setMessages] = useState(() => loadMessages(getAuthenticatedUser()?.username, courseId));
   // Ids de los bloques "IA Assistant" evaluados que piden pausar al asistente
   // (ver apps-custom/ia-assistant-plugin, static/student/js/avatar_lock.js).
   const [lockedBy, setLockedBy] = useState([]);
@@ -175,12 +197,25 @@ const AvatarTour = ({ tourName = 'learning' }) => {
 
   // El historial es por curso: al cambiar de curso se carga el suyo.
   useEffect(() => {
-    setMessages(loadMessages(courseId));
-  }, [courseId]);
+    setMessages(loadMessages(username, courseId));
+  }, [username, courseId]);
 
   useEffect(() => {
-    saveMessages(courseId, messages);
-  }, [courseId, messages]);
+    saveMessages(username, courseId, messages);
+  }, [username, courseId, messages]);
+
+  // Texto de la unidad abierta, para el contexto del LLM. Se pide al cambiar de
+  // unidad (con caché por unidad en unitContent.js); mientras llega, o si falla, el
+  // contexto simplemente no lo incluye.
+  const [unitContent, setUnitContent] = useState({ unitId: null, text: '' });
+  useEffect(() => {
+    if (!avatarEnabled || !unitId) { return undefined; }
+    let cancelled = false;
+    getUnitContent(unitId).then((text) => {
+      if (!cancelled) { setUnitContent({ unitId, text }); }
+    });
+    return () => { cancelled = true; };
+  }, [avatarEnabled, unitId]);
 
   // Carga eager (al abrir el curso) del progreso y las fechas para que el
   // avatar tenga todo el contexto listo sin depender de que el estudiante
@@ -494,8 +529,14 @@ const AvatarTour = ({ tourName = 'learning' }) => {
     if (weak.length) {
       lines.push(`Áreas a reforzar (bajo 60%): ${weak.join('; ')}`);
     }
-    return lines.join('\n');
-  }, [course, section, sequence, unit, statsData, outlineData, buildCourseOutline, getDeadlines, getWeakAreas]);
+    // El contenido de la unidad va al final y con su espacio reservado: el servidor
+    // recorta el contexto a MAX_CONTEXT_CHARS por la cola, y el contenido es lo que
+    // permite responder "¿qué dice esto?".
+    const base = lines.join('\n');
+    if (unitContent.unitId !== unitId || !unitContent.text) { return base; }
+    const unitBlock = `\n\nContenido de la unidad actual (lo que el alumno está viendo ahora):\n${unitContent.text}`;
+    return base.slice(0, Math.max(0, MAX_CONTEXT_CHARS - unitBlock.length)) + unitBlock;
+  }, [course, section, sequence, unit, unitId, unitContent, statsData, outlineData, buildCourseOutline, getDeadlines, getWeakAreas]);
 
   // Resumen corto y natural para el saludo proactivo hablado.
   const buildGreeting = useCallback(() => {

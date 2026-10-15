@@ -86,6 +86,13 @@ FICCT_AVATAR = {
     "TTS_SECRET": "{{ AVATAR_TTS_SECRET }}",
     "TTS_TOKEN_THROTTLE_RATE": "{{ AVATAR_TTS_TOKEN_THROTTLE_RATE }}",
 }
+
+# El avatar lee el texto de la unidad que el alumno tiene abierta desde la Course
+# Blocks API (?student_view_data=html,video). Sin este flag el bloque HTML responde
+# solo {"enabled": false}. html_block.py lee settings.FEATURES; el top-level es el
+# nombre documentado del toggle.
+ENABLE_HTML_XBLOCK_STUDENT_VIEW_DATA = True
+FEATURES["ENABLE_HTML_XBLOCK_STUDENT_VIEW_DATA"] = True
 """
     ),
 ])
