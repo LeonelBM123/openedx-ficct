@@ -138,7 +138,13 @@ const AvatarTour = ({ tourName = 'learning' }) => {
   const dispatch = useDispatch();
 
   const sequenceId = useSelector((state) => state.courseware?.sequenceId);
-  const unitId = useSelector((state) => state.courseware?.unitId);
+  // `state.courseware` no guarda la unidad (solo courseId/sequenceId): el id sale de la
+  // URL. Se exige el prefijo de usage key porque /course/:id/progress/:userId calza con
+  // el mismo patrón de 4 segmentos.
+  const liveUnitMatch = useMatch('/course/:courseId/:sequenceId/:unitId');
+  const previewUnitMatch = useMatch('/preview/course/:courseId/:sequenceId/:unitId');
+  const urlUnitId = (liveUnitMatch || previewUnitMatch)?.params?.unitId;
+  const unitId = urlUnitId && urlUnitId.startsWith('block-v1:') ? decodeURIComponent(urlUnitId) : undefined;
   const course = useModel('coursewareMeta', courseId);
   const sequence = useModel('sequences', sequenceId);
   const section = useModel('sections', sequence?.sectionId);
